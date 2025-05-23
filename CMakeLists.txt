@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(Duelike)
+project(VGFrame)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
