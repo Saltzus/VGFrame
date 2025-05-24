@@ -1,35 +1,17 @@
 #include <iostream>
-#include <raylib.h>
 
-#include "Server/Server.h"
+#include <glad/glad.h>
+#include <glm/glm.hpp>
+#include <miniaudio/miniaudio.h>
+#include <json.hpp>
+#include <stb_image.h>
+#include <vulkan/vulkan.hpp>
+#include <GLFW/glfw3.h>
 
 int main() 
 {
-    Server server;
 
-    const int screenWidth = 800;
-    const int screenHeight = 450;
-
-    InitWindow(screenWidth, screenHeight, "raylib [core] example - basic window");
-
-    SetTargetFPS(60); // Miika ei saa poistaa tätä >:(
-
-    // Main game loop
-    while (!WindowShouldClose()) // Detect window close button or ESC key
-    {
-
-        // Draw
-        BeginDrawing();
-
-        ClearBackground(RAYWHITE);
-
-        DrawText("Congrats! You created your first window!", 190, 200, 20, LIGHTGRAY);
-
-        EndDrawing();
-        // end draw
-    }
-
-    CloseWindow(); // Close window and OpenGL context
+    std::cout << "sus";
 
     return 0;
 }
