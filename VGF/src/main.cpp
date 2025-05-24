@@ -10,7 +10,6 @@
 
 int main() 
 {
-
     std::cout << "sus";
 
     return 0;
