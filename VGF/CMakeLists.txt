@@ -6,7 +6,7 @@ file(GLOB_RECURSE CLIENT_FILES
 )
 
 # Create the executable.
-add_executable(VGF ${CLIENT_FILES})
+add_library(VGF STATIC ${CLIENT_FILES})
 
 target_link_libraries(VGF PRIVATE glad glm miniaudio nlohmann_json stb vulkan-1 glfw)
 target_include_directories(VGF PRIVATE ${CORE_LIB_DIR})

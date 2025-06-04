@@ -8,8 +8,10 @@ file(GLOB_RECURSE CLIENT_FILES
 # Create the executable.
 add_executable(HelloWorld ${CLIENT_FILES})
 
-target_link_libraries(HelloWorld PRIVATE glad glm miniaudio nlohmann_json stb vulkan-1 glfw)
-target_include_directories(HelloWorld PRIVATE ${CORE_LIB_DIR})
+target_link_libraries(HelloWorld PRIVATE VGF glad glm miniaudio nlohmann_json stb vulkan-1 glfw)
+target_include_directories(HelloWorld PRIVATE ${CMAKE_SOURCE_DIR}/VGF/src ${CORE_LIB_DIR})
+
+add_dependencies(HelloWorld VGF)
 
 # Function to automatically assign source groups based on folder structure.
 function(assign_source_groups)

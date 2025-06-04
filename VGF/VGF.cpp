@@ -1,0 +1,6 @@
+#include "VGF"
+
+namespace VGF 
+{
+    
+}
