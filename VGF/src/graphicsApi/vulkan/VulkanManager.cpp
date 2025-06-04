@@ -1,9 +1,8 @@
 #include "VulkanManager.h"
 #include "../../Camera.h"
 
-namespace Realgar::Vulkan
+namespace VGF::Vulkan
 {
-    bool Vulkan::editor = false;
     std::vector<VulkanRenderer*> objects;
 
     VulkanTexture::VulkanTexture(const char* filePath)
@@ -81,8 +80,6 @@ namespace Realgar::Vulkan
     }
     VulkanTexture::~VulkanTexture()
     {
-        vkDeviceWaitIdle(Vulkan::vulkan->device);
-
         vkDestroyImage(Vulkan::vulkan->device, textureImage, nullptr);
         vkFreeMemory(Vulkan::vulkan->device, textureImageMemory, nullptr);
     }
@@ -117,18 +114,21 @@ namespace Realgar::Vulkan
         pickPhysicalDevice();
         createLogicalDevice();
         createSwapChain();
-
-        createCommandPool(&commandPool);
-
         createImageViews();
         createRenderPass();
-
         createDescriptorSetLayout();
+        //createGraphicsPipeline("Resources/Shaders/default.vert.spv", "Resources/Shaders/default.frag.spv");
+        createCommandPool();
         createDepthResources();
         createFramebuffers();
-
+        //createTextureImage();
+        //createTextureImageView();
         createTextureSampler();
-
+        //createVertexBuffer();
+        //createIndexBuffer();
+        //createUniformBuffers();
+        //createDescriptorPool();
+        //createDescriptorSets();
         createCommandBuffers();
         createSyncObjects();
     }
@@ -146,7 +146,7 @@ namespace Realgar::Vulkan
             vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
         }
 
-        vkDestroyDescriptorPool(device, guiDescriptorPool, nullptr);
+
         vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
         vkDestroySampler(device, textureSampler, nullptr);
@@ -211,11 +211,10 @@ namespace Realgar::Vulkan
         vkDeviceWaitIdle(device);
 
         cleanupSwapChain();
-        createSwapChain();
 
+        createSwapChain();
         createImageViews();
         createDepthResources();
-
         createFramebuffers();
     }
 
@@ -296,13 +295,13 @@ namespace Realgar::Vulkan
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
-        std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+        std::set<std::string> requiVGFExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
         for (const auto& extension : availableExtensions) {
-            requiredExtensions.erase(extension.extensionName);
+            requiVGFExtensions.erase(extension.extensionName);
         }
 
-        return requiredExtensions.empty();
+        return requiVGFExtensions.empty();
     }
     Vulkan::QueueFamilyIndices Vulkan::findQueueFamilies(VkPhysicalDevice device) {
         QueueFamilyIndices indices;
@@ -381,18 +380,15 @@ namespace Realgar::Vulkan
         createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
         createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-        if (enableValidationLayers) 
-        {
+        if (enableValidationLayers) {
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
             createInfo.ppEnabledLayerNames = validationLayers.data();
         }
-        else 
-        {
+        else {
             createInfo.enabledLayerCount = 0;
         }
 
-        if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) 
-        {
+        if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
             throw std::runtime_error("failed to create logical device!");
         }
 
@@ -400,8 +396,7 @@ namespace Realgar::Vulkan
         vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
     }
 
-    void Vulkan::createSwapChain() 
-    {
+    void Vulkan::createSwapChain() {
         Vulkan::SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
 
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
@@ -409,8 +404,7 @@ namespace Realgar::Vulkan
         VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-        if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) 
-        {
+        if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
             imageCount = swapChainSupport.capabilities.maxImageCount;
         }
 
@@ -428,14 +422,12 @@ namespace Realgar::Vulkan
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
         uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
-        if (indices.graphicsFamily != indices.presentFamily) 
-        {
+        if (indices.graphicsFamily != indices.presentFamily) {
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
             createInfo.queueFamilyIndexCount = 2;
             createInfo.pQueueFamilyIndices = queueFamilyIndices;
         }
-        else 
-        {
+        else {
             createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         }
 
@@ -444,8 +436,7 @@ namespace Realgar::Vulkan
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
 
-        if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) 
-        {
+        if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
             throw std::runtime_error("failed to create swap chain!");
         }
 
@@ -546,7 +537,6 @@ namespace Realgar::Vulkan
             }
         }
     }
-
     void Vulkan::createDescriptorSetLayout() 
     {
         VkDescriptorSetLayoutBinding uboLayoutBinding{};
@@ -625,10 +615,10 @@ namespace Realgar::Vulkan
         return descriptorSets;
     }
 
-    void Vulkan::createGraphicsPipeline(std::string vertexFile, std::string fragmentFile)
+    void Vulkan::createGraphicsPipeline(const char* vertexFile, const char* fragmentFile)
     {
         graphicsPipelines.insert({ {vertexFile, fragmentFile}, VkPipeline() });
-        VulkanGraphicsPipeline pipeline(vertexFile, fragmentFile, device, descriptorSetLayout, renderPass, pipelineLayout, graphicsPipelines[{vertexFile, fragmentFile}]);
+        VulkanGraphicsPipeline sus(vertexFile, fragmentFile, device, descriptorSetLayout, renderPass, pipelineLayout, graphicsPipelines[{vertexFile, fragmentFile}]);
     }
 
     void Vulkan::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) 
@@ -656,6 +646,7 @@ namespace Realgar::Vulkan
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -674,7 +665,7 @@ namespace Realgar::Vulkan
 
         for (VulkanRenderer* object : objects)
         {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines[{object->vertexShader, object->fragmentShader}]);
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines[{object->shader->first, object->shader->second}]);
 
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &object->vertexBuffer_vertexBufferMemory.first, offsets);
             vkCmdBindIndexBuffer(commandBuffer, object->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
@@ -683,21 +674,18 @@ namespace Realgar::Vulkan
 
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &object->descriptorSets[currentFrame], 0, nullptr);
 
-            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(6), 1, 0, 0, 0);
+            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(36), 1, 0, 0, 0);
         }
 
         ubo.clear();
-        objects.clear(); 
 
         vkCmdEndRenderPass(commandBuffer);
 
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
-
     }
-
-    void Vulkan::createCommandPool(VkCommandPool* commandpool) {
+    void Vulkan::createCommandPool() {
         QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
 
         VkCommandPoolCreateInfo poolInfo{};
@@ -705,7 +693,7 @@ namespace Realgar::Vulkan
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
-        if (vkCreateCommandPool(device, &poolInfo, nullptr, commandpool) != VK_SUCCESS) {
+        if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
             throw std::runtime_error("failed to create command pool!");
         }
     }
@@ -750,22 +738,19 @@ namespace Realgar::Vulkan
     void Vulkan::createCommandBuffers() 
     {
         commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-        
+
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = commandPool;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
 
-        if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) 
-        {
+        if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
     }
     void Vulkan::updateUniformBuffer(uint32_t currentImage, VulkanRenderer* object) 
     {
-        float aspectRatio = swapChainExtent.width / (float)swapChainExtent.height;
-        //object->ubo.proj = glm::ortho(2.0f * -aspectRatio, 2.0f * aspectRatio, -2.0f, 2.0f, -1.0f, 10000 / 1.0f);
         object->ubo.proj[1][1] *= -1;
         memcpy(object->uniformBuffers_uniformBuffersMapped.second[currentImage], &object->ubo, sizeof(object->ubo));
     }
@@ -822,18 +807,14 @@ namespace Realgar::Vulkan
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
+        //updateUniformBuffer(currentFrame); /////////////////
+
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
-        vkResetCommandBuffer(commandBuffers[currentFrame], 0);
+        vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
         recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
-
         VkSubmitInfo submitInfo{};
-        std::array<VkCommandBuffer, 2> submitCommandBuffers;
-
-        submitInfo.commandBufferCount = 1;
-        submitCommandBuffers = { commandBuffers[currentFrame] };
-        
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
         VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
@@ -842,7 +823,8 @@ namespace Realgar::Vulkan
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
 
-        submitInfo.pCommandBuffers = submitCommandBuffers.data() ;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
 
         VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
         submitInfo.signalSemaphoreCount = 1;
@@ -874,12 +856,10 @@ namespace Realgar::Vulkan
             throw std::runtime_error("failed to present swap chain image!");
         }
 
-        currentSceneImage = imageIndex;
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
     void Vulkan::createFramebuffers() {
-
         swapChainFramebuffers.resize(swapChainImageViews.size());
 
         for (size_t i = 0; i < swapChainImageViews.size(); i++) {
@@ -902,7 +882,6 @@ namespace Realgar::Vulkan
             }
         }
     }
-
     void Vulkan::createRenderPass() {
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = swapChainImageFormat;
@@ -968,41 +947,20 @@ namespace Realgar::Vulkan
         VkPhysicalDeviceProperties properties{};
         vkGetPhysicalDeviceProperties(physicalDevice, &properties);
 
-        // Normal Sampler
-        //VkSamplerCreateInfo samplerInfo{};
-        //samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        //samplerInfo.magFilter = VK_FILTER_LINEAR;
-        //samplerInfo.minFilter = VK_FILTER_LINEAR;
-        //samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        //samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        //samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        //samplerInfo.anisotropyEnable = VK_TRUE;
-        //samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-        //samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-        //samplerInfo.unnormalizedCoordinates = VK_FALSE;
-        //samplerInfo.compareEnable = VK_FALSE;
-        //samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-        //samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-        // Pixelart Sampler
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = VK_FILTER_NEAREST;
-        samplerInfo.minFilter = VK_FILTER_NEAREST;
+        samplerInfo.magFilter = VK_FILTER_LINEAR;
+        samplerInfo.minFilter = VK_FILTER_LINEAR;
         samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.anisotropyEnable = VK_FALSE;
+        samplerInfo.anisotropyEnable = VK_TRUE;
         samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
         samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
         samplerInfo.unnormalizedCoordinates = VK_FALSE;
         samplerInfo.compareEnable = VK_FALSE;
         samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-        samplerInfo.mipLodBias = 0.0f;
-        samplerInfo.minLod = 0.0f;
-        samplerInfo.maxLod = 0.0f;
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
         if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
             throw std::runtime_error("failed to create texture sampler!");
@@ -1062,39 +1020,8 @@ namespace Realgar::Vulkan
 
         vkBindImageMemory(device, image, imageMemory, 0);
     }
-    void insertImageMemoryBarrier(VkCommandBuffer cmdbuffer,
-        VkImage image,
-        VkAccessFlags srcAccessMask,
-        VkAccessFlags dstAccessMask,
-        VkImageLayout oldImageLayout,
-        VkImageLayout newImageLayout,
-        VkPipelineStageFlags srcStageMask,
-        VkPipelineStageFlags dstStageMask,
-        VkImageSubresourceRange subresourceRange)
-    {
-        VkImageMemoryBarrier imageMemoryBarrier{};
-        imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        imageMemoryBarrier.srcAccessMask = srcAccessMask;
-        imageMemoryBarrier.dstAccessMask = dstAccessMask;
-        imageMemoryBarrier.oldLayout = oldImageLayout;
-        imageMemoryBarrier.newLayout = newImageLayout;
-        imageMemoryBarrier.image = image;
-        imageMemoryBarrier.subresourceRange = subresourceRange;
-
-        vkCmdPipelineBarrier(
-            cmdbuffer,
-            srcStageMask,
-            dstStageMask,
-            0,
-            0, nullptr,
-            0, nullptr,
-            1, &imageMemoryBarrier);
-    }
-    
     void Vulkan::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands(commandPool);
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -1139,10 +1066,10 @@ namespace Realgar::Vulkan
             1, &barrier
         );
 
-        endSingleTimeCommands(commandBuffer, commandPool);
+        endSingleTimeCommands(commandBuffer);
     }
     void Vulkan::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands(commandPool);
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
         VkBufferImageCopy region{};
         region.bufferOffset = 0;
@@ -1161,7 +1088,7 @@ namespace Realgar::Vulkan
 
         vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-        endSingleTimeCommands(commandBuffer, commandPool);
+        endSingleTimeCommands(commandBuffer);
     }
 
     std::pair<VkBuffer, VkDeviceMemory> Vulkan::createVertexBuffer(std::vector<GLfloat>& verticess)
@@ -1231,11 +1158,11 @@ namespace Realgar::Vulkan
         return { uniformBuffers , uniformBuffersMapped };
     }
 
-    VkCommandBuffer Vulkan::beginSingleTimeCommands(const VkCommandPool& cmdPool) {
+    VkCommandBuffer Vulkan::beginSingleTimeCommands() {
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = cmdPool;
+        allocInfo.commandPool = commandPool;
         allocInfo.commandBufferCount = 1;
 
         VkCommandBuffer commandBuffer;
@@ -1249,7 +1176,7 @@ namespace Realgar::Vulkan
 
         return commandBuffer;
     }
-    void Vulkan::endSingleTimeCommands(VkCommandBuffer commandBuffer, const VkCommandPool& cmdPool) {
+    void Vulkan::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
         vkEndCommandBuffer(commandBuffer);
 
         VkSubmitInfo submitInfo{};
@@ -1351,7 +1278,7 @@ namespace Realgar::Vulkan
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
 
-        auto extensions = getRequiredExtensions();
+        auto extensions = getRequiVGFExtensions();
         createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.data();
 
@@ -1391,10 +1318,10 @@ namespace Realgar::Vulkan
         }
     }
 
-    std::vector<const char*> Vulkan::getRequiredExtensions() {
+    std::vector<const char*> Vulkan::getRequiVGFExtensions() {
         uint32_t glfwExtensionCount = 0;
         const char** glfwExtensions;
-        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+        glfwExtensions = glfwGetRequiVGFInstanceExtensions(&glfwExtensionCount);
 
         std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
@@ -1439,7 +1366,6 @@ namespace Realgar::Vulkan
         return VK_FALSE;
     }
 
-
     std::vector<uint16_t> convertIndices(const std::vector<GLuint>& indices) {
         std::vector<uint16_t> converted;
         converted.reserve(indices.size());  // Reserve space for efficiency
@@ -1468,59 +1394,19 @@ namespace Realgar::Vulkan
 
         vulkan->createDescriptorPool();
         descriptorSets = vulkan->createDescriptorSets();
+
+        objects.push_back(this);
     }
 
     VulkanRenderer::~VulkanRenderer()
     {
-
     }
-
+    int sus = 0;
     void VulkanRenderer::Render(Shader* shader, Camera* camera, glm::mat4 model)
     {
         Vulkan* vulkan = Vulkan::vulkan;
 
-        //float aspect = ((float)camera->width / camera->height);
-        if (camera->ortho)
-        {
-            float scale = 0.024f; // or any desired scale factor
-            float target_width = 640.0f * scale;
-            float target_height = 360.0f * scale;
-            float target_aspect = target_width / target_height;
-            float aspect = (float)camera->width / camera->height;
-
-            if (aspect > target_aspect) 
-            {
-                float view_width = target_height * aspect;
-                camera->projection = glm::ortho
-                (
-                    -view_width / 2.0f, view_width / 2.0f,
-                    -target_height / 2.0f, target_height / 2.0f,
-                    camera->nearPlane, camera->farPlane
-                );
-            }
-            else 
-            {
-                float view_height = target_width / aspect;
-                camera->projection = glm::ortho
-                (
-                    -target_width / 2.0f, target_width / 2.0f,
-                    -view_height / 2.0f, view_height / 2.0f,
-                    camera->nearPlane, camera->farPlane
-                );
-            }
-        }
-
-
-
-
-        ubo.model = model;
-        ubo.view = camera->view;
-        ubo.proj = camera->projection;
-        ubo.time = glfwGetTime();
-
         this->shader = &shader->shader;
-        vertexShader = this->shader->first.c_str();
-        fragmentShader = this->shader->second.c_str();
 
         if (lastTexture != vulkan->textureImageView)
         {
@@ -1540,15 +1426,14 @@ namespace Realgar::Vulkan
                 descriptorWrite.descriptorCount = 1;
                 descriptorWrite.pImageInfo = &imageInfo;
 
-                vkQueueWaitIdle(vulkan->graphicsQueue);
                 vkUpdateDescriptorSets(vulkan->device, 1, &descriptorWrite, 0, nullptr);
             }
 
             lastTexture = vulkan->textureImageView;
         }
 
-
-
-        objects.push_back(this);
+        ubo.model = model;
+        ubo.view = camera->view;
+        ubo.proj = camera->projection;
     }
 }

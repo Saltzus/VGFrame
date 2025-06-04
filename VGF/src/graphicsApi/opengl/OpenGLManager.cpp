@@ -1,47 +1,28 @@
 #include "OpenGlManager.h"
 #include "../../Camera.h"
 
-namespace Realgar::Opengl
+namespace VGF::Opengl
 {
-    struct UniformBufferObject {
-        alignas(16) glm::mat4 model;
-        alignas(16) glm::mat4 view;
-        alignas(16) glm::mat4 proj;
-        alignas(16) float time;
-    };
-
-
     OpenglTexture::OpenglTexture(const char* filePath)
     {
         // generate textures
         glGenTextures(1, &texture);
         glBindTexture(GL_TEXTURE_2D, texture);
-
-        // Normal parameters
-        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        // Pixelart parameters
+        // set the texture wrapping parameters
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        // set texture filtering parameters
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         // load image, create texture and generate mipmaps
         int width, height, nrChannels;
-        
         stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
     
         unsigned char* data = stbi_load(filePath, &width, &height, &nrChannels, 0);
-        int format = nrChannels == 4 ? GL_RGBA : GL_RGB;
-
         if (data)
         {
-            glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
             glGenerateMipmap(GL_TEXTURE_2D);
         }
         else std::cout << "Failed to load texture" << std::endl;
@@ -50,6 +31,7 @@ namespace Realgar::Opengl
     }
     OpenglTexture::OpenglTexture(unsigned char* data, int format, int width, int height)
     {
+        glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
 
         switch (format)
@@ -85,7 +67,6 @@ namespace Realgar::Opengl
     }
     OpenglTexture::~OpenglTexture()
     {
-        glDeleteTextures(1, &this->texture);
     }
     void OpenglTexture::Bind()
     {
@@ -95,78 +76,21 @@ namespace Realgar::Opengl
     
 
     GLuint Opengl::UBO = 0;
-    GLuint Opengl::FBO = 0;
-    GLuint Opengl::RBO = 0;
-    GLuint Opengl::framebufferTexture = 0;
-
-    GLFWwindow* Opengl::window = nullptr;
 
     Opengl::Opengl(GLFWwindow* window)
     {
-        this->window = window;
-
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        glGenFramebuffers(1, &FBO);
-        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-
-        glGenTextures(1, &framebufferTexture);
-        glBindTexture(GL_TEXTURE_2D, framebufferTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framebufferTexture, 0);
-
-        glGenRenderbuffers(1, &RBO);
-        glBindRenderbuffer(GL_RENDERBUFFER, RBO);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO);
-
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-            std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
+        
 
         glGenBuffers(1, &UBO);
         glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-        glBufferData(GL_UNIFORM_BUFFER, sizeof(UniformBufferObject), NULL, GL_STATIC_DRAW);
-        glBindBufferRange(GL_UNIFORM_BUFFER, 0, UBO, 0, sizeof(UniformBufferObject));
+        glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 3, NULL, GL_STATIC_DRAW);
+        glBindBufferRange(GL_UNIFORM_BUFFER, 0, UBO, 0, 3 * sizeof(glm::mat4));
     }
     Opengl::~Opengl()
     {
-        glDeleteFramebuffers(1, &FBO);
-        glDeleteTextures(1, &framebufferTexture);
-        glDeleteRenderbuffers(1, &RBO);
-
-        //
-
         glDeleteBuffers(1, &UBO);
         
     }
-
-    void Opengl::RescaleFramebuffer()
-    {
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-
-        glBindTexture(GL_TEXTURE_2D, framebufferTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framebufferTexture, 0);
-
-        glBindRenderbuffer(GL_RENDERBUFFER, RBO);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO);
-    }
-
     int d = 0;
     OpenglRenderer::OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices) : opengl(opengl)
     {
@@ -203,23 +127,27 @@ namespace Realgar::Opengl
         glDeleteBuffers(1, &EBO);
     }
 
+    int i = 0;
+
     void OpenglRenderer::Render(Shader* shader, Camera* camera, glm::mat4 model) 
     {
-        UniformBufferObject ubo;
-        ubo.model = model;
-        ubo.view = camera->view;
-        ubo.proj = camera->projection;
-        ubo.time = glfwGetTime();
+        glm::mat4 matrices[3];
+        matrices[0] = model;
+        matrices[1] = camera->view;
+        matrices[2] = camera->projection;
 
         GLuint blockIndex = glGetUniformBlockIndex(shader->ID(), "UniformBufferObject");
         glUniformBlockBinding(shader->ID(), blockIndex, 0);
 
+        // Update the UBO with matrix data
         glBindBuffer(GL_UNIFORM_BUFFER, Opengl::UBO);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(UniformBufferObject), &ubo);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4) * 3, &matrices[0]);
 
         glUniform1i(glGetUniformLocation(shader->ID(), "texSampler"), 0);
 
+        // Draws the pixel
         glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 6 * 2, GL_UNSIGNED_INT, 0);
+
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
     }
 }

@@ -25,7 +25,7 @@
 #include "../../Window.h"
 #include "VulkanGraphicsPipeline.h"
 
-namespace Realgar::Vulkan
+namespace VGF::Vulkan
 {
 
     class VulkanRenderer;
@@ -34,7 +34,6 @@ namespace Realgar::Vulkan
         alignas(16) glm::mat4 model;
         alignas(16) glm::mat4 view;
         alignas(16) glm::mat4 proj;
-        alignas(16) float time;
     };
 
     class VulkanTexture : public TextureImpl
@@ -62,28 +61,20 @@ namespace Realgar::Vulkan
         static Vulkan* vulkan;
 
         std::vector<UniformBufferObject> ubo;
-        std::vector <VkDescriptorSet> sceneImages;
-
-        int currentSceneImage = 0;
-        static bool editor;
-
-        void addSceneImages();
 
         VkDevice device;
         VkImageView textureImageView;
         VkSampler textureSampler;
-        VkQueue graphicsQueue;
 
-        std::map<std::pair<std::string, std::string>,VkPipeline> graphicsPipelines;
+        std::map<std::pair<const char*, const char*>,VkPipeline> graphicsPipelines;
 
-        VkDescriptorPool guiDescriptorPool;
         VkDescriptorPool descriptorPool;
         std::vector<VkDescriptorSet> descriptorSets;
 
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
         void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
         VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-        void createGraphicsPipeline(std::string vertexFile, std::string fragmentFile);
+        void createGraphicsPipeline(const char* vertexFile, const char* fragmentFile);
 
 
         void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
@@ -100,7 +91,6 @@ namespace Realgar::Vulkan
         uint32_t getCurrentFrame() { return currentFrame; }
 
     private:
-
         GLFWwindow* window;
 
         VkInstance instance;
@@ -109,7 +99,7 @@ namespace Realgar::Vulkan
 
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
-
+        VkQueue graphicsQueue;
         VkQueue presentQueue;
 
         VkSwapchainKHR swapChain;
@@ -143,7 +133,7 @@ namespace Realgar::Vulkan
         std::vector<VkDeviceMemory> uniformBuffersMemory;
         std::vector<void*> uniformBuffersMapped;
 
-        std::vector <VkDeviceMemory> sceneImageMemory;
+
 
         std::vector<VkCommandBuffer> commandBuffers;
 
@@ -183,8 +173,8 @@ namespace Realgar::Vulkan
         void createTextureSampler();
 
 
-        VkCommandBuffer beginSingleTimeCommands(const VkCommandPool& cmdPool);
-        void endSingleTimeCommands(VkCommandBuffer commandBuffer, const VkCommandPool& cmdPool);
+        VkCommandBuffer beginSingleTimeCommands();
+        void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
         void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
@@ -193,7 +183,7 @@ namespace Realgar::Vulkan
         VkShaderModule createShaderModule(const std::vector<char>& code);
 
         void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-        void createCommandPool(VkCommandPool* commandpool);
+        void createCommandPool();
         void createCommandBuffers();
 
         void createDepthResources();
@@ -205,12 +195,11 @@ namespace Realgar::Vulkan
         void createSyncObjects();
 
         void createRenderPass();
-
         void createLogicalDevice();
 
         void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
         void setupDebugMessenger();
-        std::vector<const char*> getRequiredExtensions();
+        std::vector<const char*> getRequiVGFExtensions();
         bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
 
@@ -225,9 +214,7 @@ namespace Realgar::Vulkan
         VulkanRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices);
         ~VulkanRenderer();
 
-        std::pair<std::string, std::string>* shader;
-        const char* vertexShader;
-        const char* fragmentShader;
+        std::pair<const char*, const char*>* shader;
         
         std::pair<VkBuffer, VkDeviceMemory> vertexBuffer_vertexBufferMemory;
         std::pair<VkBuffer, VkDeviceMemory> indexBuffer_indexBufferMemory;

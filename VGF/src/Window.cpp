@@ -1,36 +1,11 @@
 #include "Window.h"
 
-namespace Realgar
+namespace VGF
 {
-	int Window::viewportWidth = 100, Window::viewportHeight = 100;
-	bool Window::editor = false;
-
 
 	Window::~Window()
 	{
 
-	}
-
-
-	void Window::toggleFullscreen(GLFWwindow* window) 
-	{
-		isFullscreen = !isFullscreen;
-
-		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-		const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-
-		if (isFullscreen) {
-			// Save current windowed position/size
-			glfwGetWindowPos(window, &windowedX, &windowedY);
-			glfwGetWindowSize(window, &windowedWidth, &windowedHeight);
-
-			// Switch to fullscreen
-			glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
-		}
-		else {
-			// Restore to windowed mode
-			glfwSetWindowMonitor(window, nullptr, windowedX, windowedY, windowedWidth, windowedHeight, 0);
-		}
 	}
 
 	/// @param WinName = Title of the window
@@ -39,11 +14,8 @@ namespace Realgar
 	/// @param Monitor = The monitor to use for full screen mode, or 'NULL' for windowed mode.
 	/// @param window = Share The window whose context to share resources with, or 'NULL' to not share resources.
 	/// \returns GLFWwindow*
-	Window::Window(const char* WinName, int WinWidth, int WinHeight, bool editorMode, GLFWmonitor* monitor, GLFWwindow* window)
+	Window::Window(const char* WinName, int WinWidth, int WinHeight, GLFWmonitor* monitor, GLFWwindow* window)
 	{
-		this->editor = editorMode;
-		Vulkan::Vulkan::editor = editorMode;
-
 		width = WinWidth;
 		height = WinHeight;
 
@@ -106,7 +78,6 @@ namespace Realgar
 		}
 	}
 
-	bool f11Pressed = false;
 	void Window::Display()
 	{
 		glfwSwapBuffers(GLFW_Window);
@@ -119,14 +90,6 @@ namespace Realgar
 		{
 			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		}
-
-		if (glfwGetKey(GLFW_Window, GLFW_KEY_F11) == GLFW_PRESS && !f11Pressed) {
-			toggleFullscreen(GLFW_Window);
-			f11Pressed = true;
-		}
-		if (glfwGetKey(GLFW_Window, GLFW_KEY_F11) == GLFW_RELEASE) {
-			f11Pressed = false;
 		}
 	}
 

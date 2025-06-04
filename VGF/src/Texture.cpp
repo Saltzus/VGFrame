@@ -1,21 +1,19 @@
 #include "Texture.h"
 
-namespace Realgar
+namespace VGF
 {
     Texture::Texture(const char* filePath)
     {
-        path = filePath;
-
         switch (Renderer::GetGraphicsApi())
         {
         case GraphicsApis::OpenGL:
-            this->impl = new Realgar::Opengl::OpenglTexture(filePath);
+            this->impl = new VGF::Opengl::OpenglTexture(filePath);
             break;
         case GraphicsApis::Vulkan:
-            this->impl = new Realgar::Vulkan::VulkanTexture(filePath);
+            this->impl = new VGF::Vulkan::VulkanTexture(filePath);
             break;
         default:
-            this->impl = new Realgar::Opengl::OpenglTexture(filePath);
+            this->impl = new VGF::Opengl::OpenglTexture(filePath);
             break;
         }
     }
@@ -24,20 +22,20 @@ namespace Realgar
         switch (Renderer::GetGraphicsApi())
         {
         case GraphicsApis::OpenGL:
-            this->impl = new Realgar::Opengl::OpenglTexture(data, format, width, height);
+            this->impl = new VGF::Opengl::OpenglTexture(data, format, width, height);
             break;
         case GraphicsApis::Vulkan:
-            this->impl = new Realgar::Vulkan::VulkanTexture(data, format, width, height);
+            this->impl = new VGF::Vulkan::VulkanTexture(data, format, width, height);
             break;
         default:
-            this->impl = new Realgar::Opengl::OpenglTexture(data, format, width, height);
+            this->impl = new VGF::Opengl::OpenglTexture(data, format, width, height);
             break;
         }
     }
     
     Texture::~Texture()
     {
-        delete impl;
+        delete this->impl;
     }
 
     void Texture::Bind()
@@ -47,7 +45,7 @@ namespace Realgar
 
     Texture* Texture::GetDefaultTexture()
     {
-        static Texture* DEFAULT_TEXTURE = new Texture(Realgar::FileManager::getResource("Textures/PixelText.png"));
+        static Texture* DEFAULT_TEXTURE = new Texture("../../../Examples/HelloWorld/Textures/PixelText.png");
         return DEFAULT_TEXTURE;
     }
 }

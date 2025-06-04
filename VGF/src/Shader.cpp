@@ -3,22 +3,22 @@
 #include "graphicsApi/opengl/OpenglShader.h"
 #include "graphicsApi/vulkan/VulkanShader.h"
 
-namespace Realgar
+namespace VGF
 {
-    Shader::Shader(std::string vertexFile, std::string fragmentFile)
+    Shader::Shader(const char* vertexFile, const char* fragmentFile) 
     {
         shader = { vertexFile, fragmentFile };
 
         switch (Renderer::GetGraphicsApi())
         {
         case GraphicsApis::OpenGL:
-            this->impl = new Realgar::Opengl::OpenglShader(vertexFile, fragmentFile);
+            this->impl = new VGF::Opengl::OpenglShader(vertexFile, fragmentFile);
             break;
         case GraphicsApis::Vulkan:
-            this->impl = new Realgar::Vulkan::VulkanShader(vertexFile, fragmentFile);
+            this->impl = new VGF::Vulkan::VulkanShader(vertexFile, fragmentFile);
             break;
         default:
-            this->impl = new Realgar::Opengl::OpenglShader(vertexFile, fragmentFile);
+            this->impl = new VGF::Opengl::OpenglShader(vertexFile, fragmentFile);
             break;
         }
     }

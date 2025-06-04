@@ -1,22 +1,22 @@
 #include "Renderer.h"
 
-namespace Realgar
+namespace VGF
 {
     ApiImpl* Renderer::Api = nullptr;
-    const GraphicsApis Renderer::graphicApi = GraphicsApis::Vulkan;
+    const GraphicsApis Renderer::graphicApi = GraphicsApis::OpenGL;
 
     Renderer::Renderer(std::vector<unsigned int>& indices, std::vector<float>& vertices)
     {
         switch (this->graphicApi)
         {
         case GraphicsApis::OpenGL:
-            this->impl = new Realgar::Opengl::OpenglRenderer(indices, vertices);
+            this->impl = new VGF::Opengl::OpenglRenderer(indices, vertices);
             break;
         case GraphicsApis::Vulkan:
-            this->impl = new Realgar::Vulkan::VulkanRenderer(indices, vertices);
+            this->impl = new VGF::Vulkan::VulkanRenderer(indices, vertices);
             break;
         default:
-            this->impl = new Realgar::Opengl::OpenglRenderer(indices, vertices);
+            this->impl = new VGF::Opengl::OpenglRenderer(indices, vertices);
             break;
         }
     }
@@ -36,13 +36,13 @@ namespace Realgar
         switch (graphicApi)
         {
         case GraphicsApis::OpenGL:
-            Api = new Realgar::Opengl::Opengl(window);
+            Api = new VGF::Opengl::Opengl(window);
             break;
         case GraphicsApis::Vulkan:
-            Api = new Realgar::Vulkan::Vulkan(window);
+            Api = new VGF::Vulkan::Vulkan(window);
             break;
         default:
-            Api = new Realgar::Opengl::Opengl(window);
+            Api = new VGF::Opengl::Opengl(window);
             break;
         }
     }

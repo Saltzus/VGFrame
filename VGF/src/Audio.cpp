@@ -1,20 +1,44 @@
 #include "Audio.h"
 
-namespace Realgar
-{
-    Audio::Audio(std::string path, bool spatialized) : path(path), spatialized(spatialized)
-    {
-        ma_uint32 flags = !spatialized ? MA_SOUND_FLAG_NO_SPATIALIZATION : 0;
+void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount);
 
-        result = ma_sound_init_from_file(engine, path.c_str(), flags, NULL, NULL, &sound);
+namespace VGF
+{
+    Audio::Audio()
+    {
+        result = ma_engine_init(NULL, &engine);
         if (result != MA_SUCCESS) {
-            printf("Failed to load sound file.\n");
-            ma_engine_uninit(engine);
+            printf("Could not init engine! \n");
         }
     }
-
+    
     Audio::~Audio()
     {
-        ma_sound_uninit(&sound);
+        ma_engine_uninit(&engine);
+    }  
+
+    void Audio::PlayAudio(const char* audioFile)
+    {
+        ma_result resultt;
+        ma_sound sound;
+
+        resultt = ma_sound_init_from_file(&engine, audioFile, 0, NULL, NULL, &sound);
+        if (resultt != MA_SUCCESS) {
+            printf("Could not init audio file\n");
+        }
+
+        ma_sound_start(&sound);
     }
+
+
+} 
+
+void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
+{
+    ma_decoder* pDecoder = (ma_decoder*)pDevice->pUserData;
+    if (pDecoder == NULL) {
+        return;
+    }
+    ma_decoder_read_pcm_frames(pDecoder, pOutput, frameCount, NULL);
+    (void)pInput;
 }

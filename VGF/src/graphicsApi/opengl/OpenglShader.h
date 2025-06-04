@@ -12,12 +12,12 @@
 
 std::string get_file_contents(const char* filename);
 
-namespace Realgar::Opengl
+namespace VGF::Opengl
 {
     class OpenglShader : public ShaderImpl
     {
     public:
-        OpenglShader(std::string vertexFile, std::string fragmentFile);
+        OpenglShader(const char* vertexFile, const char* fragmentFile);
 
         void Activate() override;
         void Delete() override;

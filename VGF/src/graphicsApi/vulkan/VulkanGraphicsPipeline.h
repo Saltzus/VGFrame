@@ -10,12 +10,12 @@
 #include <vulkan/vulkan.hpp>
 #include "VulkanVertex.h"
 
-namespace Realgar::Vulkan
+namespace VGF::Vulkan
 {
     class VulkanGraphicsPipeline
     {
     public:
-        VulkanGraphicsPipeline(std::string vertexFile, std::string fragmentFile, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline);
+        VulkanGraphicsPipeline(const char* vertexFile, const char* fragmentFile, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline);
 
         void Bind();
         void Delete();

@@ -11,12 +11,12 @@
 
 std::string get_file_contents(const char* filename);
 
-namespace Realgar::Vulkan
+namespace VGF::Vulkan
 {
     class VulkanShader : public ShaderImpl
     {
     public:
-        VulkanShader(std::string vertexFile, std::string fragmentFile);
+        VulkanShader(const char* vertexFile, const char* fragmentFile);
 
         void Activate() override;
         void Delete() override;

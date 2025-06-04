@@ -12,7 +12,7 @@
 
 #include "Shader.h"
 
-namespace Realgar
+namespace VGF
 {
     class Camera
     {
@@ -26,26 +26,20 @@ namespace Realgar
         glm::mat4 view = glm::mat4(1.0f);
         glm::mat4 projection = glm::mat4(1.0f);
 
-        glm::vec3 cameraRotation;
-
     	int width;
     	int height;
 
-        float fov;
-        float nearPlane;
-        float farPlane;
-        bool ortho;
+    	float speed = 1.f;
+    	float sensitivity = 100.0f;
 
-    	Camera(glm::vec3 position, glm::vec3 rotation, float fov,  float nearPlane, float farPlane, bool ortho);
+    	Camera(int width, int height, glm::vec3 position);
 
-    	void updateMatrix(GLFWwindow* window);
+    	void updateMatrix(float FOVdeg, float nearPlane, float farPlane, bool ortho = false);
     	void Matrix(Shader& shader, const char* uniform);
 
     private:
     	bool perspective;
     	bool perspectiveCheck = false;
-
-        glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
     };
 
 }

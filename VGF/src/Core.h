@@ -6,10 +6,8 @@
 #include "Input.h"
 #include "Renderer.h"
 #include "Sprite.h"
-#include "AudioSystem.h"
 #include "Audio.h"
-#include "FileManager.h"
 
-namespace VGF {
+namespace RED {
 	
 }

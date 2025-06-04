@@ -9,25 +9,25 @@
 #include <vector>
 
 #include "Renderer.h"
-#include "FileManager.h"
 
 class ShaderImpl;
 
 std::string get_file_contents(const char* filename);
 
-namespace Realgar
+namespace VGF
 {
     class Shader
     {
+    private:
+        ShaderImpl* impl = nullptr;
     public:
-        std::pair<std::string, std::string> shader = { FileManager::getResource("Shaders/default.vert"), FileManager::getResource("Shaders/default.frag") };
 
-        Shader(std::string vertexFile, std::string fragmentFile);
+        std::pair<const char*, const char*> shader = { "Resources/Shaders/default.vert.spv", "Resources/Shaders/default.frag.spv" };
+
+        Shader(const char* vertexFile, const char* fragmentFile);
         ~Shader();
         void Activate();
         void Delete();
         unsigned int& ID();
-    private:
-        ShaderImpl* impl = nullptr;
     };
 }

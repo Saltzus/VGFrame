@@ -3,7 +3,7 @@
 #include "RenderImpl.h"
 #include "Renderer.h"
 
-namespace Realgar
+namespace VGF
 {
     class Texture
     {
@@ -14,8 +14,6 @@ namespace Realgar
         Texture(unsigned char* data, int format, int width, int height);
         ~Texture();
         void virtual Bind();
-
-        std::string path = "null";
 
         static Texture* GetDefaultTexture();
     };

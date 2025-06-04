@@ -1,7 +1,7 @@
 #include "VulkanShader.h"
 #include "VulkanManager.h"
 
-namespace Realgar::Vulkan
+namespace VGF::Vulkan
 {
 
 	// Reads a text file and outputs a string with everything in the text file
@@ -22,7 +22,7 @@ namespace Realgar::Vulkan
 	}
 
 	// Constructor that build the Shader Program from 2 different shaders
-	VulkanShader::VulkanShader(std::string vertexFile, std::string fragmentFile)
+	VulkanShader::VulkanShader(const char* vertexFile, const char* fragmentFile)
 	{
 		Vulkan::vulkan->createGraphicsPipeline(vertexFile, fragmentFile);
 	}
