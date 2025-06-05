@@ -1278,7 +1278,7 @@ namespace VGF::Vulkan
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
 
-        auto extensions = getRequiVGFExtensions();
+        auto extensions = getRequiredExtensions();
         createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.data();
 
@@ -1318,10 +1318,10 @@ namespace VGF::Vulkan
         }
     }
 
-    std::vector<const char*> Vulkan::getRequiVGFExtensions() {
+    std::vector<const char*> Vulkan::getRequiredExtensions() {
         uint32_t glfwExtensionCount = 0;
         const char** glfwExtensions;
-        glfwExtensions = glfwGetRequiVGFInstanceExtensions(&glfwExtensionCount);
+        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
         std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
