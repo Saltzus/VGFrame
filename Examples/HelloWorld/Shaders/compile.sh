@@ -3,7 +3,7 @@ set -e
 
 for F in *.vert *.frag *.comp *.geom *.tesc *.tese; do
     echo "Compiling $F..."
-    "../../../RedEngine/Libraries/vulkan/Bin/glslc" "$F" -o "$F.spv"
+    "../../../Libraries/vulkan/Bin/glslc" "$F" -o "$F.spv"
 done
 
 echo "Done!"

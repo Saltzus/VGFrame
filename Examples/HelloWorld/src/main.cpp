@@ -38,7 +38,7 @@ int main(int argc, char** argv)
         sprite.scale = glm::vec3(1, 1, 1);
         sprite.rotation.y = time * 180.0f;
         sprite.rotation.x = 45;
-        sprite.translation = { 2, 0, -1 };
+        sprite.translation = { glm::sin(time) + 2, glm::cos(time), -1 };
         sprite.texture = texture;
 
         sprite.Render(&defaultShader, &camera);
@@ -46,7 +46,7 @@ int main(int argc, char** argv)
         sprite1.scale = glm::vec3(1, 1, 1);
         sprite1.rotation.y = time * 180.0f;
         sprite1.rotation.x = 45;
-        sprite1.translation = { -2, 0, -1 };
+        sprite1.translation = { glm::sin(-time) - 2, glm::cos(-time), -1 };
         //sprite1.texture = texture;
 
         sprite1.Render(&defaultShader, &camera);
