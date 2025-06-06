@@ -8,7 +8,32 @@ file(GLOB_RECURSE CLIENT_FILES
 # Create the executable.
 add_library(VGF STATIC ${CLIENT_FILES})
 
-target_link_libraries(VGF PRIVATE glad glm miniaudio nlohmann_json stb vulkan-1 glfw)
+target_link_libraries(VGF
+  PRIVATE
+    glad
+    glm
+    miniaudio
+    nlohmann_json
+    stb
+    vulkan-1
+    glfw
+)
+
+target_link_libraries(VGF
+  PRIVATE
+    LinearMath
+    BulletCollision
+    BulletDynamics
+    BulletSoftBody
+    Bullet2FileLoader
+    Bullet3Collision
+    Bullet3Common
+    Bullet3Dynamics
+    Bullet3Geometry
+    Bullet3OpenCL_clew
+    BulletInverseDynamics
+)
+
 target_include_directories(VGF PRIVATE ${CORE_LIB_DIR})
 
 # Function to automatically assign source groups based on folder structure.

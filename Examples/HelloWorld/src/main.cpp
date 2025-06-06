@@ -35,7 +35,7 @@ int main(int argc, char** argv)
         camera.updateMatrix(45.0f, 0.01f, 10000.0f, true);
 
 
-        sprite.scale = glm::vec3(1, 1, 1);
+        sprite.scale = { glm::sin(time) + 2, glm::cos(time), -1 };
         sprite.rotation.y = time * 180.0f;
         sprite.rotation.x = 45;
         sprite.translation = { glm::sin(time) + 2, glm::cos(time), -1 };
@@ -43,7 +43,7 @@ int main(int argc, char** argv)
 
         sprite.Render(&defaultShader, &camera);
 
-        sprite1.scale = glm::vec3(1, 1, 1);
+        sprite1.scale = { glm::sin(time) + 2, glm::cos(time), -1 };
         sprite1.rotation.y = time * 180.0f;
         sprite1.rotation.x = 45;
         sprite1.translation = { glm::sin(-time) - 2, glm::cos(-time), -1 };

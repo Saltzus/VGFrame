@@ -9,6 +9,22 @@ file(GLOB_RECURSE CLIENT_FILES
 add_executable(HelloWorld ${CLIENT_FILES})
 
 target_link_libraries(HelloWorld PRIVATE VGF glad glm miniaudio nlohmann_json stb vulkan-1 glfw)
+
+target_link_libraries(HelloWorld
+  PRIVATE
+    LinearMath
+    BulletCollision
+    BulletDynamics
+    BulletSoftBody
+    Bullet2FileLoader
+    Bullet3Collision
+    Bullet3Common
+    Bullet3Dynamics
+    Bullet3Geometry
+    Bullet3OpenCL_clew
+    BulletInverseDynamics
+)
+
 target_include_directories(HelloWorld PRIVATE ${CMAKE_SOURCE_DIR}/VGF/src ${CORE_LIB_DIR})
 
 add_dependencies(HelloWorld VGF)

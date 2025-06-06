@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.5)
 project(VGFrame)
 
 # Set C++ standard
@@ -41,14 +41,48 @@ FetchContent_Declare(
   GIT_TAG        3.3.8  # Use the version you want
 )
 
-
 FetchContent_MakeAvailable(glfw)
+
+# Disable GLFW extras before fetching the content
+set(BUILD_SHARED_LIBS           OFF CACHE BOOL "" FORCE)
+set(BUILD_UNIT_TESTS            OFF CACHE BOOL "" FORCE)
+set(BUILD_EXTRAS                OFF CACHE BOOL "" FORCE)
+set(BUILD_BULLET2_DEMOS         OFF CACHE BOOL "" FORCE)
+set(BUILD_CPU_DEMOS             OFF CACHE BOOL "" FORCE)
+set(BUILD_OPENGL3_DEMOS         OFF CACHE BOOL "" FORCE)
+set(BUILD_COLLISION_EXAMPLES    OFF CACHE BOOL "" FORCE)
+set(BUILD_CLSOCKET_EXAMPLE      OFF CACHE BOOL "" FORCE)      # if present in this tag
+set(BUILD_PYBULLET              OFF CACHE BOOL "" FORCE)      # if you don’t need Python bindings
+set(INSTALL_EXTRA_LIBS          OFF CACHE BOOL "" FORCE)      # skip installing helper libs
+
+FetchContent_Declare(
+  bullet
+  GIT_REPOSITORY https://github.com/bulletphysics/bullet3.git
+  GIT_COMMIT        d1a4256b3a019117f2bb6cb8c63d6367aaf512e2 // commit where cmake updated to 3.5
+)
+
+FetchContent_MakeAvailable(bullet)
+
+
+
+if(TARGET BulletDynamics)
+  foreach(_t IN ITEMS BulletDynamics BulletCollision BulletSoftBody LinearMath)
+    target_include_directories(${_t} INTERFACE
+      "${bullet_SOURCE_DIR}/src"
+      "${bullet_SOURCE_DIR}/src/BulletCollision"
+      "${bullet_SOURCE_DIR}/src/BulletDynamics"
+      "${bullet_SOURCE_DIR}/src/BulletSoftBody"
+      "${bullet_SOURCE_DIR}/src/LinearMath"
+    )
+  endforeach()
+endif()
 
 set_target_properties(glad glfw PROPERTIES FOLDER "3rd-party")
 
+set_target_properties(LinearMath BulletCollision BulletDynamics BulletSoftBody Bullet2FileLoader 
+                      Bullet3Collision Bullet3Common Bullet3Dynamics Bullet3Geometry Bullet3OpenCL_clew BulletInverseDynamics PROPERTIES FOLDER "3rd-party/bullet3")
 
 # Subdirectories
-
 add_subdirectory(VGF)
 
 add_subdirectory(Examples/HelloWorld)

@@ -8,6 +8,8 @@
 #include "Sprite.h"
 #include "Audio.h"
 
+#include "btBulletCollisionCommon.h"
+
 namespace RED {
 	
 }
