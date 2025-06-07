@@ -5,13 +5,13 @@
 
 namespace VGF
 {
-    class Sprite
+    class Object
     {
     public:
-        Sprite(GLFWwindow* window);
-        ~Sprite();
+        Object(GLFWwindow* window);
+        ~Object();
 
-        void Render(Shader* shader, Camera* camera, glm::mat4 model = glm::mat4(1.0f));
+        virtual void Render(Shader* shader, Camera* camera, glm::mat4 model = glm::mat4(1.0f));
 
 		Texture* texture;  
 
@@ -20,9 +20,11 @@ namespace VGF
 	    glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 	    glm::vec3 scale = glm::vec3(0.7f, 0.7f, 0.7f);
 
-    private:
+    protected:
         Renderer* renderer;
 
+    private:
+       
         std::vector<GLfloat> vertices = {
             // Positions            // Colors         // Texture Coords
             // Front face (Z = -0.5)

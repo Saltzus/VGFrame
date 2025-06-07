@@ -5,11 +5,12 @@
 #include "Camera.h"
 #include "Input.h"
 #include "Renderer.h"
-#include "Sprite.h"
+#include "Object.h"
+#include "PhysicsObject.h"
 #include "Audio.h"
 
-#include "btBulletCollisionCommon.h"
+#include "Physics.h"
 
-namespace RED {
+namespace VGF {
 	
 }

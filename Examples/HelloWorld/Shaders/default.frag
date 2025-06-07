@@ -14,8 +14,8 @@ void main() {
     // Use position to create a gradient
     //vec3 color = vec3(fragPos.x / 800.0, fragPos.y / 600.0, 0.5); // Assuming 800x600 viewport
 
-    //outColor = /*texture(texSampler, fragTexCoord) * */vec4(color, 1.0);;
+    outColor = texture(texSampler, fragTexCoord);
 
-    vec3 color = fragObjPos * 0.5 + 0.5; // Normalize to [0,1] range
-    outColor = vec4(color, 1.0);
+    //vec3 color = fragObjPos * 0.5 + 0.5; // Normalize to [0,1] range
+    //outColor = vec4(color, 1.0);
 }

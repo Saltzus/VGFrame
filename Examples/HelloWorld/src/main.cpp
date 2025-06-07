@@ -15,49 +15,51 @@ int main(int argc, char** argv)
     VGF::Texture* texture = new VGF::Texture("../../../Examples/HelloWorld/Textures/PixelText.png");
 
 
-    VGF::Camera camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.f, 0.f, -8.f)); // TODO : add camera shader
+    VGF::Physics physics;
+    VGF::Camera camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.f, 3.f, -40.f)); // TODO : add camera shader
 
-    VGF::Sprite sprite(window);
-    VGF::Sprite sprite1(window);
+    VGF::PhysicsObject groundObject(window, &physics, {0,-56,0}, {50,50,50}, 0.f);
+    
+    std::vector<VGF::PhysicsObject*> objects;
 
+    for (size_t i = 0; i < 25; i++)
+    {
+        objects.push_back(new VGF::PhysicsObject(window, &physics, { (btScalar)glm::sin(i), 120, (btScalar)glm::cos(i)}, {2,2,2}, 1.f));
+    }
 
+    btAlignedObjectArray<btRigidBody*> bodies = physics.dynamicsWorld->getNonStaticRigidBodies();
 
     VGF::Audio audio;
     audio.PlayAudio("../../../Examples/HelloWorld/Audio/BIG-Trouble.ogg");
 
+    double delta_time = 0.0f;
+    double last_frame = 0.0f;
+
     while (!glfwWindowShouldClose(window))
     {
-        static auto startTime = std::chrono::high_resolution_clock::now();
+        double current_frame = glfwGetTime();
+        delta_time = current_frame - last_frame;
+        last_frame = current_frame;
 
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-        camera.updateMatrix(45.0f, 0.01f, 10000.0f, true);
-
-
-        sprite.scale = { glm::sin(time) + 2, glm::cos(time), -1 };
-        sprite.rotation.y = time * 180.0f;
-        sprite.rotation.x = 45;
-        sprite.translation = { glm::sin(time) + 2, glm::cos(time), -1 };
-        sprite.texture = texture;
-
-        sprite.Render(&defaultShader, &camera);
-
-        sprite1.scale = { glm::sin(time) + 2, glm::cos(time), -1 };
-        sprite1.rotation.y = time * 180.0f;
-        sprite1.rotation.x = 45;
-        sprite1.translation = { glm::sin(-time) - 2, glm::cos(-time), -1 };
-        //sprite1.texture = texture;
-
-        sprite1.Render(&defaultShader, &camera);
+        camera.updateMatrix(45.0f, 0.01f, 10000.0f);
+        camera.Inputs(window, delta_time);
 
 
+        groundObject.Render(&defaultShader, &camera);
+
+        for (auto object : objects)
+            object->Render(&defaultShader, &camera);
+
+        physics.Update(delta_time);
 
         VGF::Input::processInput(window);
 
         VGF::Renderer::RenderGraphics();
         window.Display();
     }
+
+    for (auto object : objects)
+        delete object;
 
     glfwTerminate();
     return 0;

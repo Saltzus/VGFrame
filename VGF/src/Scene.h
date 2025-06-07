@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Sprite.h"
+#include "Object.h"
 
-namespace RED
+namespace VGF
 {
     class Scene
     {

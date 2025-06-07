@@ -1,22 +1,22 @@
-#include "Sprite.h"
+#include "Object.h"
 
 namespace VGF
 {
     
 
-    Sprite::Sprite(GLFWwindow* window)
+    Object::Object(GLFWwindow* window)
     {
         texture = Texture::GetDefaultTexture();
         this->renderer = new Renderer(indices, vertices);
     }
     
-    Sprite::~Sprite()
+    Object::~Object()
     {
         delete this->renderer;
         delete this->texture;
     }
 
-    void Sprite::Render(Shader* shader, Camera* camera, glm::mat4 model)
+    void Object::Render(Shader* shader, Camera* camera, glm::mat4 model)
     {
         shader->Activate();  
         texture->Bind();

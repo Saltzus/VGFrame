@@ -1,6 +1,6 @@
 #include "Text.h"
 
-namespace RED
+namespace VGF
 {
     Text::Text()
     {
