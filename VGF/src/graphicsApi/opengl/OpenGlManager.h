@@ -56,6 +56,8 @@ namespace VGF::Opengl
     private:
         Opengl& opengl;
 
+        int indicesSize;
+
         GLuint VAO;
 	    GLuint VBO;
     	GLuint EBO;

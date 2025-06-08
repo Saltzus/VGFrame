@@ -711,11 +711,11 @@ namespace VGF::Vulkan
             updateUniformBuffer(currentFrame, object);
 
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &object->descriptorSets[currentFrame], 0, nullptr);
-
-            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(36), 1, 0, 0, 0);
+            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object->indicesSize), 1, 0, 0, 0);
         }
 
         ubo.clear();
+        objects.clear();
 
         vkCmdEndRenderPass(commandBuffer);
 
@@ -1433,7 +1433,7 @@ namespace VGF::Vulkan
         vulkan->createDescriptorPool();
         descriptorSets = vulkan->createDescriptorSets();
 
-        objects.push_back(this);
+        indicesSize = indices.size();
     }
 
     VulkanRenderer::~VulkanRenderer()
@@ -1476,5 +1476,7 @@ namespace VGF::Vulkan
         ubo.model = model;
         ubo.view = camera->view;
         ubo.proj = camera->projection;
+
+        objects.push_back(this);
     }
 }

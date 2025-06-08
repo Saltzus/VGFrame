@@ -22,6 +22,16 @@ namespace VGF
 
 		dynamicsWorld->setGravity(btVector3(0, -10, 0));
 
+		debug = new PhysicsDebugDraw();
+		dynamicsWorld->setDebugDrawer(debug);
+
+		linePipeline = VGF::PipelineConfig
+		(
+			"../../../Examples/HelloWorld/Shaders/debug.vert",
+			"../../../Examples/HelloWorld/Shaders/debug.frag",
+			VGF::Topology::LINE_LIST
+		);
+
 	}
 
 	void Physics::Update(double delta_time)
@@ -57,5 +67,22 @@ namespace VGF
 		delete overlappingPairCache;
 		delete solver;
 		delete dynamicsWorld;
+
+		delete debug;
+	}
+
+	VGF::Renderer* lines;
+
+	void Physics::debugRender(Camera* camera)
+	{
+		delete lines;
+
+		debug->indices.clear();
+		debug->vertices.clear();
+
+		dynamicsWorld->debugDrawWorld();
+
+		lines = new VGF::Renderer(debug->indices, debug->vertices);
+		lines->Render(linePipeline, camera);
 	}
 }

@@ -3,7 +3,7 @@
 namespace VGF
 {
     
-    PhysicsObject::PhysicsObject(GLFWwindow* window, Physics* physics, btVector3 origin, btVector3 size, btScalar mass) : Object(window)
+    PhysicsObject::PhysicsObject(Physics* physics, btVector3 origin, btVector3 size, btScalar mass) : Object()
     {
         collisionShape = new btBoxShape(btVector3(size / 2));
 

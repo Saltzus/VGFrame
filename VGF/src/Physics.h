@@ -1,6 +1,7 @@
 #pragma once
 
 #include <btBulletDynamicsCommon.h>
+#include "PhysicsDebugDraw.h"
 
 namespace VGF
 {
@@ -11,7 +12,9 @@ namespace VGF
 		~Physics();
 
 		void Update(double delta_time);
+		void debugRender(Camera* camera);
 
+		PhysicsDebugDraw* debug;
 		btDiscreteDynamicsWorld* dynamicsWorld;
 		btAlignedObjectArray<btCollisionShape*> collisionShapes;
 	private:
@@ -21,9 +24,8 @@ namespace VGF
 		btCollisionDispatcher* dispatcher;
 		btBroadphaseInterface* overlappingPairCache;
 		btSequentialImpulseConstraintSolver* solver;
-		
 
-		
+		VGF::PipelineConfig linePipeline;
 	};
 }
 

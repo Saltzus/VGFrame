@@ -30,7 +30,7 @@ namespace VGF
 
 	PipelineConfig::~PipelineConfig()
 	{
-
+		this->impl->Delete();
 	}
 
 	void PipelineConfig::Activate()

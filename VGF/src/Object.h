@@ -8,7 +8,7 @@ namespace VGF
     class Object
     {
     public:
-        Object(GLFWwindow* window);
+        Object();
         ~Object();
 
         virtual void Render(PipelineConfig config, Camera* camera, glm::mat4 model = glm::mat4(1.0f));
@@ -21,11 +21,6 @@ namespace VGF
 	    glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 	    glm::vec3 scale = glm::vec3(0.7f, 0.7f, 0.7f);
 
-    protected:
-        Renderer* renderer;
-
-    private:
-       
         std::vector<GLfloat> vertices = {
             // Positions            // Colors         // Texture Coords
             // Front face (Z = -0.5)
@@ -90,6 +85,13 @@ namespace VGF
             20, 21, 23,
             21, 22, 23
         };
+
+    protected:
+        Renderer* renderer;
+
+    private:
+       
+
     };
     
 } 

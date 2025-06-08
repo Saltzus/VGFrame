@@ -4,7 +4,7 @@ namespace VGF
 {
     
 
-    Object::Object(GLFWwindow* window)
+    Object::Object()
     {
         texture = Texture::GetDefaultTexture();
         this->renderer = new Renderer(indices, vertices);
@@ -21,7 +21,9 @@ namespace VGF
         pipelineConfig = config;
 
         config.Activate();
-        texture->Bind();
+
+        if (texture != nullptr)
+            texture->Bind();
 
         model = glm::translate(model, translation);
 

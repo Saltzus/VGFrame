@@ -17,27 +17,14 @@ int main(int argc, char** argv)
         VGF::Topology::TRIANGLE_LIST
     );
 
-    VGF::PipelineConfig linePipeline
-    (
-        "../../../Examples/HelloWorld/Shaders/default.vert",
-        "../../../Examples/HelloWorld/Shaders/default.frag",
-        VGF::Topology::LINE_LIST
-    );
-
     VGF::Texture* texture = new VGF::Texture("../../../Examples/HelloWorld/Textures/PixelText.png");
 
 
     VGF::Physics physics;
     VGF::Camera camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.f, 3.f, -40.f)); // TODO : add camera shader
 
-    VGF::PhysicsObject groundObject(window, &physics, {0,-56,0}, {50,50,50}, 0.f);
-    
-    std::vector<VGF::PhysicsObject*> objects;
-
-    for (size_t i = 0; i < 1000; i++)
-    {
-        objects.push_back(new VGF::PhysicsObject(window, &physics, { (btScalar)glm::sin(i) * 20, 10, (btScalar)glm::cos(i) * 20}, {2,2,2}, 1.f));
-    }
+    VGF::PhysicsObject groundObject(&physics, { 0,-56,0 }, { 50,50,50 }, 0.f);
+    VGF::PhysicsObject physicsObject(&physics, {0,5,0}, {2,2,2}, 1.f);
 
     btAlignedObjectArray<btRigidBody*> bodies = physics.dynamicsWorld->getNonStaticRigidBodies();
 
@@ -49,6 +36,8 @@ int main(int argc, char** argv)
 
     while (!glfwWindowShouldClose(window))
     {
+
+
         double current_frame = glfwGetTime();
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
@@ -57,10 +46,8 @@ int main(int argc, char** argv)
         camera.Inputs(window, delta_time);
 
 
-        groundObject.Render(linePipeline, &camera);
-
-        for (auto object : objects)
-            object->Render(defaultPipeline, &camera);
+        groundObject.Render(defaultPipeline, &camera);
+        physicsObject.Render(defaultPipeline, &camera);
 
 
         if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
@@ -68,15 +55,12 @@ int main(int argc, char** argv)
 
         VGF::Input::processInput(window);
 
+        physics.debugRender(&camera);
         VGF::Renderer::RenderGraphics();
         window.Display();
     }
 
     defaultPipeline.Delete();
-    linePipeline.Delete();
-
-    for (auto object : objects)
-        delete object;
 
     glfwTerminate();
     return 0;

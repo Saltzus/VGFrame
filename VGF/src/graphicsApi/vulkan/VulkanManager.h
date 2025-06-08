@@ -219,6 +219,8 @@ namespace VGF::Vulkan
         unsigned int id;
         int PipelineID = 0;
 
+        int indicesSize;
+
         VulkanRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices);
         ~VulkanRenderer();
 
