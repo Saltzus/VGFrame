@@ -7,7 +7,8 @@ namespace VGF
 {
     Shader::Shader(const char* vertexFile, const char* fragmentFile) 
     {
-        shader = { vertexFile, fragmentFile };
+        vertShader = vertexFile;
+        fragShader = fragmentFile;
 
         switch (Renderer::GetGraphicsApi())
         {

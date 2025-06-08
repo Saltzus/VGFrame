@@ -11,7 +11,7 @@ namespace VGF
         PhysicsObject(GLFWwindow* window, Physics* physics, btVector3 origin = { 0,0,0 }, btVector3 size = { 2,2,2 }, btScalar mass = 0.f);
         ~PhysicsObject();
 
-        virtual void Render(Shader* shader, Camera* camera, glm::mat4 model = glm::mat4(1.0f)) override;
+        virtual void Render(PipelineConfig config, Camera* camera, glm::mat4 model = glm::mat4(1.0f)) override;
 
         btRigidBody* body;
     private:

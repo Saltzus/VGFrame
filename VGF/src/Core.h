@@ -8,6 +8,7 @@
 #include "Object.h"
 #include "PhysicsObject.h"
 #include "Audio.h"
+#include "PipelineConfig.h"
 
 #include "Physics.h"
 

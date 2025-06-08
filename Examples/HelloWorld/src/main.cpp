@@ -10,8 +10,20 @@ int main(int argc, char** argv)
     VGF::Window window("VGF - Test", SCR_WIDTH, SCR_HEIGHT);
     VGF::Renderer::InitApi(window); // TODO : add automatically run compile.bat and add switch to change from opengl to vulkan
 
-    VGF::Shader defaultShader("../../../Examples/HelloWorld/Shaders/default.vert", "../../../Examples/HelloWorld/Shaders/default.frag");
-    //VGF::Shader reversedShader("../../../Examples/HelloWorld/Shaders/halftransparent.vert", "../../../Examples/HelloWorld/Shaders/halftransparent.frag");
+    VGF::PipelineConfig defaultPipeline
+    (
+        "../../../Examples/HelloWorld/Shaders/default.vert",
+        "../../../Examples/HelloWorld/Shaders/default.frag",
+        VGF::Topology::TRIANGLE_LIST
+    );
+
+    VGF::PipelineConfig linePipeline
+    (
+        "../../../Examples/HelloWorld/Shaders/default.vert",
+        "../../../Examples/HelloWorld/Shaders/default.frag",
+        VGF::Topology::LINE_LIST
+    );
+
     VGF::Texture* texture = new VGF::Texture("../../../Examples/HelloWorld/Textures/PixelText.png");
 
 
@@ -22,9 +34,9 @@ int main(int argc, char** argv)
     
     std::vector<VGF::PhysicsObject*> objects;
 
-    for (size_t i = 0; i < 25; i++)
+    for (size_t i = 0; i < 1000; i++)
     {
-        objects.push_back(new VGF::PhysicsObject(window, &physics, { (btScalar)glm::sin(i), 120, (btScalar)glm::cos(i)}, {2,2,2}, 1.f));
+        objects.push_back(new VGF::PhysicsObject(window, &physics, { (btScalar)glm::sin(i) * 20, 10, (btScalar)glm::cos(i) * 20}, {2,2,2}, 1.f));
     }
 
     btAlignedObjectArray<btRigidBody*> bodies = physics.dynamicsWorld->getNonStaticRigidBodies();
@@ -45,18 +57,23 @@ int main(int argc, char** argv)
         camera.Inputs(window, delta_time);
 
 
-        groundObject.Render(&defaultShader, &camera);
+        groundObject.Render(linePipeline, &camera);
 
         for (auto object : objects)
-            object->Render(&defaultShader, &camera);
+            object->Render(defaultPipeline, &camera);
 
-        physics.Update(delta_time);
+
+        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+            physics.Update(delta_time);
 
         VGF::Input::processInput(window);
 
         VGF::Renderer::RenderGraphics();
         window.Display();
     }
+
+    defaultPipeline.Delete();
+    linePipeline.Delete();
 
     for (auto object : objects)
         delete object;

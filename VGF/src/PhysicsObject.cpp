@@ -30,9 +30,11 @@ namespace VGF
         physics->dynamicsWorld->addRigidBody(body);
     }
 
-    void PhysicsObject::Render(Shader* shader, Camera* camera, glm::mat4 model)
-    {
-        shader->Activate();
+    void PhysicsObject::Render(PipelineConfig config, Camera* camera, glm::mat4 model)
+    {   
+        pipelineConfig = config;
+
+        config.Activate();
         texture->Bind();
 
         btMatrix3x3 basis = body->getWorldTransform().getBasis();
@@ -45,7 +47,7 @@ namespace VGF
 
         model = glm::scale(model, scale);
 
-        this->renderer->Render(shader, camera, model);
+        this->renderer->Render(pipelineConfig, camera, model);
     }
 
     PhysicsObject::~PhysicsObject()

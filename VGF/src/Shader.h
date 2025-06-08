@@ -22,7 +22,8 @@ namespace VGF
         ShaderImpl* impl = nullptr;
     public:
 
-        std::pair<const char*, const char*> shader = { "Resources/Shaders/default.vert.spv", "Resources/Shaders/default.frag.spv" };
+        const char* vertShader = "Resources/Shaders/default.vert.spv";
+        const char* fragShader = "Resources/Shaders/default.frag.spv";
 
         Shader(const char* vertexFile, const char* fragmentFile);
         ~Shader();

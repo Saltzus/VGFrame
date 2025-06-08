@@ -4,8 +4,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+
+
 namespace VGF
 {
+    class PipelineConfig;
     class Shader;
     class Camera;
 
@@ -13,7 +16,7 @@ namespace VGF
     {
     public:
         virtual ~RendererImpl() {}
-        virtual void Render(Shader* shader, Camera* camera, glm::mat4 model) = 0;
+        virtual void Render(PipelineConfig config, Camera* camera, glm::mat4 model) = 0;
     };
 
     class ApiImpl

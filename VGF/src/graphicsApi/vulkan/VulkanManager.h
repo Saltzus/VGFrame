@@ -8,6 +8,7 @@
 #include <stb_image.h>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <optional>
 #include <set>
 #include <chrono>
@@ -21,6 +22,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
+
+#include "../../PipelineConfig.h"
 #include "../../RenderImpl.h"
 #include "../../Window.h"
 #include "VulkanGraphicsPipeline.h"
@@ -66,7 +69,12 @@ namespace VGF::Vulkan
         VkImageView textureImageView;
         VkSampler textureSampler;
 
-        std::map<std::pair<const char*, const char*>,VkPipeline> graphicsPipelines;
+        //std::map<std::pair<const char*, const char*>,VkPipeline> graphicsPipelines;
+        std::unordered_map<PipelineConfig, VkPipeline, PipelineConfigHash> pipelineCache;
+
+        VkPipeline Vulkan::getOrCreatePipeline(const PipelineConfig& config);
+        VkPipeline createGraphicsPipeline(const PipelineConfig& config);
+
 
         VkDescriptorPool descriptorPool;
         std::vector<VkDescriptorSet> descriptorSets;
@@ -74,7 +82,7 @@ namespace VGF::Vulkan
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
         void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
         VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-        void createGraphicsPipeline(const char* vertexFile, const char* fragmentFile);
+        
 
 
         void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
@@ -214,7 +222,8 @@ namespace VGF::Vulkan
         VulkanRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices);
         ~VulkanRenderer();
 
-        std::pair<const char*, const char*>* shader;
+        Shader* shader;
+        PipelineConfig config;
         
         std::pair<VkBuffer, VkDeviceMemory> vertexBuffer_vertexBufferMemory;
         std::pair<VkBuffer, VkDeviceMemory> indexBuffer_indexBufferMemory;
@@ -223,7 +232,7 @@ namespace VGF::Vulkan
         std::vector<VkDescriptorSet> descriptorSets;
         UniformBufferObject ubo;
 
-        virtual void Render(Shader* shader, Camera* camera, glm::mat4 model) override; // Declare draw
+        virtual void Render(PipelineConfig config, Camera* camera, glm::mat4 model) override; // Declare draw
     private:
         void* lastTexture;
 

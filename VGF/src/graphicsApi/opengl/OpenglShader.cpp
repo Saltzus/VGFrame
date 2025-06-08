@@ -63,8 +63,6 @@ namespace VGF::Opengl
 		glDeleteShader(vertexShader);
 		glDeleteShader(fragmentShader);
 
-		std::cout << ID;
-
 	}
 
 	// Activates the Shader Program

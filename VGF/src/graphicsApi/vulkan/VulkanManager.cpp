@@ -91,7 +91,7 @@ namespace VGF::Vulkan
 #ifdef DEBUG
     const bool enableValidationLayers = true;
 #else
-    const bool enableValidationLayers = false;
+    const bool enableValidationLayers = true;
 #endif
     const std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation"
@@ -615,10 +615,48 @@ namespace VGF::Vulkan
         return descriptorSets;
     }
 
-    void Vulkan::createGraphicsPipeline(const char* vertexFile, const char* fragmentFile)
+    VkPipeline Vulkan::getOrCreatePipeline(const PipelineConfig& config) 
     {
-        graphicsPipelines.insert({ {vertexFile, fragmentFile}, VkPipeline() });
-        VulkanGraphicsPipeline sus(vertexFile, fragmentFile, device, descriptorSetLayout, renderPass, pipelineLayout, graphicsPipelines[{vertexFile, fragmentFile}]);
+        auto it = pipelineCache.find(config);
+        if (it != pipelineCache.end()) {
+            return it->second;
+        }
+
+        VkPipeline newPipeline = createGraphicsPipeline(config); // You define this
+        pipelineCache[config] = newPipeline;
+        return newPipeline;
+    }
+
+    VkPipeline Vulkan::createGraphicsPipeline(const PipelineConfig& config)
+    {
+        VkPrimitiveTopology topology;
+
+        switch (config.topology)
+        {
+        case VGF::Topology::LINE_LIST:
+            topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+            break;
+        case VGF::Topology::TRIANGLE_LIST:
+            topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            break;
+        default:
+            break;
+        }
+
+        VkPipeline pipeline;
+        VulkanGraphicsPipeline graphicsPipeline
+        (
+            config.vertShader,
+            config.fragShader,
+            topology,
+            device,
+            descriptorSetLayout,
+            renderPass,
+            pipelineLayout,
+            pipeline
+        );
+
+        return pipeline;
     }
 
     void Vulkan::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) 
@@ -665,7 +703,7 @@ namespace VGF::Vulkan
 
         for (VulkanRenderer* object : objects)
         {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines[{object->shader->first, object->shader->second}]);
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineCache[object->config]);
 
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &object->vertexBuffer_vertexBufferMemory.first, offsets);
             vkCmdBindIndexBuffer(commandBuffer, object->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
@@ -1268,9 +1306,9 @@ namespace VGF::Vulkan
 
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "Hello Triangle";
+        appInfo.pApplicationName = "Hello World";
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = "No Engine";
+        appInfo.pEngineName = "VGFrame";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.apiVersion = VK_API_VERSION_1_0;
 
@@ -1402,11 +1440,14 @@ namespace VGF::Vulkan
     {
     }
     int sus = 0;
-    void VulkanRenderer::Render(Shader* shader, Camera* camera, glm::mat4 model)
+    void VulkanRenderer::Render(PipelineConfig config, Camera* camera, glm::mat4 model)
     {
+        this->config = config;
         Vulkan* vulkan = Vulkan::vulkan;
 
-        this->shader = &shader->shader;
+        vulkan->getOrCreatePipeline(config);
+
+        this->shader = shader;
 
         if (lastTexture != vulkan->textureImageView)
         {

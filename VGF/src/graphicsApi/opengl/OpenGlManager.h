@@ -52,7 +52,7 @@ namespace VGF::Opengl
         OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices);
         ~OpenglRenderer();    
 
-        virtual void Render(Shader* shader, Camera* camera, glm::mat4 model) override; // Declare draw
+        virtual void Render(PipelineConfig config, Camera* camera, glm::mat4 model) override; // Declare draw
     private:
         Opengl& opengl;
 

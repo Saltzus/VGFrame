@@ -79,8 +79,6 @@ namespace VGF::Opengl
 
     Opengl::Opengl(GLFWwindow* window)
     {
-        
-
         glGenBuffers(1, &UBO);
         glBindBuffer(GL_UNIFORM_BUFFER, UBO);
         glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 3, NULL, GL_STATIC_DRAW);
@@ -129,25 +127,39 @@ namespace VGF::Opengl
 
     int i = 0;
 
-    void OpenglRenderer::Render(Shader* shader, Camera* camera, glm::mat4 model) 
+    void OpenglRenderer::Render(PipelineConfig config, Camera* camera, glm::mat4 model)
     {
+        int topology;
+
+        switch (config.topology)
+        {
+        case VGF::Topology::LINE_LIST:
+            topology = GL_LINES;
+            break;
+        case VGF::Topology::TRIANGLE_LIST:
+            topology = GL_TRIANGLES;
+            break;
+        default:
+            break;
+        }
+
         glm::mat4 matrices[3];
         matrices[0] = model;
         matrices[1] = camera->view;
         matrices[2] = camera->projection;
 
-        GLuint blockIndex = glGetUniformBlockIndex(shader->ID(), "UniformBufferObject");
-        glUniformBlockBinding(shader->ID(), blockIndex, 0);
+        GLuint blockIndex = glGetUniformBlockIndex(config.ID(), "UniformBufferObject");
+        glUniformBlockBinding(config.ID(), blockIndex, 0);
 
         // Update the UBO with matrix data
         glBindBuffer(GL_UNIFORM_BUFFER, Opengl::UBO);
         glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4) * 3, &matrices[0]);
 
-        glUniform1i(glGetUniformLocation(shader->ID(), "texSampler"), 0);
+        glUniform1i(glGetUniformLocation(config.ID(), "texSampler"), 0);
 
         // Draws the pixel
         glBindVertexArray(VAO);
 
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        glDrawElements(topology, 36, GL_UNSIGNED_INT, 0);
     }
 }

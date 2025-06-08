@@ -35,7 +35,7 @@ namespace VGF::Vulkan
     }
 
 	// Constructor that build the Shader Program from 2 different shaders
-	VulkanGraphicsPipeline::VulkanGraphicsPipeline(const char* vertexFile, const char* fragmentFile, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline)
+	VulkanGraphicsPipeline::VulkanGraphicsPipeline(const char* vertexFile, const char* fragmentFile, VkPrimitiveTopology topology, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline)
 	{
         std::string vulkanVertexFile = vertexFile;
         vulkanVertexFile += ".spv";
@@ -76,7 +76,7 @@ namespace VGF::Vulkan
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        inputAssembly.topology = topology;
         inputAssembly.primitiveRestartEnable = VK_FALSE;
 
         VkPipelineViewportStateCreateInfo viewportState{};

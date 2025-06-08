@@ -16,9 +16,11 @@ namespace VGF
         delete this->texture;
     }
 
-    void Object::Render(Shader* shader, Camera* camera, glm::mat4 model)
+    void Object::Render(PipelineConfig config, Camera* camera, glm::mat4 model)
     {
-        shader->Activate();  
+        pipelineConfig = config;
+
+        config.Activate();
         texture->Bind();
 
         model = glm::translate(model, translation);
@@ -29,6 +31,6 @@ namespace VGF
 
         model = glm::scale(model, scale);
 
-        this->renderer->Render(shader, camera, model);
+        this->renderer->Render(pipelineConfig, camera, model);
     }
 }
