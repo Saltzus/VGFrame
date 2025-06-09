@@ -88,8 +88,8 @@ namespace VGF::Vulkan
         Vulkan::vulkan->textureImageView = textureImageViewTex;
     }
 
-#ifdef DEBUG
-    const bool enableValidationLayers = true;
+#ifdef NDEBUG
+    const bool enableValidationLayers = false;
 #else
     const bool enableValidationLayers = true;
 #endif
@@ -702,17 +702,17 @@ namespace VGF::Vulkan
         VkDeviceSize offsets[] = { 0 };
 
         for (VulkanRenderer* object : objects)
-        {
+            {
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineCache.at(object->config));
 
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &object->vertexBuffer_vertexBufferMemory.first, offsets);
-            vkCmdBindIndexBuffer(commandBuffer, object->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
+                vkCmdBindVertexBuffers(commandBuffer, 0, 1, &object->vertexBuffer_vertexBufferMemory.first, offsets);
+                vkCmdBindIndexBuffer(commandBuffer, object->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
 
-            updateUniformBuffer(currentFrame, object);
+                updateUniformBuffer(currentFrame, object);
 
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &object->descriptorSets[currentFrame], 0, nullptr);
-            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object->indicesSize), 1, 0, 0, 0);
-        }
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &object->descriptorSets[currentFrame], 0, nullptr);
+                vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object->indicesSize), 1, 0, 0, 0);
+            }
 
         ubo.clear();
         objects.clear();
@@ -1445,8 +1445,6 @@ namespace VGF::Vulkan
         this->config = config;
         Vulkan* vulkan = Vulkan::vulkan;
         vulkan->getOrCreatePipeline(config);
-
-        this->shader = shader;
 
         if (lastTexture != vulkan->textureImageView)
         {

@@ -224,7 +224,6 @@ namespace VGF::Vulkan
         VulkanRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices);
         ~VulkanRenderer();
 
-        Shader* shader;
         PipelineConfig config;
         
         std::pair<VkBuffer, VkDeviceMemory> vertexBuffer_vertexBufferMemory;
@@ -237,10 +236,6 @@ namespace VGF::Vulkan
         virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model) override; // Declare draw
     private:
         void* lastTexture;
-
-        GLuint VAO;
-	    GLuint VBO;
-    	GLuint EBO;
     };
 }
     
