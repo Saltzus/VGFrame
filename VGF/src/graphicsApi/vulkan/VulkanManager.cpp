@@ -703,7 +703,7 @@ namespace VGF::Vulkan
 
         for (VulkanRenderer* object : objects)
         {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineCache[object->config]);
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineCache.at(object->config));
 
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &object->vertexBuffer_vertexBufferMemory.first, offsets);
             vkCmdBindIndexBuffer(commandBuffer, object->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
@@ -1440,11 +1440,10 @@ namespace VGF::Vulkan
     {
     }
     int sus = 0;
-    void VulkanRenderer::Render(PipelineConfig config, Camera* camera, glm::mat4 model)
+    void VulkanRenderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model)
     {
         this->config = config;
         Vulkan* vulkan = Vulkan::vulkan;
-
         vulkan->getOrCreatePipeline(config);
 
         this->shader = shader;

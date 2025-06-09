@@ -25,7 +25,7 @@ namespace VGF
 		debug = new PhysicsDebugDraw();
 		dynamicsWorld->setDebugDrawer(debug);
 
-		linePipeline = VGF::PipelineConfig
+		linePipeline = new VGF::PipelineConfig
 		(
 			"../../../Examples/HelloWorld/Shaders/debug.vert",
 			"../../../Examples/HelloWorld/Shaders/debug.frag",
@@ -69,6 +69,7 @@ namespace VGF
 		delete dynamicsWorld;
 
 		delete debug;
+		delete linePipeline;
 	}
 
 	VGF::Renderer* lines;
@@ -83,6 +84,6 @@ namespace VGF
 		dynamicsWorld->debugDrawWorld();
 
 		lines = new VGF::Renderer(debug->indices, debug->vertices);
-		lines->Render(linePipeline, camera);
+		lines->Render(*linePipeline, camera);
 	}
 }

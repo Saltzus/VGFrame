@@ -56,6 +56,7 @@ namespace VGF::Opengl
 		glAttachShader(ID, fragmentShader);
 		// Wrap-up/Link all the shaders together into the Shader Program
 		glLinkProgram(ID);
+
 		// Checks if Shaders linked succesfully
 		compileErrors(ID, "PROGRAM");
 

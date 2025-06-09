@@ -16,14 +16,11 @@ namespace VGF
         delete this->texture;
     }
 
-    void Object::Render(PipelineConfig config, Camera* camera, glm::mat4 model)
+    void Object::Render(PipelineConfig& config, Camera* camera, glm::mat4 model)
     {
-        pipelineConfig = config;
-
         config.Activate();
 
-        if (texture != nullptr)
-            texture->Bind();
+        texture->Bind();
 
         model = glm::translate(model, translation);
 
@@ -33,6 +30,6 @@ namespace VGF
 
         model = glm::scale(model, scale);
 
-        this->renderer->Render(pipelineConfig, camera, model);
+        this->renderer->Render(config, camera, model);
     }
 }

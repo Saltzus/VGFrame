@@ -11,10 +11,9 @@ namespace VGF
         Object();
         ~Object();
 
-        virtual void Render(PipelineConfig config, Camera* camera, glm::mat4 model = glm::mat4(1.0f));
+        virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model = glm::mat4(1.0f));
 
 		Texture* texture;  
-        PipelineConfig pipelineConfig;
 
         glm::mat4 model = glm::mat4(1.0f);
 	    glm::vec3 translation = glm::vec3(0.f, 0.f, 0.f);

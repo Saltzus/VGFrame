@@ -16,7 +16,7 @@ namespace VGF
     {
     public:
         virtual ~RendererImpl() {}
-        virtual void Render(PipelineConfig config, Camera* camera, glm::mat4 model) = 0;
+        virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model) = 0;
     };
 
     class ApiImpl

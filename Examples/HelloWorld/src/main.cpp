@@ -10,6 +10,13 @@ int main(int argc, char** argv)
     VGF::Window window("VGF - Test", SCR_WIDTH, SCR_HEIGHT);
     VGF::Renderer::InitApi(window); // TODO : add automatically run compile.bat and add switch to change from opengl to vulkan
 
+    VGF::PipelineConfig debugPipeline
+    (
+        "../../../Examples/HelloWorld/Shaders/debug.vert",
+        "../../../Examples/HelloWorld/Shaders/debug.frag",
+        VGF::Topology::TRIANGLE_LIST
+    );
+
     VGF::PipelineConfig defaultPipeline
     (
         "../../../Examples/HelloWorld/Shaders/default.vert",
@@ -37,7 +44,6 @@ int main(int argc, char** argv)
     while (!glfwWindowShouldClose(window))
     {
 
-
         double current_frame = glfwGetTime();
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
@@ -45,8 +51,10 @@ int main(int argc, char** argv)
         camera.updateMatrix(45.0f, 0.01f, 10000.0f);
         camera.Inputs(window, delta_time);
 
-
-        groundObject.Render(defaultPipeline, &camera);
+        //debugShader.Activate();
+        //texture->Bind();
+        groundObject.Render(debugPipeline, &camera);
+        //defaultShader.Activate();
         physicsObject.Render(defaultPipeline, &camera);
 
 

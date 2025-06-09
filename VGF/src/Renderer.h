@@ -27,7 +27,7 @@ namespace VGF
         Renderer(std::vector<unsigned int>& indices, std::vector<float>& vertices);
         ~Renderer();
 
-        void Render(PipelineConfig config, Camera* camera, glm::mat4 model = glm::mat4(1.0f));
+        void Render(PipelineConfig& config, Camera* camera, glm::mat4 model = glm::mat4(1.0f));
         static GraphicsApis GetGraphicsApi() {return graphicApi;};
         static void InitApi(GLFWwindow* window); 
         static void RenderGraphics();

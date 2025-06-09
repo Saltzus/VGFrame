@@ -25,7 +25,7 @@ namespace VGF
 		btBroadphaseInterface* overlappingPairCache;
 		btSequentialImpulseConstraintSolver* solver;
 
-		VGF::PipelineConfig linePipeline;
+		VGF::PipelineConfig* linePipeline;
 	};
 }
 

@@ -234,7 +234,7 @@ namespace VGF::Vulkan
         std::vector<VkDescriptorSet> descriptorSets;
         UniformBufferObject ubo;
 
-        virtual void Render(PipelineConfig config, Camera* camera, glm::mat4 model) override; // Declare draw
+        virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model) override; // Declare draw
     private:
         void* lastTexture;
 

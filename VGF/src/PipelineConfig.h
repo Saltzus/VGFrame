@@ -11,7 +11,8 @@ namespace VGF
         TRIANGLE_LIST
     };
 
-    class PipelineConfig {
+    class PipelineConfig 
+    {
     public:
         PipelineConfig(const char* vertShader, const char* fragShader, Topology topology = Topology::TRIANGLE_LIST);
         PipelineConfig();
@@ -19,8 +20,8 @@ namespace VGF
         ~PipelineConfig();
 
         Topology topology = Topology::TRIANGLE_LIST;
-        const char* vertShader = "../../../Examples/HelloWorld/Shaders/default.vert.spv";
-        const char* fragShader = "../../../Examples/HelloWorld/Shaders/default.frag.spv";
+        const char* vertShader;
+        const char* fragShader;
 
         bool operator==(const PipelineConfig& other) const {
             return topology == other.topology &&
