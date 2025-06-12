@@ -9,7 +9,7 @@ file(GLOB_RECURSE CLIENT_FILES
 add_library(VGF STATIC ${CLIENT_FILES})
 
 target_link_libraries(VGF
-  PRIVATE
+  PUBLIC
     glad
     glm
     miniaudio
@@ -20,18 +20,8 @@ target_link_libraries(VGF
 )
 
 target_link_libraries(VGF
-  PRIVATE
-    LinearMath
-    BulletCollision
-    BulletDynamics
-    BulletSoftBody
-    Bullet2FileLoader
-    Bullet3Collision
-    Bullet3Common
-    Bullet3Dynamics
-    Bullet3Geometry
-    Bullet3OpenCL_clew
-    BulletInverseDynamics
+  PUBLIC
+    BulletDynamics BulletCollision LinearMath Bullet3Common 
 )
 
 target_include_directories(VGF PRIVATE ${CORE_LIB_DIR})

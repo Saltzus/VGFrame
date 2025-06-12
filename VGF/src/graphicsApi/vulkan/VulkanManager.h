@@ -72,7 +72,7 @@ namespace VGF::Vulkan
         //std::map<std::pair<const char*, const char*>,VkPipeline> graphicsPipelines;
         std::unordered_map<PipelineConfig, VkPipeline, PipelineConfigHash> pipelineCache;
 
-        VkPipeline Vulkan::getOrCreatePipeline(const PipelineConfig& config);
+        VkPipeline getOrCreatePipeline(const PipelineConfig& config);
         VkPipeline createGraphicsPipeline(const PipelineConfig& config);
 
 

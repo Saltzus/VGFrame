@@ -12,17 +12,7 @@ target_link_libraries(HelloWorld PRIVATE VGF glad glm miniaudio nlohmann_json st
 
 target_link_libraries(HelloWorld
   PRIVATE
-    LinearMath
-    BulletCollision
-    BulletDynamics
-    BulletSoftBody
-    Bullet2FileLoader
-    Bullet3Collision
-    Bullet3Common
-    Bullet3Dynamics
-    Bullet3Geometry
-    Bullet3OpenCL_clew
-    BulletInverseDynamics
+    BulletDynamics BulletCollision LinearMath Bullet3Common 
 )
 
 target_include_directories(HelloWorld PRIVATE ${CMAKE_SOURCE_DIR}/VGF/src ${CORE_LIB_DIR})
