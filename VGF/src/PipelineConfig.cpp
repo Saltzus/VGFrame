@@ -6,6 +6,8 @@
 
 namespace VGF
 {
+	bool configCreated = false;
+
 	PipelineConfig::PipelineConfig(const char* vertShader, const char* fragShader, Topology topology)
 	{
 		this->topology = topology;
@@ -24,13 +26,16 @@ namespace VGF
 			this->impl = new VGF::Opengl::OpenglShader(vertShader, fragShader);
 			break;
 		}
+
+		configCreated = true;
 	}
 
-	PipelineConfig::PipelineConfig() {}
+	PipelineConfig::PipelineConfig() { configCreated = false; }
 
 	PipelineConfig::~PipelineConfig()
 	{
-		this->impl->Delete();
+		if (configCreated)
+			this->impl->Delete();
 	}
 
 	void PipelineConfig::Activate()

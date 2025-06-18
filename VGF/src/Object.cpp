@@ -14,6 +14,9 @@ namespace VGF
 
     void Object::SetModel(Model* model)
     {
+        for (auto renderer : modelRenderers)
+            delete renderer;
+
         modelRenderers.clear();
 
         this->model = model;
@@ -24,6 +27,8 @@ namespace VGF
     
     Object::~Object()
     {
+        for (auto renderer : modelRenderers)
+            delete renderer;
     }
 
     void Object::Render(PipelineConfig& config, Camera* camera, glm::mat4 model)

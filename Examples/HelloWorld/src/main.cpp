@@ -50,10 +50,11 @@ int main(int argc, char** argv)
     VGF::Camera camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.f, 3.f, -40.f)); // TODO : add camera shader
 
     VGF::PhysicsObject physicsObject(&duckModel, &physics, { -0.5,5,0 }, { 2,2,2 }, 1.f);
-    VGF::PhysicsObject physicsObject1(&duckModel, &physics, {0.5,5,0}, {2,2,2}, 1.f);
 
-    VGF::PhysicsObject groundObject(&triangle, &physics, { 0,-56,0 }, { 50,50,50 }, 0.f);
-    groundObject.SetModel(&cubeModel);
+    VGF::PhysicsObject physicsObject1(&triangle, &physics, {0.5,5,0}, {2,2,2}, 1.f);
+
+    VGF::PhysicsObject groundObject(&cubeModel, &physics, { 0,-56,0 }, { 50,50,50 }, 0.f);
+    
 
     btAlignedObjectArray<btRigidBody*> bodies = physics.dynamicsWorld->getNonStaticRigidBodies();
 

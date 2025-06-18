@@ -41,11 +41,6 @@ namespace VGF
 
 	Model::~Model()
 	{
-		if (!customModel)
-		{
-			for (auto texture : textures)
-				delete texture;
-		}
 	}
 
 	/// Read flat floats from an accessor
