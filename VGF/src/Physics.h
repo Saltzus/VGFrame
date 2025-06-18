@@ -12,7 +12,7 @@ namespace VGF
 		~Physics();
 
 		void Update(double delta_time);
-		void debugRender(Camera* camera);
+		void debugRender(Window* window, Camera* camera);
 
 		PhysicsDebugDraw* debug;
 		btDiscreteDynamicsWorld* dynamicsWorld;

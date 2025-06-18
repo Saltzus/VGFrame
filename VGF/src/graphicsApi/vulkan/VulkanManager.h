@@ -43,7 +43,7 @@ namespace VGF::Vulkan
     {
     public:
         VulkanTexture(const char* filePath);
-        VulkanTexture(unsigned char* data, int format, int width, int height);
+        VulkanTexture(const unsigned char* data, int format, int width, int height);
         ~VulkanTexture();
         void Bind() override;
     private:
@@ -90,10 +90,10 @@ namespace VGF::Vulkan
 
         std::pair<VkBuffer, VkDeviceMemory> createVertexBuffer(std::vector<GLfloat>& vertices);
         std::pair<VkBuffer, VkDeviceMemory> createIndexBuffer(std::vector<uint16_t> indices);
-        std::pair<std::vector<VkBuffer>, std::vector<void*>> createUniformBuffers();
+        std::tuple<std::vector<VkBuffer>, std::vector<void*>, std::vector<VkDeviceMemory>> createUniformBuffers();
         void updateUniformBuffer(uint32_t currentImage, VulkanRenderer* object);
 
-        void createDescriptorPool();
+        VkDescriptorPool createDescriptorPool();
         std::vector<VkDescriptorSet> createDescriptorSets();
 
         uint32_t getCurrentFrame() { return currentFrame; }
@@ -228,14 +228,20 @@ namespace VGF::Vulkan
         
         std::pair<VkBuffer, VkDeviceMemory> vertexBuffer_vertexBufferMemory;
         std::pair<VkBuffer, VkDeviceMemory> indexBuffer_indexBufferMemory;
-        std::pair <std::vector<VkBuffer>, std::vector<void*>> uniformBuffers_uniformBuffersMapped;
 
+        std::vector<VkBuffer> uniformBuffers;
+        std::vector<void*> uniformBuffersMapped;
+        std::vector<VkDeviceMemory> uniformBuffersMemory;
+
+        VkDescriptorPool descriptorPool;
         std::vector<VkDescriptorSet> descriptorSets;
+
         UniformBufferObject ubo;
 
         virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model) override; // Declare draw
     private:
         void* lastTexture;
+        Vulkan* vulkan;
     };
 }
     

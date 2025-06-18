@@ -5,7 +5,7 @@
 
 namespace VGF
 {
-    class PhysicsObject : private Object
+    class PhysicsObject : public Object
     {
     public:
         PhysicsObject(Physics* physics, btVector3 origin = { 0,0,0 }, btVector3 size = { 2,2,2 }, btScalar mass = 0.f);

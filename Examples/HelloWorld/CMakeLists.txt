@@ -8,7 +8,19 @@ file(GLOB_RECURSE CLIENT_FILES
 # Create the executable.
 add_executable(HelloWorld ${CLIENT_FILES})
 
-target_link_libraries(HelloWorld PRIVATE VGF glad glm miniaudio nlohmann_json stb vulkan-1 glfw)
+target_link_libraries(HelloWorld 
+    PRIVATE 
+    VGF 
+    glad
+    glm
+    miniaudio
+    nlohmann_json
+    stb_image_write
+    stb_image
+    vulkan-1
+    glfw
+    tinygltf
+)
 
 target_link_libraries(HelloWorld
   PRIVATE

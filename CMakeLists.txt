@@ -20,8 +20,14 @@ target_include_directories(miniaudio INTERFACE Libraries/miniaudio)
 add_library(nlohmann_json INTERFACE)
 target_include_directories(nlohmann_json INTERFACE Libraries/nlohmann_json)
 
-add_library(stb INTERFACE)
-target_include_directories(stb INTERFACE Libraries/stb)
+add_library(stb_image INTERFACE)
+target_include_directories(stb_image INTERFACE Libraries/stb)
+
+add_library(stb_image_write INTERFACE)
+target_include_directories(stb_image_write INTERFACE Libraries/stb)
+
+add_library(tinygltf INTERFACE)
+target_include_directories(tinygltf INTERFACE Libraries/tinygltf)
 
 set(vulkan Libraries/vulkan)
 include_directories(${vulkan}/Include)

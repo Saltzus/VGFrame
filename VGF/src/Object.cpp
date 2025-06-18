@@ -7,13 +7,22 @@ namespace VGF
     Object::Object()
     {
         texture = Texture::GetDefaultTexture();
-        this->renderer = new Renderer(indices, vertices);
+        //renderer = new Renderer(indices, vertices);
+        
+        model = new Model("../../../Examples/HelloWorld/Models/Duck.gltf");
+    }
+
+    void Object::SetModel(Model* model)
+    {
+        this->model = model;
     }
     
     Object::~Object()
     {
-        delete this->renderer;
+        //delete this->renderer;
         delete this->texture;
+
+        delete model;
     }
 
     void Object::Render(PipelineConfig& config, Camera* camera, glm::mat4 model)
@@ -30,6 +39,11 @@ namespace VGF
 
         model = glm::scale(model, scale);
 
-        this->renderer->Render(config, camera, model);
+        
+
+        for (const auto nodeIdx : this->model->model.scenes[this->model->model.defaultScene].nodes)
+            this->model->drawNodes(0, model, config, camera);
+
+        //this->renderer->Render(config, camera, model);
     }
 }

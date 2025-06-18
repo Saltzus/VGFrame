@@ -27,7 +27,7 @@ namespace VGF::Opengl
     {
     public:
         OpenglTexture(const char* filePath);
-        OpenglTexture(unsigned char* data, int format, int width, int height);
+        OpenglTexture(const unsigned char* data, int format, int width, int height);
         ~OpenglTexture();  
         void Bind() override;
     private:

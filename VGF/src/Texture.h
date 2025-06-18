@@ -11,7 +11,7 @@ namespace VGF
         TextureImpl* impl = nullptr;
     public:
         Texture(const char* filePath);
-        Texture(unsigned char* data, int format, int width, int height);
+        Texture(const unsigned char* data, int format, int width, int height);
         ~Texture();
         void virtual Bind();
 

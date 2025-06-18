@@ -29,7 +29,7 @@ namespace VGF::Opengl
     
         stbi_image_free(data);
     }
-    OpenglTexture::OpenglTexture(unsigned char* data, int format, int width, int height)
+    OpenglTexture::OpenglTexture(const unsigned char* data, int format, int width, int height)
     {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  

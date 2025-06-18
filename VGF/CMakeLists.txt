@@ -9,14 +9,16 @@ file(GLOB_RECURSE CLIENT_FILES
 add_library(VGF STATIC ${CLIENT_FILES})
 
 target_link_libraries(VGF
-  PUBLIC
+    PUBLIC
     glad
     glm
     miniaudio
     nlohmann_json
-    stb
+    stb_image_write
+    stb_image
     vulkan-1
     glfw
+    tinygltf
 )
 
 target_link_libraries(VGF

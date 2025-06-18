@@ -17,7 +17,7 @@ namespace VGF
             break;
         }
     }
-    Texture::Texture(unsigned char* data, int format, int width, int height)
+    Texture::Texture(const unsigned char* data, int format, int width, int height)
     {
         switch (Renderer::GetGraphicsApi())
         {

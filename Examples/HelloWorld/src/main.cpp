@@ -1,6 +1,8 @@
 #include <iostream>
 #include <Core.h>
 
+#include <tiny_gltf.h>
+
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -27,11 +29,14 @@ int main(int argc, char** argv)
     VGF::Texture* texture = new VGF::Texture("../../../Examples/HelloWorld/Textures/PixelText.png");
 
 
+    VGF::Model cubeModel("../../../Examples/HelloWorld/Models/Cube.gltf");
+
     VGF::Physics physics;
     VGF::Camera camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.f, 3.f, -40.f)); // TODO : add camera shader
 
     VGF::PhysicsObject groundObject(&physics, { 0,-56,0 }, { 50,50,50 }, 0.f);
-    VGF::PhysicsObject physicsObject(&physics, {0,5,0}, {2,2,2}, 1.f);
+    VGF::PhysicsObject physicsObject(&physics, { -0.5,5,0 }, { 2,2,2 }, 1.f);
+    VGF::PhysicsObject physicsObject1(&physics, {0.5,5,0}, {2,2,2}, 1.f);
 
     btAlignedObjectArray<btRigidBody*> bodies = physics.dynamicsWorld->getNonStaticRigidBodies();
 
@@ -54,16 +59,31 @@ int main(int argc, char** argv)
         //debugShader.Activate();
         //texture->Bind();
         groundObject.Render(debugPipeline, &camera);
+        groundObject.SetModel(&cubeModel);
         //defaultShader.Activate();
         physicsObject.Render(defaultPipeline, &camera);
+        physicsObject1.Render(defaultPipeline, &camera);
 
+        VGF::PhysicsObject* object = VGF::Input::pickObject(&window, physics.dynamicsWorld, &camera);
+        if (object)
+        {
+            object->body->activate(true);
 
-        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
-            physics.Update(delta_time);
+            if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+                object->body->applyCentralImpulse(btVector3(0, 0.1, 0));
+
+            if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+                object->body->setAngularVelocity(btVector3(0,-5,0));
+
+            if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+                object->body->setAngularVelocity(btVector3(0, 5, 0));
+        }
+
+        physics.Update(delta_time);
 
         VGF::Input::processInput(window);
 
-        physics.debugRender(&camera);
+        physics.debugRender(&window, &camera);
         VGF::Renderer::RenderGraphics();
         window.Display();
     }

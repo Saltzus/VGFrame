@@ -1,5 +1,8 @@
+#define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STBI_MSC_SECURE_CRT
+#include "tiny_gltf.h"
 
 #define MINIAUDIO_IMPLEMENTATION
 #include <miniaudio/miniaudio.h>

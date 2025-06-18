@@ -1,5 +1,7 @@
 #include "Physics.h"
 
+#include "Input.h"
+
 namespace VGF
 {
 
@@ -20,7 +22,7 @@ namespace VGF
 
 		dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
 
-		dynamicsWorld->setGravity(btVector3(0, -10, 0));
+		dynamicsWorld->setGravity(btVector3(0, -9.81f, 0));
 
 		debug = new PhysicsDebugDraw();
 		dynamicsWorld->setDebugDrawer(debug);
@@ -74,16 +76,20 @@ namespace VGF
 
 	VGF::Renderer* lines;
 
-	void Physics::debugRender(Camera* camera)
+
+	void Physics::debugRender(Window* window, Camera* camera)
 	{
-		delete lines;
+		if (Input::getDebugDrawerOn())
+		{
+			delete lines;
 
-		debug->indices.clear();
-		debug->vertices.clear();
+			debug->indices.clear();
+			debug->vertices.clear();
 
-		dynamicsWorld->debugDrawWorld();
+			dynamicsWorld->debugDrawWorld();
 
-		lines = new VGF::Renderer(debug->indices, debug->vertices);
-		lines->Render(*linePipeline, camera);
+			lines = new VGF::Renderer(debug->indices, debug->vertices);
+			lines->Render(*linePipeline, camera);
+		}
 	}
 }

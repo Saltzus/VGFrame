@@ -43,18 +43,13 @@ namespace VGF::Vulkan
         textureImageViewTex = vulkan->createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
         vulkan->textureImageView = textureImageViewTex;
     }
-    VulkanTexture::VulkanTexture(unsigned char* datat, int format, int width, int height)
+    VulkanTexture::VulkanTexture(const unsigned char* datat, int format, int width, int height)
     {
         Vulkan* vulkan = Vulkan::vulkan;
 
-        int texWidth, texHeight, texChannels;
-
-        stbi_set_flip_vertically_on_load(true);
-
-        stbi_uc* pixels = datat;
         VkDeviceSize imageSize = width * height * 4;
 
-        if (!pixels) {
+        if (!datat) {
             throw std::runtime_error("failed to load texture image!");
         }
 
@@ -64,13 +59,13 @@ namespace VGF::Vulkan
 
         void* data;
         vkMapMemory(vulkan->device, stagingBufferMemory, 0, imageSize, 0, &data);
-        memcpy(data, pixels, static_cast<size_t>(imageSize));
+        memcpy(data, datat, static_cast<size_t>(imageSize));
         vkUnmapMemory(vulkan->device, stagingBufferMemory);
 
-        vulkan->createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+        vulkan->createImage(width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
 
         vulkan->transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        vulkan->copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+        vulkan->copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         vulkan->transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         textureImageViewTex = vulkan->createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -790,10 +785,11 @@ namespace VGF::Vulkan
     void Vulkan::updateUniformBuffer(uint32_t currentImage, VulkanRenderer* object) 
     {
         object->ubo.proj[1][1] *= -1;
-        memcpy(object->uniformBuffers_uniformBuffersMapped.second[currentImage], &object->ubo, sizeof(object->ubo));
+        memcpy(object->uniformBuffersMapped[currentImage], &object->ubo, sizeof(object->ubo));
     }
 
-    void Vulkan::createDescriptorPool() {
+    VkDescriptorPool Vulkan::createDescriptorPool() 
+    {
         std::array<VkDescriptorPoolSize, 2> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
@@ -809,9 +805,12 @@ namespace VGF::Vulkan
         if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
             throw std::runtime_error("failed to create descriptor pool!");
         }
+
+        return descriptorPool;
     }
 
-    void Vulkan::createSyncObjects() {
+    void Vulkan::createSyncObjects() 
+    {
         imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
@@ -1180,7 +1179,7 @@ namespace VGF::Vulkan
 
         return { indexBuffer, indexBufferMemory };
     }
-    std::pair<std::vector<VkBuffer>, std::vector<void*>> Vulkan::createUniformBuffers() {
+    std::tuple<std::vector<VkBuffer>, std::vector<void*>, std::vector<VkDeviceMemory>> Vulkan::createUniformBuffers() {
         VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
         uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
@@ -1188,12 +1187,14 @@ namespace VGF::Vulkan
         uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
+            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                uniformBuffers[i], uniformBuffersMemory[i]);
 
             vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
         }
 
-        return { uniformBuffers , uniformBuffersMapped };
+        return { uniformBuffers, uniformBuffersMapped, uniformBuffersMemory };
     }
 
     VkCommandBuffer Vulkan::beginSingleTimeCommands() {
@@ -1424,13 +1425,14 @@ namespace VGF::Vulkan
 
     VulkanRenderer::VulkanRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices)
     {
-        Vulkan* vulkan = Vulkan::vulkan;
+        vulkan = Vulkan::vulkan;
 
         vertexBuffer_vertexBufferMemory = vulkan->createVertexBuffer(vertices);
         indexBuffer_indexBufferMemory = vulkan->createIndexBuffer(convertIndices(indices));
-        uniformBuffers_uniformBuffersMapped = vulkan->createUniformBuffers();
 
-        vulkan->createDescriptorPool();
+        std::tie(uniformBuffers, uniformBuffersMapped, uniformBuffersMemory) = vulkan->createUniformBuffers();
+
+        descriptorPool = vulkan->createDescriptorPool();
         descriptorSets = vulkan->createDescriptorSets();
 
         indicesSize = indices.size();
@@ -1438,12 +1440,25 @@ namespace VGF::Vulkan
 
     VulkanRenderer::~VulkanRenderer()
     {
+        vkDeviceWaitIdle(vulkan->device);
+
+        vkDestroyDescriptorPool(vulkan->device, descriptorPool, nullptr);
+
+        vkDestroyBuffer(vulkan->device, vertexBuffer_vertexBufferMemory.first, nullptr);
+        vkFreeMemory(vulkan->device, vertexBuffer_vertexBufferMemory.second, nullptr);
+
+        vkDestroyBuffer(vulkan->device, indexBuffer_indexBufferMemory.first, nullptr);
+        vkFreeMemory(vulkan->device, indexBuffer_indexBufferMemory.second, nullptr);
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            vkDestroyBuffer(vulkan->device, uniformBuffers[i], nullptr);
+            vkFreeMemory(vulkan->device, uniformBuffersMemory[i], nullptr);
+        }
     }
     int sus = 0;
     void VulkanRenderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model)
     {
         this->config = config;
-        Vulkan* vulkan = Vulkan::vulkan;
         vulkan->getOrCreatePipeline(config);
 
         if (lastTexture != vulkan->textureImageView)
