@@ -4,20 +4,13 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-#include "Texture.h"
+#include "Material.h"
 #include "Renderer.h"
 
 namespace VGF
 {
 	struct Mesh
 	{	
-		void createRenderer()
-		{
-			this->renderer = new Renderer(indices, vertices);
-		}
-
-		Renderer* renderer;
-
 		glm::mat4 matrix;
 
 		std::vector <float> vertices;
@@ -28,12 +21,21 @@ namespace VGF
 	{
 	public:
 		Model(const char* modelPath);
+		Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material);
+		Model(Mesh& mesh, Material* material);
+
 		~Model();
 
-		void Model::drawNodes(int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera);
+		void Model::renderModel(std::vector<Renderer*> renderers, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera);
 		tinygltf::Model model;
+		std::vector <Mesh> meshes;
+
+		bool isCustomModel() { return customModel; }
 
 	private:
+		void Model::drawNodes(std::vector<Renderer*> renderers, int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera);
+
+		bool customModel = false;
 
 		struct VaoRange
 		{
@@ -42,7 +44,6 @@ namespace VGF
 		};
 
 		std::vector <Texture*> textures;
-		std::vector <Mesh> meshes;
 
 		unsigned int uLightDirectionLocation;
 		unsigned int uLightIntensity;
@@ -81,16 +82,7 @@ namespace VGF
 			std::vector<uint32_t>& outIndices
 		);
 
-		std::vector<unsigned int> createBufferObjects(const tinygltf::Model& model);
-
-		std::vector<unsigned int> createVertexArrayObjects(const tinygltf::Model& model,
-			const std::vector<unsigned int>& bufferObjects,
-			std::vector<VaoRange>& meshToVertexArrays);
-
 		std::vector<Texture*> createTextureObjects(const tinygltf::Model& model) const;
-
-		const void bindMaterial(const int materialIndex);
-
 		glm::mat4 getLocalToWorldMatrix(const tinygltf::Node& node, const glm::mat4& parentMatrix);
 	};
 } 

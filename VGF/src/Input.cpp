@@ -68,8 +68,6 @@ namespace VGF::Input
             glfwSetWindowShouldClose(window, true);
 
 
-
-
 		if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
 		{
 			if (!f1Pressed)

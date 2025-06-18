@@ -30,13 +30,30 @@ int main(int argc, char** argv)
 
 
     VGF::Model cubeModel("../../../Examples/HelloWorld/Models/Cube.gltf");
+    VGF::Model duckModel("../../../Examples/HelloWorld/Models/Duck.gltf");
+    
+    std::vector<float> vertices =
+    {
+        0, 0.5, 0,        1,1,1, 0,0,
+        0.5, -0.5 ,0,     0,1,0, 0,0,
+        -0.5, -0.5, 0,    1,0,1, 0,0
+    };
+
+    std::vector<unsigned int> indices =
+    {
+        0,1,2
+    };
+
+    VGF::Model triangle(vertices, indices, VGF::Material::getDefaultMaterial());
 
     VGF::Physics physics;
     VGF::Camera camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.f, 3.f, -40.f)); // TODO : add camera shader
 
-    VGF::PhysicsObject groundObject(&physics, { 0,-56,0 }, { 50,50,50 }, 0.f);
-    VGF::PhysicsObject physicsObject(&physics, { -0.5,5,0 }, { 2,2,2 }, 1.f);
-    VGF::PhysicsObject physicsObject1(&physics, {0.5,5,0}, {2,2,2}, 1.f);
+    VGF::PhysicsObject physicsObject(&duckModel, &physics, { -0.5,5,0 }, { 2,2,2 }, 1.f);
+    VGF::PhysicsObject physicsObject1(&duckModel, &physics, {0.5,5,0}, {2,2,2}, 1.f);
+
+    VGF::PhysicsObject groundObject(&triangle, &physics, { 0,-56,0 }, { 50,50,50 }, 0.f);
+    groundObject.SetModel(&cubeModel);
 
     btAlignedObjectArray<btRigidBody*> bodies = physics.dynamicsWorld->getNonStaticRigidBodies();
 
@@ -56,11 +73,8 @@ int main(int argc, char** argv)
         camera.updateMatrix(45.0f, 0.01f, 10000.0f);
         camera.Inputs(window, delta_time);
 
-        //debugShader.Activate();
-        //texture->Bind();
         groundObject.Render(debugPipeline, &camera);
-        groundObject.SetModel(&cubeModel);
-        //defaultShader.Activate();
+
         physicsObject.Render(defaultPipeline, &camera);
         physicsObject1.Render(defaultPipeline, &camera);
 
@@ -70,13 +84,24 @@ int main(int argc, char** argv)
             object->body->activate(true);
 
             if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-                object->body->applyCentralImpulse(btVector3(0, 0.1, 0));
+            {
+                btVector3 impulse = btVector3(0, 50, 0) * delta_time;
+                object->body->applyCentralImpulse(impulse);
+            }
 
             if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-                object->body->setAngularVelocity(btVector3(0,-5,0));
+            {
+                btVector3 angVel = object->body->getAngularVelocity();
+                angVel += btVector3(0, -50, 0) * delta_time;
+                object->body->setAngularVelocity(angVel);
+            }
 
             if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-                object->body->setAngularVelocity(btVector3(0, 5, 0));
+            {
+                btVector3 angVel = object->body->getAngularVelocity();
+                angVel += btVector3(0, 50, 0) * delta_time;
+                object->body->setAngularVelocity(angVel);
+            }
         }
 
         physics.Update(delta_time);

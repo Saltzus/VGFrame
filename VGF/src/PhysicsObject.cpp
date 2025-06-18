@@ -3,7 +3,7 @@
 namespace VGF
 {
     
-    PhysicsObject::PhysicsObject(Physics* physics, btVector3 origin, btVector3 size, btScalar mass) : Object()
+    PhysicsObject::PhysicsObject(Model* model, Physics* physics, btVector3 origin, btVector3 size, btScalar mass) : Object(model)
     {
         collisionShape = new btBoxShape(btVector3(size / 2));
 
@@ -34,8 +34,6 @@ namespace VGF
 
     void PhysicsObject::Render(PipelineConfig& config, Camera* camera, glm::mat4 model)
     {   
-        texture->Bind();
-
         btMatrix3x3 basis = body->getWorldTransform().getBasis();
         btVector3 origin = body->getWorldTransform().getOrigin();
 
@@ -46,10 +44,7 @@ namespace VGF
 
         model = glm::scale(model, scale);
 
-        for (const auto nodeIdx : this->model->model.scenes[this->model->model.defaultScene].nodes)
-            this->model->drawNodes(0, model, config, camera);
-
-        //this->renderer->Render(config, camera, model);
+        this->model->renderModel(modelRenderers, model, config, camera);
     }
 
     PhysicsObject::~PhysicsObject()

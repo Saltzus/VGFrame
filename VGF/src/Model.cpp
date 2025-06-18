@@ -20,8 +20,6 @@ namespace VGF
 		{
 			Mesh mesh;
 			LoadMeshData(model, model.meshes[i], mesh.vertices, mesh.indices);
-			mesh.createRenderer();
-
 			meshes.push_back(mesh);
 		}
 
@@ -29,28 +27,26 @@ namespace VGF
 
 	}
 
+	Model::Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material)
+	{
+		customModel = true;
+
+		Mesh mesh;
+		mesh.vertices = vertices;
+		mesh.indices = indices;
+		this->textures = textures;
+
+		meshes.push_back(mesh);
+	}
+
 	Model::~Model()
 	{
-		for (auto texture : textures)
-			delete texture;
-	}
-
-	std::vector<unsigned int> Model::createBufferObjects(const tinygltf::Model& model)
-	{
-		std::vector<unsigned int> bufferObjects(model.buffers.size(), 0);
-
-		glGenBuffers(GLsizei(model.buffers.size()), bufferObjects.data());
-		for (size_t i = 0; i < model.buffers.size(); ++i) {
-			glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[i]);
-
-			glBufferData(GL_ARRAY_BUFFER, model.buffers[i].data.size(),
-				model.buffers[i].data.data(), GL_STATIC_DRAW);
+		if (!customModel)
+		{
+			for (auto texture : textures)
+				delete texture;
 		}
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-		return bufferObjects;
 	}
-
 
 	/// Read flat floats from an accessor
 	static const float* GetFloatData(const tinygltf::Model& model, int accessorId) 
@@ -226,21 +222,28 @@ namespace VGF
 
 
 
-	void Model::drawNodes(int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera)
+	void Model::drawNodes(std::vector<Renderer*> renderers, int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera)
 	{
 		const auto& node = model.nodes[nodeIdx];
 		const glm::mat4 modelMatrix = getLocalToWorldMatrix(node, parentMatrix);
 
 		if (node.mesh >= 0)
 		{
-			const auto& mesh = meshes[node.mesh];
-			mesh.renderer->Render(config, camera, modelMatrix);
+			Renderer* renderer = renderers[node.mesh];
+			renderer->Render(config, camera, modelMatrix);
 		}
 		
-
-		// Draw children
-		for (const auto childNodeIdx : node.children) {
-			drawNodes(childNodeIdx, modelMatrix, config, camera);
-		}
+		for (const auto childNodeIdx : node.children) 
+			drawNodes(renderers, childNodeIdx, modelMatrix, config, camera);
 	};
+
+	void Model::renderModel(std::vector<Renderer*> renderers, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera)
+	{
+		if (customModel)
+			for (size_t i = 0; i < meshes.size(); i++)
+				renderers[i]->Render(config, camera, parentMatrix);
+		else
+			for (const auto nodeIdx : model.scenes[model.defaultScene].nodes)
+				drawNodes(renderers, nodeIdx, parentMatrix, config, camera);
+	}
 }

@@ -4,32 +4,31 @@ namespace VGF
 {
     
 
-    Object::Object()
+    Object::Object(Model* model)
     {
-        texture = Texture::GetDefaultTexture();
-        //renderer = new Renderer(indices, vertices);
-        
-        model = new Model("../../../Examples/HelloWorld/Models/Duck.gltf");
+        this->model = model;
+
+        for (auto mesh : this->model->meshes)
+            modelRenderers.emplace_back(new Renderer(mesh.indices, mesh.vertices));
     }
 
     void Object::SetModel(Model* model)
     {
+        modelRenderers.clear();
+
         this->model = model;
+
+        for (auto mesh : this->model->meshes)
+            modelRenderers.emplace_back(new Renderer(mesh.indices, mesh.vertices));
     }
     
     Object::~Object()
     {
-        //delete this->renderer;
-        delete this->texture;
-
-        delete model;
     }
 
     void Object::Render(PipelineConfig& config, Camera* camera, glm::mat4 model)
     {
         config.Activate();
-
-        texture->Bind();
 
         model = glm::translate(model, translation);
 
@@ -39,11 +38,6 @@ namespace VGF
 
         model = glm::scale(model, scale);
 
-        
-
-        for (const auto nodeIdx : this->model->model.scenes[this->model->model.defaultScene].nodes)
-            this->model->drawNodes(0, model, config, camera);
-
-        //this->renderer->Render(config, camera, model);
+        this->model->renderModel(modelRenderers, model, config, camera);
     }
 }
