@@ -168,7 +168,7 @@ namespace VGF
 				outVertices.push_back(normalZ);
 
 				outVertices.push_back(uvU);
-				outVertices.push_back(uvV);
+				outVertices.push_back(1.0f - uvV);
 			}
 		}
 	}
@@ -234,6 +234,11 @@ namespace VGF
 
 	void Model::renderModel(std::vector<Renderer*> renderers, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera)
 	{
+		if (textures.size() >= 1)
+		{
+			textures[0]->Bind();
+		}
+
 		if (customModel)
 			for (size_t i = 0; i < meshes.size(); i++)
 				renderers[i]->Render(config, camera, parentMatrix);
