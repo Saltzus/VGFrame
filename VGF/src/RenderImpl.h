@@ -8,6 +8,15 @@
 
 namespace VGF
 {
+    enum textureType
+    {
+        color,
+        metallicRoughness,
+        emissive,
+        occulsion,
+        normal
+    };
+
     class PipelineConfig;
     class Shader;
     class Camera;
@@ -30,7 +39,7 @@ namespace VGF
     {
     public:
         virtual ~TextureImpl() {}
-        virtual void Bind() = 0;
+        virtual void Bind(textureType type) = 0;
     };
 
 	class ShaderImpl

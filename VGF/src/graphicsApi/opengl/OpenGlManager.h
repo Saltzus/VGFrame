@@ -29,7 +29,7 @@ namespace VGF::Opengl
         OpenglTexture(const char* filePath);
         OpenglTexture(const unsigned char* data, int format, int width, int height);
         ~OpenglTexture();  
-        void Bind() override;
+        void Bind(textureType type) override;
     private:
         GLuint texture;
     };

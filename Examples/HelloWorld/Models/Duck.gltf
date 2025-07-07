@@ -25,10 +25,18 @@
 	],
 	"materials":[
 		{
+			"emissiveFactor":[
+				1,
+				1,
+				1
+			],
+			"emissiveTexture":{
+				"index":0
+			},
 			"name":"blinn3-fx.001",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
-					"index":0
+					"index":1
 				},
 				"metallicFactor":0
 			}
@@ -54,9 +62,18 @@
 		{
 			"sampler":0,
 			"source":0
+		},
+		{
+			"sampler":0,
+			"source":1
 		}
 	],
 	"images":[
+		{
+			"mimeType":"image/png",
+			"name":"emission",
+			"uri":"emission.png"
+		},
 		{
 			"mimeType":"image/png",
 			"name":"Image_0",
@@ -134,7 +151,7 @@
 	"buffers":[
 		{
 			"byteLength":102040,
-			"uri":"duck.bin"
+			"uri":"Duck.bin"
 		}
 	]
 }

@@ -38,14 +38,26 @@ namespace VGF
         delete this->impl;
     }
 
-    void Texture::Bind()
+    void Texture::Bind(textureType type)
     {
-        impl->Bind();
+        impl->Bind(type);
     }
 
     Texture* Texture::GetDefaultTexture()
     {
         static Texture* DEFAULT_TEXTURE = new Texture("../../../Examples/HelloWorld/Textures/PixelText.png");
         return DEFAULT_TEXTURE;
+    }
+    Texture* Texture::GetWhiteTexture()
+    {
+        const unsigned char whitePixel[4] = { 255, 255, 255, 255 };
+        static Texture* WHITE_TEXTURE = new Texture(whitePixel, 4, 1, 1);
+        return WHITE_TEXTURE;
+    }
+    Texture* Texture::GetBlackTexture()
+    {
+        const unsigned char blackPixel[4] = { 0, 0, 0, 0 };
+        static Texture* BLACK_TEXTURE = new Texture(blackPixel, 4, 1, 1);
+        return BLACK_TEXTURE;
     }
 }

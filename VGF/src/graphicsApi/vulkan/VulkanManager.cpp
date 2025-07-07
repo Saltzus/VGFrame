@@ -41,7 +41,6 @@ namespace VGF::Vulkan
         vkFreeMemory(vulkan->device, stagingBufferMemory, nullptr);
 
         textureImageViewTex = vulkan->createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-        vulkan->textureImageView = textureImageViewTex;
     }
     VulkanTexture::VulkanTexture(const unsigned char* datat, int format, int width, int height)
     {
@@ -78,9 +77,29 @@ namespace VGF::Vulkan
         vkDestroyImage(Vulkan::vulkan->device, textureImage, nullptr);
         vkFreeMemory(Vulkan::vulkan->device, textureImageMemory, nullptr);
     }
-    void VulkanTexture::Bind()
+    void VulkanTexture::Bind(textureType type)
     {
-        Vulkan::vulkan->textureImageView = textureImageViewTex;
+        switch (type)
+        {
+        case textureType::color:
+            Vulkan::vulkan->colorTextureImageView = textureImageViewTex;
+            break;
+        case textureType::metallicRoughness:
+            Vulkan::vulkan->metallicRoughnessTextureImageView = textureImageViewTex;
+            break;
+        case textureType::emissive:
+            Vulkan::vulkan->emissiveTextureImageView = textureImageViewTex;
+            break;
+        case textureType::occulsion:
+            Vulkan::vulkan->occulsionTextureImageView = textureImageViewTex;
+            break;
+        case textureType::normal:
+            Vulkan::vulkan->normalTextureImageView = textureImageViewTex;
+            break;
+        default:
+            Vulkan::vulkan->colorTextureImageView = textureImageViewTex;
+            break;
+        }
     }
 
 #ifdef NDEBUG
@@ -145,7 +164,12 @@ namespace VGF::Vulkan
         vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
         vkDestroySampler(device, textureSampler, nullptr);
-        vkDestroyImageView(device, textureImageView, nullptr);
+
+        vkDestroyImageView(device, colorTextureImageView, nullptr);
+        vkDestroyImageView(device, metallicRoughnessTextureImageView, nullptr);
+        vkDestroyImageView(device, emissiveTextureImageView, nullptr);
+        vkDestroyImageView(device, occulsionTextureImageView, nullptr);
+        vkDestroyImageView(device, normalTextureImageView, nullptr);
 
         vkDestroyImage(device, textureImage, nullptr);
         vkFreeMemory(device, textureImageMemory, nullptr);
@@ -534,21 +558,45 @@ namespace VGF::Vulkan
     }
     void Vulkan::createDescriptorSetLayout() 
     {
-        VkDescriptorSetLayoutBinding uboLayoutBinding{};
-        uboLayoutBinding.binding = 0;
-        uboLayoutBinding.descriptorCount = 1;
-        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uboLayoutBinding.pImmutableSamplers = nullptr;
-        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        std::array<VkDescriptorSetLayoutBinding, 6> bindings{};
 
-        VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-        samplerLayoutBinding.binding = 1;
-        samplerLayoutBinding.descriptorCount = 1;
-        samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        samplerLayoutBinding.pImmutableSamplers = nullptr;
-        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings[0].binding = 0;
+        bindings[0].descriptorCount = 1;
+        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings[0].pImmutableSamplers = nullptr;
+        bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+        bindings[1].binding = 1;
+        bindings[1].descriptorCount = 1;
+        bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[1].pImmutableSamplers = nullptr;
+        bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        bindings[2].binding = 2;
+        bindings[2].descriptorCount = 1;
+        bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[2].pImmutableSamplers = nullptr;
+        bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        bindings[3].binding = 3;
+        bindings[3].descriptorCount = 1;
+        bindings[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[3].pImmutableSamplers = nullptr;
+        bindings[3].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        bindings[4].binding = 4;
+        bindings[4].descriptorCount = 1;
+        bindings[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[4].pImmutableSamplers = nullptr;
+        bindings[4].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        bindings[5].binding = 5;
+        bindings[5].descriptorCount = 1;
+        bindings[5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[5].pImmutableSamplers = nullptr;
+        bindings[5].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -581,12 +629,32 @@ namespace VGF::Vulkan
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
 
-            VkDescriptorImageInfo imageInfo{};
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = textureImageView;
-            imageInfo.sampler = textureSampler;
+            VkDescriptorImageInfo colorInfo{};
+            colorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            colorInfo.imageView = colorTextureImageView;
+            colorInfo.sampler = textureSampler;
 
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+            VkDescriptorImageInfo metallicRoughnessInfo{};
+            metallicRoughnessInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            metallicRoughnessInfo.imageView = metallicRoughnessTextureImageView;
+            metallicRoughnessInfo.sampler = textureSampler;
+
+            VkDescriptorImageInfo emissiveInfo{};
+            emissiveInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            emissiveInfo.imageView = emissiveTextureImageView;
+            emissiveInfo.sampler = textureSampler;
+
+            VkDescriptorImageInfo occlusionInfo{};
+            occlusionInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            occlusionInfo.imageView = occulsionTextureImageView;
+            occlusionInfo.sampler = textureSampler;
+
+            VkDescriptorImageInfo normalInfo{};
+            normalInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            normalInfo.imageView = normalTextureImageView;
+            normalInfo.sampler = textureSampler;
+
+            std::array<VkWriteDescriptorSet, 6> descriptorWrites{};
 
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[0].dstSet = descriptorSets[i];
@@ -602,7 +670,39 @@ namespace VGF::Vulkan
             descriptorWrites[1].dstArrayElement = 0;
             descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pImageInfo = &imageInfo;
+            descriptorWrites[1].pImageInfo = &colorInfo;
+
+            descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[2].dstSet = descriptorSets[i];
+            descriptorWrites[2].dstBinding = 2;
+            descriptorWrites[2].dstArrayElement = 0;
+            descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[2].descriptorCount = 1;
+            descriptorWrites[2].pImageInfo = &metallicRoughnessInfo;
+
+            descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[3].dstSet = descriptorSets[i];
+            descriptorWrites[3].dstBinding = 3;
+            descriptorWrites[3].dstArrayElement = 0;
+            descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[3].descriptorCount = 1;
+            descriptorWrites[3].pImageInfo = &emissiveInfo;
+
+            descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[4].dstSet = descriptorSets[i];
+            descriptorWrites[4].dstBinding = 4;
+            descriptorWrites[4].dstArrayElement = 0;
+            descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[4].descriptorCount = 1;
+            descriptorWrites[4].pImageInfo = &occlusionInfo;
+
+            descriptorWrites[5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[5].dstSet = descriptorSets[i];
+            descriptorWrites[5].dstBinding = 5;
+            descriptorWrites[5].dstArrayElement = 0;
+            descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[5].descriptorCount = 1;
+            descriptorWrites[5].pImageInfo = &normalInfo;
 
             vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
@@ -697,17 +797,17 @@ namespace VGF::Vulkan
         VkDeviceSize offsets[] = { 0 };
 
         for (VulkanRenderer* object : objects)
-            {
+        {
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineCache.at(object->config));
 
-                vkCmdBindVertexBuffers(commandBuffer, 0, 1, &object->vertexBuffer_vertexBufferMemory.first, offsets);
-                vkCmdBindIndexBuffer(commandBuffer, object->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &object->vertexBuffer_vertexBufferMemory.first, offsets);
+            vkCmdBindIndexBuffer(commandBuffer, object->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
 
-                updateUniformBuffer(currentFrame, object);
+            updateUniformBuffer(currentFrame, object);
 
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &object->descriptorSets[currentFrame], 0, nullptr);
-                vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object->indicesSize), 1, 0, 0, 0);
-            }
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &object->descriptorSets[currentFrame], 0, nullptr);
+            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object->indicesSize), 1, 0, 0, 0);
+        }
 
         ubo.clear();
         objects.clear();
@@ -790,11 +890,19 @@ namespace VGF::Vulkan
 
     VkDescriptorPool Vulkan::createDescriptorPool() 
     {
-        std::array<VkDescriptorPoolSize, 2> poolSizes{};
+        std::array<VkDescriptorPoolSize, 6> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[2].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[3].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        poolSizes[4].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[4].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        poolSizes[5].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[5].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -978,7 +1086,11 @@ namespace VGF::Vulkan
     }
 
     void Vulkan::createTextureImageView() {
-        textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+        //colorTextureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+        metallicRoughnessTextureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+        emissiveTextureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+        occulsionTextureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+        normalTextureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     void Vulkan::createTextureSampler() {
         VkPhysicalDeviceProperties properties{};
@@ -1461,13 +1573,25 @@ namespace VGF::Vulkan
         this->config = config;
         vulkan->getOrCreatePipeline(config);
 
-        if (lastTexture != vulkan->textureImageView)
+        checkTextureChange();
+
+        ubo.model = model;
+        ubo.view = camera->view;
+        ubo.proj = camera->projection;
+
+        objects.push_back(this);
+    }
+
+    void VulkanRenderer::checkTextureChange()
+    {
+        if (lastTexture != vulkan->colorTextureImageView)
         {
+            vkDeviceWaitIdle(vulkan->device); // TODO : not checked if better way to do this.
             for (size_t i = 0; i < descriptorSets.size(); i++)
             {
                 VkDescriptorImageInfo imageInfo{};
                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                imageInfo.imageView = vulkan->textureImageView;
+                imageInfo.imageView = vulkan->colorTextureImageView;
                 imageInfo.sampler = vulkan->textureSampler;
 
                 VkWriteDescriptorSet descriptorWrite{};
@@ -1482,13 +1606,103 @@ namespace VGF::Vulkan
                 vkUpdateDescriptorSets(vulkan->device, 1, &descriptorWrite, 0, nullptr);
             }
 
-            lastTexture = vulkan->textureImageView;
+            lastTexture = vulkan->colorTextureImageView;
         }
+        if (lastTexture != vulkan->metallicRoughnessTextureImageView)
+        {
+            vkDeviceWaitIdle(vulkan->device);
+            for (size_t i = 0; i < descriptorSets.size(); i++)
+            {
+                VkDescriptorImageInfo imageInfo{};
+                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                imageInfo.imageView = vulkan->metallicRoughnessTextureImageView;
+                imageInfo.sampler = vulkan->textureSampler;
 
-        ubo.model = model;
-        ubo.view = camera->view;
-        ubo.proj = camera->projection;
+                VkWriteDescriptorSet descriptorWrite{};
+                descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrite.dstSet = descriptorSets[i];
+                descriptorWrite.dstBinding = 2;
+                descriptorWrite.dstArrayElement = 0;
+                descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                descriptorWrite.descriptorCount = 1;
+                descriptorWrite.pImageInfo = &imageInfo;
 
-        objects.push_back(this);
+                vkUpdateDescriptorSets(vulkan->device, 1, &descriptorWrite, 0, nullptr);
+            }
+
+            lastTexture = vulkan->metallicRoughnessTextureImageView;
+        }
+        if (lastTexture != vulkan->emissiveTextureImageView)
+        {
+            vkDeviceWaitIdle(vulkan->device);
+            for (size_t i = 0; i < descriptorSets.size(); i++)
+            {
+                VkDescriptorImageInfo imageInfo{};
+                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                imageInfo.imageView = vulkan->emissiveTextureImageView;
+                imageInfo.sampler = vulkan->textureSampler;
+
+                VkWriteDescriptorSet descriptorWrite{};
+                descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrite.dstSet = descriptorSets[i];
+                descriptorWrite.dstBinding = 3; // Ensure it matches shader binding
+                descriptorWrite.dstArrayElement = 0;
+                descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                descriptorWrite.descriptorCount = 1;
+                descriptorWrite.pImageInfo = &imageInfo;
+
+                vkUpdateDescriptorSets(vulkan->device, 1, &descriptorWrite, 0, nullptr);
+            }
+
+            lastTexture = vulkan->emissiveTextureImageView;
+        }
+        if (lastTexture != vulkan->occulsionTextureImageView)
+        {
+            vkDeviceWaitIdle(vulkan->device);
+            for (size_t i = 0; i < descriptorSets.size(); i++)
+            {
+                VkDescriptorImageInfo imageInfo{};
+                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                imageInfo.imageView = vulkan->occulsionTextureImageView;
+                imageInfo.sampler = vulkan->textureSampler;
+
+                VkWriteDescriptorSet descriptorWrite{};
+                descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrite.dstSet = descriptorSets[i];
+                descriptorWrite.dstBinding = 4; // Ensure it matches shader binding
+                descriptorWrite.dstArrayElement = 0;
+                descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                descriptorWrite.descriptorCount = 1;
+                descriptorWrite.pImageInfo = &imageInfo;
+
+                vkUpdateDescriptorSets(vulkan->device, 1, &descriptorWrite, 0, nullptr);
+            }
+
+            lastTexture = vulkan->occulsionTextureImageView;
+        }
+        if (lastTexture != vulkan->normalTextureImageView)
+        {
+            vkDeviceWaitIdle(vulkan->device);
+            for (size_t i = 0; i < descriptorSets.size(); i++)
+            {
+                VkDescriptorImageInfo imageInfo{};
+                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                imageInfo.imageView = vulkan->normalTextureImageView;
+                imageInfo.sampler = vulkan->textureSampler;
+
+                VkWriteDescriptorSet descriptorWrite{};
+                descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrite.dstSet = descriptorSets[i];
+                descriptorWrite.dstBinding = 5; // Ensure it matches shader binding
+                descriptorWrite.dstArrayElement = 0;
+                descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                descriptorWrite.descriptorCount = 1;
+                descriptorWrite.pImageInfo = &imageInfo;
+
+                vkUpdateDescriptorSets(vulkan->device, 1, &descriptorWrite, 0, nullptr);
+            }
+
+            lastTexture = vulkan->normalTextureImageView;
+        }
     }
 }

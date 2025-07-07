@@ -13,9 +13,11 @@ namespace VGF
         Texture(const char* filePath);
         Texture(const unsigned char* data, int format, int width, int height);
         ~Texture();
-        void virtual Bind();
+        void virtual Bind(textureType type = textureType::color);
 
         static Texture* GetDefaultTexture();
+        static Texture* GetWhiteTexture();
+        static Texture* GetBlackTexture();
     };
 
     

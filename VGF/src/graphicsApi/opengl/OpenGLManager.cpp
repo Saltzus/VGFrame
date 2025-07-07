@@ -68,7 +68,7 @@ namespace VGF::Opengl
     OpenglTexture::~OpenglTexture()
     {
     }
-    void OpenglTexture::Bind()
+    void OpenglTexture::Bind(textureType type)
     {
         // Bind the texture to the specified texture unit
         glBindTexture(GL_TEXTURE_2D, texture);

@@ -48,7 +48,7 @@ namespace VGF
 		unsigned int uLightDirectionLocation;
 		unsigned int uLightIntensity;
 
-		unsigned int uBaseColorTexture;
+		unsigned int uBaseColorTexture = 1;
 		unsigned int uBaseColorFactor;
 
 		unsigned int uMetallicRoughnessTexture;
@@ -84,5 +84,6 @@ namespace VGF
 
 		std::vector<Texture*> createTextureObjects(const tinygltf::Model& model) const;
 		glm::mat4 getLocalToWorldMatrix(const tinygltf::Node& node, const glm::mat4& parentMatrix);
+		const void bindMaterial(const int materialIndex);
 	};
 } 

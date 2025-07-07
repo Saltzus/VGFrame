@@ -26,8 +26,11 @@ int main(int argc, char** argv)
         VGF::Topology::TRIANGLE_LIST
     );
 
-    VGF::Texture* texture = new VGF::Texture("../../../Examples/HelloWorld/Textures/PixelText.png");
-
+    VGF::Texture* texture = new VGF::Texture("../../../Examples/HelloWorld/Textures/PixelText.png"); texture->Bind(VGF::textureType::color);
+    VGF::Texture* texture1 = new VGF::Texture("../../../Examples/HelloWorld/Textures/Image_0.png");  texture1->Bind(VGF::textureType::metallicRoughness);
+    VGF::Texture* texture2 = new VGF::Texture("../../../Examples/HelloWorld/Textures/Image_0.png");  texture2->Bind(VGF::textureType::emissive);
+    VGF::Texture* texture3 = new VGF::Texture("../../../Examples/HelloWorld/Textures/Image_0.png");  texture3->Bind(VGF::textureType::occulsion);
+    VGF::Texture* texture4 = new VGF::Texture("../../../Examples/HelloWorld/Textures/Image_0.png");  texture4->Bind(VGF::textureType::normal);
 
     VGF::Model cubeModel("../../../Examples/HelloWorld/Models/Cube.gltf");
     VGF::Model duckModel("../../../Examples/HelloWorld/Models/Duck.gltf");

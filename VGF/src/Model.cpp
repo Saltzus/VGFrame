@@ -188,6 +188,7 @@ namespace VGF
 			const auto& texture = model.textures[i];
 			assert(texture.source >= 0);
 			const auto& image = model.images[texture.source];
+			
 
 			textureObjects.emplace_back(new Texture(image.image.data(), GL_RGBA, image.width, image.height));
 		}
@@ -221,6 +222,9 @@ namespace VGF
 	{
 		const auto& node = model.nodes[nodeIdx];
 		const glm::mat4 modelMatrix = getLocalToWorldMatrix(node, parentMatrix);
+		const auto& mesh = model.meshes[node.mesh];
+
+		bindMaterial(mesh.primitives[0].material);
 
 		if (node.mesh >= 0)
 		{
@@ -234,16 +238,149 @@ namespace VGF
 
 	void Model::renderModel(std::vector<Renderer*> renderers, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera)
 	{
-		if (textures.size() >= 1)
+		if (textures.size() > 0)
 		{
 			textures[0]->Bind();
 		}
 
+
 		if (customModel)
 			for (size_t i = 0; i < meshes.size(); i++)
+			{
+				//bindMaterial(0);
 				renderers[i]->Render(config, camera, parentMatrix);
+			}
 		else
 			for (const auto nodeIdx : model.scenes[model.defaultScene].nodes)
 				drawNodes(renderers, nodeIdx, parentMatrix, config, camera);
 	}
+
+	const void Model::bindMaterial(const int materialIndex)
+	{
+		if (materialIndex >= 0)
+		{
+			const auto& material = model.materials[materialIndex];
+			const auto& pbrMetallicRoughness = material.pbrMetallicRoughness;
+			if (uBaseColorFactor >= 0)
+			{
+				/*glUniform4f(uBaseColorFactor,
+					(float)pbrMetallicRoughness.baseColorFactor[0],
+					(float)pbrMetallicRoughness.baseColorFactor[1],
+					(float)pbrMetallicRoughness.baseColorFactor[2],
+					(float)pbrMetallicRoughness.baseColorFactor[3]);*/
+			}
+			if (uBaseColorTexture >= 0)
+			{
+				Texture* textureObject = Texture::GetDefaultTexture();
+				if (pbrMetallicRoughness.baseColorTexture.index >= 0)
+				{
+					const auto& texture = model.textures[pbrMetallicRoughness.baseColorTexture.index];
+					if (texture.source >= 0)
+					{
+						textureObject = textures[texture.source];
+					}
+				}
+
+				
+				textureObject->Bind(textureType::color);
+			}
+			if (uMetallicFactor >= 0)
+			{
+				//glUniform1f(uMetallicFactor, (float)pbrMetallicRoughness.metallicFactor);
+			}
+			if (uRoughnessFactor >= 0)
+			{
+				//glUniform1f(uRoughnessFactor, (float)pbrMetallicRoughness.roughnessFactor);
+			}
+			if (uMetallicRoughnessTexture >= 0)
+			{
+				Texture* textureObject = Texture::GetWhiteTexture();
+				if (pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
+				{
+					const auto& texture = model.textures[pbrMetallicRoughness.metallicRoughnessTexture.index];
+					if (texture.source >= 0)
+					{
+						textureObject = textures[texture.source];
+					}
+				}
+
+				textureObject->Bind(textureType::metallicRoughness);
+
+			}
+			if (uEmissiveFactor >= 0)
+			{
+				/*/glUniform3f(uEmissiveFactor,
+					(float)material.emissiveFactor[0],
+					(float)material.emissiveFactor[1],
+					(float)material.emissiveFactor[2]);*/
+			}
+			if (uEmissiveTexture >= 0)
+			{
+				Texture* textureObject = Texture::GetBlackTexture();
+				if (material.emissiveTexture.index >= 0)
+				{
+					const auto& texture = model.textures[material.emissiveTexture.index];
+					if (texture.source >= 0)
+					{
+						textureObject = textures[texture.source];
+					}
+				}
+
+				textureObject->Bind(textureType::emissive);
+			}
+			if (uOcclusionStrength >= 0)
+			{
+				//glUniform1f(uOcclusionStrength, (float)material.occlusionTexture.strength);
+			}
+			if (uOcclusionTexture >= 0)
+			{
+				Texture* textureObject = Texture::GetWhiteTexture();
+				if (material.occlusionTexture.index >= 0)
+				{
+					const auto& texture = model.textures[material.occlusionTexture.index];
+					if (texture.source >= 0)
+					{
+						textureObject = textures[texture.source];
+					}
+				}
+				
+				textureObject->Bind(textureType::occulsion);
+			}
+		}
+		else
+		{
+			if (uBaseColorFactor >= 0)
+			{
+				//glUniform4f(uBaseColorFactor, 1, 1, 1, 1);
+			}
+			if (uBaseColorTexture >= 0)
+				Texture::GetDefaultTexture()->Bind(textureType::color);
+
+			if (uMetallicFactor >= 0)
+			{
+				//glUniform1f(uMetallicFactor, 1.f);
+			}
+			if (uRoughnessFactor >= 0)
+			{
+				//glUniform1f(uRoughnessFactor, 1.f);
+			}
+			if (uMetallicRoughnessTexture >= 0)
+				Texture::GetBlackTexture()->Bind(textureType::metallicRoughness);
+
+			if (uEmissiveFactor >= 0)
+			{
+				//glUniform3f(uEmissiveFactor, 0.f, 0.f, 0.f);
+			}
+			if (uEmissiveTexture >= 0)
+				Texture::GetBlackTexture()->Bind(textureType::emissive);
+
+			if (uOcclusionStrength >= 0)
+			{
+				//glUniform1f(uOcclusionStrength, 0.f);
+			}
+			if (uOcclusionTexture >= 0)
+				Texture::GetWhiteTexture()->Bind(textureType::occulsion);
+		}
+	};
 }
+

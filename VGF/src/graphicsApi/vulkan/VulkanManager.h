@@ -45,7 +45,7 @@ namespace VGF::Vulkan
         VulkanTexture(const char* filePath);
         VulkanTexture(const unsigned char* data, int format, int width, int height);
         ~VulkanTexture();
-        void Bind() override;
+        void Bind(textureType type) override;
     private:
         VkImage textureImage;
         VkDeviceMemory textureImageMemory;
@@ -66,7 +66,13 @@ namespace VGF::Vulkan
         std::vector<UniformBufferObject> ubo;
 
         VkDevice device;
-        VkImageView textureImageView;
+
+        VkImageView colorTextureImageView;
+        VkImageView metallicRoughnessTextureImageView;
+        VkImageView emissiveTextureImageView;
+        VkImageView occulsionTextureImageView;
+        VkImageView normalTextureImageView;
+
         VkSampler textureSampler;
 
         //std::map<std::pair<const char*, const char*>,VkPipeline> graphicsPipelines;
@@ -224,6 +230,7 @@ namespace VGF::Vulkan
         VulkanRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices);
         ~VulkanRenderer();
 
+
         PipelineConfig config;
         
         std::pair<VkBuffer, VkDeviceMemory> vertexBuffer_vertexBufferMemory;
@@ -240,6 +247,7 @@ namespace VGF::Vulkan
 
         virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model) override; // Declare draw
     private:
+        void checkTextureChange();
         void* lastTexture;
         Vulkan* vulkan;
     };
