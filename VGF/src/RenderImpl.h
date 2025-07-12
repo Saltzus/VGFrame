@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-
+#include "PBRBuffer.h"
 
 namespace VGF
 {
@@ -25,7 +25,7 @@ namespace VGF
     {
     public:
         virtual ~RendererImpl() {}
-        virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model) = 0;
+        virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer) = 0;
     };
 
     class ApiImpl

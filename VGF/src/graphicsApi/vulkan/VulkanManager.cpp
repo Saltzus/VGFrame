@@ -155,12 +155,6 @@ namespace VGF::Vulkan
         vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
         vkDestroyRenderPass(device, renderPass, nullptr);
 
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            vkDestroyBuffer(device, uniformBuffers[i], nullptr);
-            vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
-        }
-
-
         vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
         vkDestroySampler(device, textureSampler, nullptr);
@@ -558,7 +552,7 @@ namespace VGF::Vulkan
     }
     void Vulkan::createDescriptorSetLayout() 
     {
-        std::array<VkDescriptorSetLayoutBinding, 6> bindings{};
+        std::array<VkDescriptorSetLayoutBinding, 7> bindings{};
 
         bindings[0].binding = 0;
         bindings[0].descriptorCount = 1;
@@ -568,7 +562,7 @@ namespace VGF::Vulkan
 
         bindings[1].binding = 1;
         bindings[1].descriptorCount = 1;
-        bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         bindings[1].pImmutableSamplers = nullptr;
         bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
@@ -596,6 +590,12 @@ namespace VGF::Vulkan
         bindings[5].pImmutableSamplers = nullptr;
         bindings[5].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
+        bindings[6].binding = 6;
+        bindings[6].descriptorCount = 1;
+        bindings[6].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[6].pImmutableSamplers = nullptr;
+        bindings[6].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -607,7 +607,7 @@ namespace VGF::Vulkan
             throw std::runtime_error("failed to create descriptor set layout!");
         }
     }
-    std::vector<VkDescriptorSet> Vulkan::createDescriptorSets() 
+    std::vector<VkDescriptorSet> Vulkan::createDescriptorSets(std::vector<VkBuffer>& uniformBuffers, std::vector<VkBuffer>& PBRuniformBuffers)
     {
         std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo{};
@@ -628,6 +628,11 @@ namespace VGF::Vulkan
             bufferInfo.buffer = uniformBuffers[i];
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
+
+            VkDescriptorBufferInfo PBRbufferInfo{};
+            PBRbufferInfo.buffer = PBRuniformBuffers[i];
+            PBRbufferInfo.offset = 0;
+            PBRbufferInfo.range = sizeof(PBRbufferObject);
 
             VkDescriptorImageInfo colorInfo{};
             colorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -654,7 +659,7 @@ namespace VGF::Vulkan
             normalInfo.imageView = normalTextureImageView;
             normalInfo.sampler = textureSampler;
 
-            std::array<VkWriteDescriptorSet, 6> descriptorWrites{};
+            std::array<VkWriteDescriptorSet, 7> descriptorWrites{};
 
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[0].dstSet = descriptorSets[i];
@@ -668,9 +673,9 @@ namespace VGF::Vulkan
             descriptorWrites[1].dstSet = descriptorSets[i];
             descriptorWrites[1].dstBinding = 1;
             descriptorWrites[1].dstArrayElement = 0;
-            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pImageInfo = &colorInfo;
+            descriptorWrites[1].pBufferInfo = &PBRbufferInfo;
 
             descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[2].dstSet = descriptorSets[i];
@@ -678,7 +683,7 @@ namespace VGF::Vulkan
             descriptorWrites[2].dstArrayElement = 0;
             descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[2].descriptorCount = 1;
-            descriptorWrites[2].pImageInfo = &metallicRoughnessInfo;
+            descriptorWrites[2].pImageInfo = &colorInfo;
 
             descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[3].dstSet = descriptorSets[i];
@@ -686,7 +691,7 @@ namespace VGF::Vulkan
             descriptorWrites[3].dstArrayElement = 0;
             descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[3].descriptorCount = 1;
-            descriptorWrites[3].pImageInfo = &emissiveInfo;
+            descriptorWrites[3].pImageInfo = &metallicRoughnessInfo;
 
             descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[4].dstSet = descriptorSets[i];
@@ -694,7 +699,7 @@ namespace VGF::Vulkan
             descriptorWrites[4].dstArrayElement = 0;
             descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[4].descriptorCount = 1;
-            descriptorWrites[4].pImageInfo = &occlusionInfo;
+            descriptorWrites[4].pImageInfo = &emissiveInfo;
 
             descriptorWrites[5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[5].dstSet = descriptorSets[i];
@@ -702,7 +707,15 @@ namespace VGF::Vulkan
             descriptorWrites[5].dstArrayElement = 0;
             descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[5].descriptorCount = 1;
-            descriptorWrites[5].pImageInfo = &normalInfo;
+            descriptorWrites[5].pImageInfo = &occlusionInfo;
+
+            descriptorWrites[6].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[6].dstSet = descriptorSets[i];
+            descriptorWrites[6].dstBinding = 6;
+            descriptorWrites[6].dstArrayElement = 0;
+            descriptorWrites[6].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[6].descriptorCount = 1;
+            descriptorWrites[6].pImageInfo = &normalInfo;
 
             vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
@@ -886,14 +899,15 @@ namespace VGF::Vulkan
     {
         object->ubo.proj[1][1] *= -1;
         memcpy(object->uniformBuffersMapped[currentImage], &object->ubo, sizeof(object->ubo));
+        memcpy(object->PBRuniformBuffersMapped[currentImage], &object->PBRubo, sizeof(object->PBRubo));
     }
 
     VkDescriptorPool Vulkan::createDescriptorPool() 
     {
-        std::array<VkDescriptorPoolSize, 6> poolSizes{};
+        std::array<VkDescriptorPoolSize, 7> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
         poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         poolSizes[2].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
@@ -903,6 +917,8 @@ namespace VGF::Vulkan
         poolSizes[4].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
         poolSizes[5].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         poolSizes[5].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        poolSizes[6].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[6].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1291,22 +1307,29 @@ namespace VGF::Vulkan
 
         return { indexBuffer, indexBufferMemory };
     }
-    std::tuple<std::vector<VkBuffer>, std::vector<void*>, std::vector<VkDeviceMemory>> Vulkan::createUniformBuffers() {
-        VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-        uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-        uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-        uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+    template<typename T>
+    void Vulkan::createUniformBuffers
+    (
+        std::vector<VkBuffer>& Buffers,
+        std::vector<void*>& BuffersMapped,
+        std::vector<VkDeviceMemory>& BuffersMemory,
+        T type
+    ) 
+    {
+        VkDeviceSize bufferSize = sizeof(type);
+
+        Buffers.resize(MAX_FRAMES_IN_FLIGHT);
+        BuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+        BuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                uniformBuffers[i], uniformBuffersMemory[i]);
+                Buffers[i], BuffersMemory[i]);
 
-            vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+            vkMapMemory(device, BuffersMemory[i], 0, bufferSize, 0, &BuffersMapped[i]);
         }
-
-        return { uniformBuffers, uniformBuffersMapped, uniformBuffersMemory };
     }
 
     VkCommandBuffer Vulkan::beginSingleTimeCommands() {
@@ -1542,16 +1565,18 @@ namespace VGF::Vulkan
         vertexBuffer_vertexBufferMemory = vulkan->createVertexBuffer(vertices);
         indexBuffer_indexBufferMemory = vulkan->createIndexBuffer(convertIndices(indices));
 
-        std::tie(uniformBuffers, uniformBuffersMapped, uniformBuffersMemory) = vulkan->createUniformBuffers();
+        vulkan->createUniformBuffers(uniformBuffers, uniformBuffersMapped, uniformBuffersMemory, UniformBufferObject());
+        vulkan->createUniformBuffers(PBRuniformBuffers, PBRuniformBuffersMapped, PBRuniformBuffersMemory, PBRbufferObject());
 
         descriptorPool = vulkan->createDescriptorPool();
-        descriptorSets = vulkan->createDescriptorSets();
+        descriptorSets = vulkan->createDescriptorSets(uniformBuffers, PBRuniformBuffers);
 
         indicesSize = indices.size();
     }
 
     VulkanRenderer::~VulkanRenderer()
     {
+
         vkDeviceWaitIdle(vulkan->device);
 
         vkDestroyDescriptorPool(vulkan->device, descriptorPool, nullptr);
@@ -1566,9 +1591,13 @@ namespace VGF::Vulkan
             vkDestroyBuffer(vulkan->device, uniformBuffers[i], nullptr);
             vkFreeMemory(vulkan->device, uniformBuffersMemory[i], nullptr);
         }
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            vkDestroyBuffer(vulkan->device, PBRuniformBuffers[i], nullptr);
+            vkFreeMemory(vulkan->device, PBRuniformBuffersMemory[i], nullptr);
+        }
     }
-    int sus = 0;
-    void VulkanRenderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model)
+    void VulkanRenderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer)
     {
         this->config = config;
         vulkan->getOrCreatePipeline(config);
@@ -1578,6 +1607,8 @@ namespace VGF::Vulkan
         ubo.model = model;
         ubo.view = camera->view;
         ubo.proj = camera->projection;
+
+        PBRubo = buffer;
 
         objects.push_back(this);
     }
@@ -1597,7 +1628,7 @@ namespace VGF::Vulkan
                 VkWriteDescriptorSet descriptorWrite{};
                 descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 descriptorWrite.dstSet = descriptorSets[i];
-                descriptorWrite.dstBinding = 1; // Ensure it matches shader binding
+                descriptorWrite.dstBinding = 2; // Ensure it matches shader binding
                 descriptorWrite.dstArrayElement = 0;
                 descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 descriptorWrite.descriptorCount = 1;
@@ -1621,7 +1652,7 @@ namespace VGF::Vulkan
                 VkWriteDescriptorSet descriptorWrite{};
                 descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 descriptorWrite.dstSet = descriptorSets[i];
-                descriptorWrite.dstBinding = 2;
+                descriptorWrite.dstBinding = 3;
                 descriptorWrite.dstArrayElement = 0;
                 descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 descriptorWrite.descriptorCount = 1;
@@ -1645,7 +1676,7 @@ namespace VGF::Vulkan
                 VkWriteDescriptorSet descriptorWrite{};
                 descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 descriptorWrite.dstSet = descriptorSets[i];
-                descriptorWrite.dstBinding = 3; // Ensure it matches shader binding
+                descriptorWrite.dstBinding = 4; // Ensure it matches shader binding
                 descriptorWrite.dstArrayElement = 0;
                 descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 descriptorWrite.descriptorCount = 1;
@@ -1669,7 +1700,7 @@ namespace VGF::Vulkan
                 VkWriteDescriptorSet descriptorWrite{};
                 descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 descriptorWrite.dstSet = descriptorSets[i];
-                descriptorWrite.dstBinding = 4; // Ensure it matches shader binding
+                descriptorWrite.dstBinding = 5; // Ensure it matches shader binding
                 descriptorWrite.dstArrayElement = 0;
                 descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 descriptorWrite.descriptorCount = 1;
@@ -1693,7 +1724,7 @@ namespace VGF::Vulkan
                 VkWriteDescriptorSet descriptorWrite{};
                 descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 descriptorWrite.dstSet = descriptorSets[i];
-                descriptorWrite.dstBinding = 5; // Ensure it matches shader binding
+                descriptorWrite.dstBinding = 6; // Ensure it matches shader binding
                 descriptorWrite.dstArrayElement = 0;
                 descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 descriptorWrite.descriptorCount = 1;

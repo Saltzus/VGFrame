@@ -24,8 +24,11 @@
 
 
 #include "../../PipelineConfig.h"
+#include "../../PBRBuffer.h"
+
 #include "../../RenderImpl.h"
 #include "../../Window.h"
+
 #include "VulkanGraphicsPipeline.h"
 
 namespace VGF::Vulkan
@@ -96,11 +99,20 @@ namespace VGF::Vulkan
 
         std::pair<VkBuffer, VkDeviceMemory> createVertexBuffer(std::vector<GLfloat>& vertices);
         std::pair<VkBuffer, VkDeviceMemory> createIndexBuffer(std::vector<uint16_t> indices);
-        std::tuple<std::vector<VkBuffer>, std::vector<void*>, std::vector<VkDeviceMemory>> createUniformBuffers();
+
+        template<typename T>
+        void createUniformBuffers
+        (
+            std::vector<VkBuffer>& uniformBuffers,
+            std::vector<void*>& uniformBuffersMapped,
+            std::vector<VkDeviceMemory>& uniformBuffersMemory,
+            T type
+        );
+
         void updateUniformBuffer(uint32_t currentImage, VulkanRenderer* object);
 
         VkDescriptorPool createDescriptorPool();
-        std::vector<VkDescriptorSet> createDescriptorSets();
+        std::vector<VkDescriptorSet> createDescriptorSets(std::vector<VkBuffer>& uniformBuffers, std::vector<VkBuffer>& PBRuniformBuffers);
 
         uint32_t getCurrentFrame() { return currentFrame; }
 
@@ -142,10 +154,6 @@ namespace VGF::Vulkan
         VkDeviceMemory vertexBufferMemory;
         VkBuffer indexBuffer;
         VkDeviceMemory indexBufferMemory;
-
-        std::vector<VkBuffer> uniformBuffers;
-        std::vector<VkDeviceMemory> uniformBuffersMemory;
-        std::vector<void*> uniformBuffersMapped;
 
 
 
@@ -223,29 +231,30 @@ namespace VGF::Vulkan
     {
     public:
         unsigned int id;
-        int PipelineID = 0;
-
         int indicesSize;
 
         VulkanRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices);
         ~VulkanRenderer();
-
 
         PipelineConfig config;
         
         std::pair<VkBuffer, VkDeviceMemory> vertexBuffer_vertexBufferMemory;
         std::pair<VkBuffer, VkDeviceMemory> indexBuffer_indexBufferMemory;
 
+        UniformBufferObject ubo;
         std::vector<VkBuffer> uniformBuffers;
         std::vector<void*> uniformBuffersMapped;
         std::vector<VkDeviceMemory> uniformBuffersMemory;
 
+        PBRbufferObject PBRubo;
+        std::vector<VkBuffer> PBRuniformBuffers;
+        std::vector<void*> PBRuniformBuffersMapped;
+        std::vector<VkDeviceMemory> PBRuniformBuffersMemory;
+
         VkDescriptorPool descriptorPool;
         std::vector<VkDescriptorSet> descriptorSets;
 
-        UniformBufferObject ubo;
-
-        virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model) override; // Declare draw
+        virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer) override;
     private:
         void checkTextureChange();
         void* lastTexture;

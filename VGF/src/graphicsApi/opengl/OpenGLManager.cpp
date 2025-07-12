@@ -129,7 +129,7 @@ namespace VGF::Opengl
 
     int i = 0;
 
-    void OpenglRenderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model)
+    void OpenglRenderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer)
     {
         int topology;
 

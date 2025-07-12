@@ -26,10 +26,10 @@ namespace VGF
         delete this->impl;
     }
 
-    void Renderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model)
+    void Renderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer)
     {
         config.Activate();
-        this->impl->Render(config, camera, model);
+        this->impl->Render(config, camera, model, buffer);
     }
 
     void Renderer::InitApi(GLFWwindow* window)

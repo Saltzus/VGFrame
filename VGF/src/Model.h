@@ -84,6 +84,6 @@ namespace VGF
 
 		std::vector<Texture*> createTextureObjects(const tinygltf::Model& model) const;
 		glm::mat4 getLocalToWorldMatrix(const tinygltf::Node& node, const glm::mat4& parentMatrix);
-		const void bindMaterial(const int materialIndex);
+		const PBRbufferObject bindMaterial(const int materialIndex);
 	};
 } 
