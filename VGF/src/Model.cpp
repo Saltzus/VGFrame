@@ -132,7 +132,7 @@ namespace VGF
 				uvData = GetFloatData(model, uvAttribute->second);
 
 			outVertices.clear();
-			outVertices.reserve(vertCount * 8);
+			outVertices.reserve(vertCount * 11);
 
 			for (size_t vert = 0; vert < vertCount; ++vert) 
 			{
@@ -165,6 +165,10 @@ namespace VGF
 				outVertices.push_back(normalX);
 				outVertices.push_back(normalY);
 				outVertices.push_back(normalZ);
+
+				outVertices.push_back(1);
+				outVertices.push_back(1);
+				outVertices.push_back(1);
 
 				outVertices.push_back(uvU);
 				outVertices.push_back(1.0f - uvV);
@@ -226,7 +230,7 @@ namespace VGF
 		if (node.mesh >= 0)
 		{
 			Renderer* renderer = renderers[node.mesh];
-			renderer->Render(config, camera, modelMatrix, bindMaterial(mesh.primitives[0].material));
+			renderer->Render(config, camera, modelMatrix, bindMaterial(camera, mesh.primitives[0].material));
 		}
 		
 		for (const auto childNodeIdx : node.children) 
@@ -237,15 +241,16 @@ namespace VGF
 	{
 		if (customModel)
 			for (size_t i = 0; i < meshes.size(); i++)
-				renderers[i]->Render(config, camera, parentMatrix, bindMaterial(-1));
+				renderers[i]->Render(config, camera, parentMatrix, bindMaterial(camera, -1));
 		else
 			for (const auto nodeIdx : model.scenes[model.defaultScene].nodes)
 				drawNodes(renderers, nodeIdx, parentMatrix, config, camera);
 	}
 
-	const PBRbufferObject Model::bindMaterial(const int materialIndex)
+	const PBRbufferObject Model::bindMaterial(Camera* camera, const int materialIndex)
 	{
 		PBRbufferObject pushConstant;
+		pushConstant.cameraPosition = camera->Position;
 
 		if (materialIndex >= 0)
 		{
