@@ -37,9 +37,9 @@ int main(int argc, char** argv)
     
     std::vector<float> vertices =
     {
-        0, 0.5, 0,        1,1,1, 0,0,
-        0.5, -0.5 ,0,     0,1,0, 0,0,
-        -0.5, -0.5, 0,    1,0,1, 0,0
+        0, 0.5, 0,        0,0,0, 2,4,
+        0.5, -0.5 ,0,     0,0,0, 4,0,
+        -0.5, -0.5, 0,    0,0,0, 0,0
     };
 
     std::vector<unsigned int> indices =
@@ -50,7 +50,7 @@ int main(int argc, char** argv)
     VGF::Model triangle(vertices, indices, VGF::Material::getDefaultMaterial());
 
     VGF::Physics physics;
-    VGF::Camera camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.f, 3.f, -40.f)); // TODO : add camera shader
+    VGF::Camera camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.f, 3.f, -40.f)); // TODO : add camera shader / post processing shader
 
     VGF::PhysicsObject physicsObject(&duckModel, &physics, { -0.5,5,0 }, { 2,2,2 }, 1.f);
 

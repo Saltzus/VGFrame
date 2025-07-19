@@ -18,21 +18,42 @@ namespace VGF::Opengl
         // load image, create texture and generate mipmaps
         int width, height, nrChannels;
         stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
-    
+
         unsigned char* data = stbi_load(filePath, &width, &height, &nrChannels, 0);
+
+        int format;
+        switch (nrChannels)
+        {
+        case 1:
+            format = GL_RED;
+            break;
+        case 2:
+            format = GL_RG;
+            break;
+        case 3:
+            format = GL_RGB;
+            break;
+        case 4:
+            format = GL_RGBA;
+            break;
+        default:
+            format = GL_RGBA;
+            break;
+        }
+
         if (data)
         {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
             glGenerateMipmap(GL_TEXTURE_2D);
         }
         else std::cout << "Failed to load texture" << std::endl;
-    
+
         stbi_image_free(data);
     }
     OpenglTexture::OpenglTexture(const unsigned char* data, int format, int width, int height)
     {
         glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         switch (format)
         {
@@ -47,7 +68,7 @@ namespace VGF::Opengl
             break;
         case 4:
             format = GL_RGBA;
-             break;       
+            break;
         default:
             format = GL_RGBA;
             break;
@@ -55,14 +76,15 @@ namespace VGF::Opengl
 
         glGenTextures(1, &texture);
         glBindTexture(GL_TEXTURE_2D, texture);
+
         // set the texture wrapping parameters
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         // set texture filtering parameters
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     OpenglTexture::~OpenglTexture()
@@ -70,12 +92,34 @@ namespace VGF::Opengl
     }
     void OpenglTexture::Bind(textureType type)
     {
-        // Bind the texture to the specified texture unit
+        switch (type)
+        {
+        case VGF::color:
+            glActiveTexture(GL_TEXTURE2);
+            break;
+        case VGF::metallicRoughness:
+            glActiveTexture(GL_TEXTURE3);
+            break;
+        case VGF::emissive:
+            glActiveTexture(GL_TEXTURE4);
+            break;
+        case VGF::occulsion:
+            glActiveTexture(GL_TEXTURE5);
+            break;
+        case VGF::normal:
+            glActiveTexture(GL_TEXTURE6);
+            break;
+        default:
+            glActiveTexture(GL_TEXTURE2);
+            break;
+        }
+
         glBindTexture(GL_TEXTURE_2D, texture);
     }
-    
+
 
     GLuint Opengl::UBO = 0;
+    GLuint Opengl::PBRUBO = 0;
 
     Opengl::Opengl(GLFWwindow* window)
     {
@@ -83,17 +127,21 @@ namespace VGF::Opengl
         glBindBuffer(GL_UNIFORM_BUFFER, UBO);
         glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 3, NULL, GL_STATIC_DRAW);
         glBindBufferRange(GL_UNIFORM_BUFFER, 0, UBO, 0, 3 * sizeof(glm::mat4));
+
+        glGenBuffers(1, &PBRUBO);
+        glBindBuffer(GL_UNIFORM_BUFFER, PBRUBO);
+        glBufferData(GL_UNIFORM_BUFFER, sizeof(PBRbufferObject), NULL, GL_STATIC_DRAW);
     }
     Opengl::~Opengl()
     {
         glDeleteBuffers(1, &UBO);
-        
+        glDeleteBuffers(1, &PBRUBO);
     }
     int d = 0;
     OpenglRenderer::OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices) : opengl(opengl)
     {
         glGenVertexArrays(1, &VAO);
-        
+
         glGenBuffers(1, &VBO);
         glGenBuffers(1, &EBO);
 
@@ -112,7 +160,7 @@ namespace VGF::Opengl
 
         // vertex color
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-        glEnableVertexAttribArray(1); 
+        glEnableVertexAttribArray(1);
 
         // Texture position attribute
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
@@ -153,11 +201,27 @@ namespace VGF::Opengl
         GLuint blockIndex = glGetUniformBlockIndex(config.ID(), "UniformBufferObject");
         glUniformBlockBinding(config.ID(), blockIndex, 0);
 
+        GLuint blockIndexPBR = glGetUniformBlockIndex(config.ID(), "PBRbufferObject");
+        glBindBufferBase(GL_UNIFORM_BUFFER, 1, Opengl::PBRUBO);
+
         // Update the UBO with matrix data
         glBindBuffer(GL_UNIFORM_BUFFER, Opengl::UBO);
         glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4) * 3, &matrices[0]);
 
-        glUniform1i(glGetUniformLocation(config.ID(), "texSampler"), 0);
+        glBindBuffer(GL_UNIFORM_BUFFER, Opengl::PBRUBO);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(PBRbufferObject), &buffer);
+
+        GLint loc;
+        loc = glGetUniformLocation(config.ID(), "colorSampler");
+        glUniform1i(loc, 2);
+        loc = glGetUniformLocation(config.ID(), "metallicRoughnessSampler");
+        glUniform1i(loc, 3);
+        loc = glGetUniformLocation(config.ID(), "emissiveSampler");
+        glUniform1i(loc, 4);
+        loc = glGetUniformLocation(config.ID(), "occulsionSampler");
+        glUniform1i(loc, 5);
+        loc = glGetUniformLocation(config.ID(), "normalSampler");
+        glUniform1i(loc, 6);
 
         // Draws the pixel
         glBindVertexArray(VAO);

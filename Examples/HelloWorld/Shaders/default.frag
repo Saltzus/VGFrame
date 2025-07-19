@@ -41,5 +41,5 @@ void main() {
     baseColor.rgb *= occlusion;
     baseColor.rgb += emissive;
 
-    outColor = ubo.baseColorFactor;
+    outColor = baseColor;
 }

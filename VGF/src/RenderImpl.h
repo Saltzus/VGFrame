@@ -11,10 +11,10 @@ namespace VGF
     enum textureType
     {
         color,
+        normal,
         metallicRoughness,
         emissive,
-        occulsion,
-        normal
+        occulsion
     };
 
     class PipelineConfig;

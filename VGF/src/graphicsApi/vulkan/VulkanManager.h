@@ -257,7 +257,14 @@ namespace VGF::Vulkan
         virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer) override;
     private:
         void checkTextureChange();
-        void* lastTexture;
+        
+        void* lastTextureColor;
+        void* lastTextureMetallicRoughness;
+        void* lastTextureEmission;
+        void* lastTextureOcculsion;
+        void* lastTextureNormal;
+
+
         Vulkan* vulkan;
     };
 }

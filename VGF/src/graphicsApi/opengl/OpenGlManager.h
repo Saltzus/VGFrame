@@ -41,6 +41,7 @@ namespace VGF::Opengl
         ~Opengl();
 
         static GLuint UBO;
+        static GLuint PBRUBO;
 
         static std::vector<std::pair<GLuint, GLuint>> vbos_ebos;
     private:

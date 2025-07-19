@@ -1615,11 +1615,11 @@ namespace VGF::Vulkan
 
     void VulkanRenderer::checkTextureChange()
     {
-        if (lastTexture != vulkan->colorTextureImageView)
+        if (lastTextureColor != vulkan->colorTextureImageView)
         {
-            vkDeviceWaitIdle(vulkan->device); // TODO : not checked if better way to do this.
             for (size_t i = 0; i < descriptorSets.size(); i++)
             {
+                vkDeviceWaitIdle(vulkan->device); // TODO : not checked if better way to do this.
                 VkDescriptorImageInfo imageInfo{};
                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 imageInfo.imageView = vulkan->colorTextureImageView;
@@ -1637,13 +1637,13 @@ namespace VGF::Vulkan
                 vkUpdateDescriptorSets(vulkan->device, 1, &descriptorWrite, 0, nullptr);
             }
 
-            lastTexture = vulkan->colorTextureImageView;
+            lastTextureColor = vulkan->colorTextureImageView;
         }
-        if (lastTexture != vulkan->metallicRoughnessTextureImageView)
+        if (lastTextureMetallicRoughness != vulkan->metallicRoughnessTextureImageView)
         {
-            vkDeviceWaitIdle(vulkan->device);
             for (size_t i = 0; i < descriptorSets.size(); i++)
             {
+                vkDeviceWaitIdle(vulkan->device);
                 VkDescriptorImageInfo imageInfo{};
                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 imageInfo.imageView = vulkan->metallicRoughnessTextureImageView;
@@ -1661,13 +1661,13 @@ namespace VGF::Vulkan
                 vkUpdateDescriptorSets(vulkan->device, 1, &descriptorWrite, 0, nullptr);
             }
 
-            lastTexture = vulkan->metallicRoughnessTextureImageView;
+            lastTextureMetallicRoughness = vulkan->metallicRoughnessTextureImageView;
         }
-        if (lastTexture != vulkan->emissiveTextureImageView)
+        if (lastTextureEmission != vulkan->emissiveTextureImageView)
         {
-            vkDeviceWaitIdle(vulkan->device);
             for (size_t i = 0; i < descriptorSets.size(); i++)
             {
+                vkDeviceWaitIdle(vulkan->device);
                 VkDescriptorImageInfo imageInfo{};
                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 imageInfo.imageView = vulkan->emissiveTextureImageView;
@@ -1685,13 +1685,13 @@ namespace VGF::Vulkan
                 vkUpdateDescriptorSets(vulkan->device, 1, &descriptorWrite, 0, nullptr);
             }
 
-            lastTexture = vulkan->emissiveTextureImageView;
+            lastTextureEmission = vulkan->emissiveTextureImageView;
         }
-        if (lastTexture != vulkan->occulsionTextureImageView)
+        if (lastTextureOcculsion != vulkan->occulsionTextureImageView)
         {
-            vkDeviceWaitIdle(vulkan->device);
             for (size_t i = 0; i < descriptorSets.size(); i++)
             {
+                vkDeviceWaitIdle(vulkan->device);
                 VkDescriptorImageInfo imageInfo{};
                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 imageInfo.imageView = vulkan->occulsionTextureImageView;
@@ -1709,13 +1709,13 @@ namespace VGF::Vulkan
                 vkUpdateDescriptorSets(vulkan->device, 1, &descriptorWrite, 0, nullptr);
             }
 
-            lastTexture = vulkan->occulsionTextureImageView;
+            lastTextureOcculsion = vulkan->occulsionTextureImageView;
         }
-        if (lastTexture != vulkan->normalTextureImageView)
+        if (lastTextureNormal != vulkan->normalTextureImageView)
         {
-            vkDeviceWaitIdle(vulkan->device);
             for (size_t i = 0; i < descriptorSets.size(); i++)
             {
+                vkDeviceWaitIdle(vulkan->device);
                 VkDescriptorImageInfo imageInfo{};
                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 imageInfo.imageView = vulkan->normalTextureImageView;
@@ -1733,7 +1733,7 @@ namespace VGF::Vulkan
                 vkUpdateDescriptorSets(vulkan->device, 1, &descriptorWrite, 0, nullptr);
             }
 
-            lastTexture = vulkan->normalTextureImageView;
+            lastTextureNormal = vulkan->normalTextureImageView;
         }
     }
 }

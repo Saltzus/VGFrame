@@ -10,11 +10,18 @@ namespace VGF
 		Material();
 		~Material();
 
+		void Bind();
+		std::vector<Texture*> getVector();
+
 		static Material* getDefaultMaterial();
 
 		Texture* color;
+		Texture* metallicRoughness;
+		Texture* emissive;
+		Texture* occulsion;
 		Texture* normal;
-		Texture* roughness;
+
+
 
 	private:
 		static Material defaultMaterial;

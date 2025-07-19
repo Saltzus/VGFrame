@@ -45,7 +45,7 @@ namespace VGF
 
     Texture* Texture::GetDefaultTexture()
     {
-        static Texture* DEFAULT_TEXTURE = new Texture("../../../Examples/HelloWorld/Textures/PixelText.png");
+        static Texture* DEFAULT_TEXTURE = new Texture("../../../Examples/HelloWorld/Textures/default.png");
         return DEFAULT_TEXTURE;
     }
     Texture* Texture::GetWhiteTexture()
@@ -59,5 +59,12 @@ namespace VGF
         const unsigned char blackPixel[4] = { 0, 0, 0, 0 };
         static Texture* BLACK_TEXTURE = new Texture(blackPixel, 4, 1, 1);
         return BLACK_TEXTURE;
+    }
+
+    Texture* Texture::GetBlueTexture()
+    {
+        const unsigned char bluePixel[4] = { 128, 128, 255, 255 };
+        static Texture* BLUE_TEXTURE = new Texture(bluePixel, 4, 1, 1);
+        return BLUE_TEXTURE;
     }
 }

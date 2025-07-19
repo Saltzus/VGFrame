@@ -34,7 +34,6 @@ namespace VGF
 		Mesh mesh;
 		mesh.vertices = vertices;
 		mesh.indices = indices;
-		this->textures = textures;
 
 		meshes.push_back(mesh);
 	}
@@ -236,17 +235,9 @@ namespace VGF
 
 	void Model::renderModel(std::vector<Renderer*> renderers, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera)
 	{
-		if (textures.size() > 0)
-		{
-			textures[0]->Bind();
-		}
-
 		if (customModel)
 			for (size_t i = 0; i < meshes.size(); i++)
-			{
-				
 				renderers[i]->Render(config, camera, parentMatrix, bindMaterial(-1));
-			}
 		else
 			for (const auto nodeIdx : model.scenes[model.defaultScene].nodes)
 				drawNodes(renderers, nodeIdx, parentMatrix, config, camera);
@@ -298,7 +289,6 @@ namespace VGF
 			}
 			textureObject->Bind(textureType::metallicRoughness);
 
-
 			pushConstant.emissiveFactor =
 			{
 				(float)modelMaterial.emissiveFactor[0],
@@ -333,13 +323,27 @@ namespace VGF
 				}
 			}
 			textureObject->Bind(textureType::occulsion);
+
+			textureObject = Texture::GetBlueTexture();
+			if (modelMaterial.normalTexture.index >= 0)
+			{
+				const auto& texture = model.textures[modelMaterial.normalTexture.index];
+
+				if (texture.source >= 0)
+				{
+					textureObject = textures[texture.source];
+				}
+			}
+			textureObject->Bind(textureType::normal);
 		}
 		else
 		{
-			Texture::GetDefaultTexture()->Bind(textureType::color);
-			Texture::GetBlackTexture()->Bind(textureType::metallicRoughness);
-			Texture::GetBlackTexture()->Bind(textureType::emissive);
-			Texture::GetWhiteTexture()->Bind(textureType::occulsion);
+			std::vector<Texture*> text = Material::getDefaultMaterial()->getVector();
+			text[0]->Bind(textureType::color);
+			text[1]->Bind(textureType::metallicRoughness);
+			text[2]->Bind(textureType::emissive);
+			text[3]->Bind(textureType::occulsion);
+			text[4]->Bind(textureType::normal);
 		}
 
 		return pushConstant;

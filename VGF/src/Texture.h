@@ -18,6 +18,7 @@ namespace VGF
         static Texture* GetDefaultTexture();
         static Texture* GetWhiteTexture();
         static Texture* GetBlackTexture();
+        static Texture* GetBlueTexture();
     };
 
     

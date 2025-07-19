@@ -88,7 +88,11 @@ namespace VGF
 		}
 		if (Renderer::GetGraphicsApi() == GraphicsApis::OpenGL)
 		{
+#ifdef NDEBUG
+			glClearColor(0, 0, 0, 0);
+#else
 			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+#endif
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
 	}
