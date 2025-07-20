@@ -33,6 +33,24 @@ layout(location = 3) in vec3 vertexNormal;
 layout(location = 0) out vec4 outColor;
 
 
+struct PointLight
+{
+    vec3  position;
+    vec3  color;
+    float constant;
+    float linear;
+    float quadratic;
+};
+
+PointLight pointLight = PointLight(
+    vec3(  0.0,  3.0,  -20.0 ),   // position: above and in front of the origin
+    vec3(  10,  0,  0 ),   // color: warm hue, roughly “tungsten”
+    1.0,                        // constant: no extra dimming at zero distance
+    0.14,                       // linear: moderate range
+    0.07                        // quadratic: gives ~20–30 unit falloff radius
+);
+
+
 struct PBRInfo
 {
     float NdotL;                  // cos angle between normal and light direction
@@ -118,6 +136,32 @@ float microfacetDistribution(PBRInfo pbrInputs)
     return roughnessSq / (M_PI * f * f);
 }
 
+PBRInfo makePBRInfo(vec3 n, vec3 v, vec3 l, vec4 baseColor, float perceptualRoughness, float metallic) {
+    vec3 h = normalize(l + v);
+    float NdotL = clamp(dot(n, l), 0.001, 1.0);
+    float NdotV = clamp(abs(dot(n, v)), 0.001, 1.0);
+    float NdotH = clamp(dot(n, h), 0.0, 1.0);
+    float LdotH = clamp(dot(l, h), 0.0, 1.0);
+    float VdotH = clamp(dot(v, h), 0.0, 1.0);
+    float alphaRoughness = perceptualRoughness * perceptualRoughness;
+
+    // same reflectance & diffuse/specular setup you already have...
+    vec3 f0 = vec3(0.04);
+    vec3 diffuseColor = baseColor.rgb * (vec3(1.0) - f0) * (1.0 - metallic);
+    vec3 specularColor = mix(f0, baseColor.rgb, metallic);
+    float reflectance     = max(max(specularColor.r, specularColor.g), specularColor.b);
+    float reflectance90   = clamp(reflectance * 25.0, 0.0, 1.0);
+    vec3 R0 = specularColor;
+    vec3 R90 = vec3(1.0) * reflectance90;
+
+    return PBRInfo(
+      NdotL, NdotV, NdotH, LdotH, VdotH,
+      perceptualRoughness, metallic,
+      R0, R90, alphaRoughness,
+      diffuseColor, specularColor
+    );
+}
+
 
 void main()
 {
@@ -145,56 +189,41 @@ void main()
     // spec: COLOR_0 ... acts as an additional linear multiplier to baseColor
     baseColor *= vec4(vertexColor, 1);
 
-    vec3 f0 = vec3(0.04);
-    vec3 diffuseColor = baseColor.rgb * (vec3(1.0) - f0);
-    diffuseColor *= 1.0 - metallic;
-    vec3 specularColor = mix(f0, baseColor.rgb, metallic);
+    vec3 normal = getNormal();                                           // normal at surface point
+    vec3 vector = normalize(ubo.cameraPosition - vertexPosition);        // Vector from surface point to camera
 
-    // Compute reflectance.
-    float reflectance = max(max(specularColor.r, specularColor.g), specularColor.b);
+    vec3 color = {1,1,1};
 
-    // For typical incident reflectance range (between 4% to 100%) set the grazing reflectance to 100% for typical fresnel effect.
-    // For very low reflectance range on highly diffuse objects (below 4%), incrementally reduce grazing reflecance to 0%.
-    float reflectance90 = clamp(reflectance * 25.0, 0.0, 1.0);
-    vec3 specularEnvironmentR0 = specularColor.rgb;
-    vec3 specularEnvironmentR90 = vec3(1.0, 1.0, 1.0) * reflectance90;
+    // Directional light
+    {
+        vec3 lightDir = normalize(lightDirection);
+        PBRInfo dirInfo = makePBRInfo(normal, vector, lightDir, baseColor, perceptualRoughness, metallic);
+        vec3 F = specularReflection(dirInfo);
+        float G = geometricOcclusion(dirInfo);
+        float D = microfacetDistribution(dirInfo);
+        vec3 diffuseContrib = (1.0 - F) * diffuse(dirInfo);
+        vec3 specContrib = F * G * D / (4.0 * dirInfo.NdotL * dirInfo.NdotV);
+        color = dirInfo.NdotL * lightColor * (diffuseContrib + specContrib);
+    }
 
-    vec3 n = getNormal();                             // normal at surface point
-    vec3 v = normalize(ubo.cameraPosition - vertexPosition);        // Vector from surface point to camera
-    vec3 l = normalize(lightDirection);             // Vector from surface point to light
-    vec3 h = normalize(l+v);                          // Half vector between both l and v
-    vec3 reflection = -normalize(reflect(v, n));
+    // Point light
+    {
+        vec3   lightVec = pointLight.position - vertexPosition;
+        float  dist     = length(lightVec);
+        vec3   lightPoint     = normalize(lightVec);
+        float  attenuation = 1.0 / (pointLight.constant
+                                  + pointLight.linear  * dist
+                                  + pointLight.quadratic * dist * dist);
 
-    float NdotL = clamp(dot(n, l), 0.001, 1.0);
-    float NdotV = clamp(abs(dot(n, v)), 0.001, 1.0);
-    float NdotH = clamp(dot(n, h), 0.0, 1.0);
-    float LdotH = clamp(dot(l, h), 0.0, 1.0);
-    float VdotH = clamp(dot(v, h), 0.0, 1.0);
+        PBRInfo ptInfo = makePBRInfo(normal, vector, lightPoint, baseColor, perceptualRoughness, metallic);
+        vec3 Fp = specularReflection(ptInfo);
+        float Gp = geometricOcclusion(ptInfo);
+        float Dp = microfacetDistribution(ptInfo);
+        vec3 diffp = (1.0 - Fp) * diffuse(ptInfo);
+        vec3 specp = Fp * Gp * Dp / (4.0 * ptInfo.NdotL * ptInfo.NdotV);
 
-    PBRInfo pbrInputs = PBRInfo(
-        NdotL,
-        NdotV,
-        NdotH,
-        LdotH,
-        VdotH,
-        perceptualRoughness,
-        metallic,
-        specularEnvironmentR0,
-        specularEnvironmentR90,
-        alphaRoughness,
-        diffuseColor,
-        specularColor
-    );
-
-    // Calculate the shading terms for the microfacet specular shading model
-    vec3 F = specularReflection(pbrInputs);
-    float G = geometricOcclusion(pbrInputs);
-    float D = microfacetDistribution(pbrInputs);
-
-    // Calculation of analytical lighting contribution
-    vec3 diffuseContrib = (1.0 - F) * diffuse(pbrInputs);
-    vec3 specContrib = F * G * D / (4.0 * NdotL * NdotV);
-    vec3 color = NdotL * lightColor * (diffuseContrib + specContrib);
+        color += attenuation * ptInfo.NdotL * pointLight.color * (diffp + specp);
+    }
 
     color += ambientLightColor * ambientLightIntensity * baseColor.xyz;
 
