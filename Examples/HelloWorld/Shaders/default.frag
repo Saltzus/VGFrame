@@ -1,12 +1,12 @@
 // https://github.com/bwasty/gltf-viewer/blob/master/src/shaders/pbr-frag.glsl
 #version 450
 
-layout(binding = 1) uniform PBRbufferObject
+layout(std140, binding = 1) uniform PBRbufferObject 
 {
     vec3 cameraPosition;
+    float metallicFactor;
     vec4 baseColorFactor;
     vec3 emissiveFactor;
-    float metallicFactor;
     float roughnessFactor;
     float occlusionStrength;
 }ubo;
@@ -70,6 +70,25 @@ struct PBRInfo
 const float M_PI = 3.141592653589793;
 const float c_MinRoughness = 0.04;
 
+// Converts a color from linear light gamma to sRGB gamma
+vec4 fromLinear(vec4 linearRGB)
+{
+    bvec3 cutoff = lessThan(linearRGB.rgb, vec3(0.0031308));
+    vec3 higher = vec3(1.055)*pow(linearRGB.rgb, vec3(1.0/2.4)) - vec3(0.055);
+    vec3 lower = linearRGB.rgb * vec3(12.92);
+
+    return vec4(mix(higher, lower, cutoff), linearRGB.a);
+}
+
+// Converts a color from sRGB gamma to linear light gamma
+vec4 toLinear(vec4 sRGB)
+{
+    bvec3 cutoff = lessThan(sRGB.rgb, vec3(0.04045));
+    vec3 higher = pow((sRGB.rgb + vec3(0.055))/vec3(1.055), vec3(2.4));
+    vec3 lower = sRGB.rgb/vec3(12.92);
+
+    return vec4(mix(higher, lower, cutoff), sRGB.a);
+}
 
 vec3 getNormal()
 {
@@ -185,6 +204,7 @@ void main()
 
     // The albedo may be defined from a base texture or a flat color
     vec4 baseColor = texture(colorSampler, vertexTexCoord) * ubo.baseColorFactor;
+    //vec4 baseColor     = toLinear(baseColorSRGB);
 
     // spec: COLOR_0 ... acts as an additional linear multiplier to baseColor
     baseColor *= vec4(vertexColor, 1);
@@ -195,7 +215,7 @@ void main()
     vec3 color = {1,1,1};
 
     // Directional light
-    {
+    
         vec3 lightDir = normalize(lightDirection);
         PBRInfo dirInfo = makePBRInfo(normal, vector, lightDir, baseColor, perceptualRoughness, metallic);
         vec3 F = specularReflection(dirInfo);
@@ -204,7 +224,7 @@ void main()
         vec3 diffuseContrib = (1.0 - F) * diffuse(dirInfo);
         vec3 specContrib = F * G * D / (4.0 * dirInfo.NdotL * dirInfo.NdotV);
         color = dirInfo.NdotL * lightColor * (diffuseContrib + specContrib);
-    }
+    
 
     // Point light
     {
@@ -227,10 +247,11 @@ void main()
 
     color += ambientLightColor * ambientLightIntensity * baseColor.xyz;
 
-    float ao = texture(occulsionSampler, vertexTexCoord).r;
+    float ao = texture(occulsionSampler, vertexTexCoord).a;
     color = mix(color, color * ao, ubo.occlusionStrength);
 
     vec3 emissive = texture(emissiveSampler, vertexTexCoord).rgb * ubo.emissiveFactor;
+
     color += emissive;
 
     outColor = vec4(color, 1);

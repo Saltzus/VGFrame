@@ -21,6 +21,8 @@ namespace VGF
 
 		glfwInit();
 
+		glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
+
 		if (Renderer::GetGraphicsApi() == GraphicsApis::Vulkan)
 		{
 			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -51,7 +53,9 @@ namespace VGF
 			{
 				std::cout << "Failed to initialize GLAD" << std::endl;
 			}
+
 			glEnable(GL_DEPTH_TEST);
+			glEnable(GL_FRAMEBUFFER_SRGB);
 		}
 	}
 

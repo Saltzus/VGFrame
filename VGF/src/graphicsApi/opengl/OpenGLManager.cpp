@@ -43,7 +43,15 @@ namespace VGF::Opengl
 
         if (data)
         {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+            glTexImage2D(GL_TEXTURE_2D,
+                0,
+                GL_SRGB8_ALPHA8,
+                width,
+                height,
+                0,
+                format,
+                GL_UNSIGNED_BYTE,
+                data);
             glGenerateMipmap(GL_TEXTURE_2D);
         }
         else std::cout << "Failed to load texture" << std::endl;
@@ -55,25 +63,6 @@ namespace VGF::Opengl
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        switch (format)
-        {
-        case 1:
-            format = GL_RED;
-            break;
-        case 2:
-            format = GL_RG;
-            break;
-        case 3:
-            format = GL_RGB;
-            break;
-        case 4:
-            format = GL_RGBA;
-            break;
-        default:
-            format = GL_RGBA;
-            break;
-        }
-
         glGenTextures(1, &texture);
         glBindTexture(GL_TEXTURE_2D, texture);
 
@@ -84,7 +73,16 @@ namespace VGF::Opengl
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        GLint internalFmt = (format == 4 ? GL_SRGB8_ALPHA8 : format == 3 ? GL_SRGB8 : format);
+        glTexImage2D(GL_TEXTURE_2D,
+            0,
+            GL_SRGB8_ALPHA8,
+            width,
+            height,
+            0,
+            format,
+            GL_UNSIGNED_BYTE,
+            data);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     OpenglTexture::~OpenglTexture()
@@ -131,6 +129,7 @@ namespace VGF::Opengl
         glGenBuffers(1, &PBRUBO);
         glBindBuffer(GL_UNIFORM_BUFFER, PBRUBO);
         glBufferData(GL_UNIFORM_BUFFER, sizeof(PBRbufferObject), NULL, GL_STATIC_DRAW);
+        glBindBufferRange(GL_UNIFORM_BUFFER, 1, PBRUBO, 0, sizeof(PBRbufferObject));
     }
     Opengl::~Opengl()
     {
@@ -155,16 +154,20 @@ namespace VGF::Opengl
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
         // position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
 
-        // vertex color
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+        // normals
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(3 * sizeof(float)));
         glEnableVertexAttribArray(1);
 
-        // Texture position attribute
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+        // vertex color
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float)));
         glEnableVertexAttribArray(2);
+
+        // Texture position attribute
+        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(9 * sizeof(float)));
+        glEnableVertexAttribArray(3);
 
         indicesSize = indices.size();
     }
@@ -190,6 +193,7 @@ namespace VGF::Opengl
             topology = GL_TRIANGLES;
             break;
         default:
+            topology = GL_TRIANGLES;
             break;
         }
 
@@ -202,7 +206,7 @@ namespace VGF::Opengl
         glUniformBlockBinding(config.ID(), blockIndex, 0);
 
         GLuint blockIndexPBR = glGetUniformBlockIndex(config.ID(), "PBRbufferObject");
-        glBindBufferBase(GL_UNIFORM_BUFFER, 1, Opengl::PBRUBO);
+        glUniformBlockBinding(config.ID(), blockIndexPBR, 1);
 
         // Update the UBO with matrix data
         glBindBuffer(GL_UNIFORM_BUFFER, Opengl::UBO);
