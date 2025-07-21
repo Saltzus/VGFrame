@@ -42,6 +42,7 @@ namespace VGF::Opengl
 
         static GLuint UBO;
         static GLuint PBRUBO;
+        static GLuint LIGHTUBO;
 
         static std::vector<std::pair<GLuint, GLuint>> vbos_ebos;
     private:
@@ -53,7 +54,7 @@ namespace VGF::Opengl
         OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices);
         ~OpenglRenderer();    
 
-        virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer) override; // Declare draw
+        virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer, LightBufferObject lightBuffer) override; // Declare draw
     private:
         Opengl& opengl;
 

@@ -118,6 +118,7 @@ namespace VGF::Opengl
 
     GLuint Opengl::UBO = 0;
     GLuint Opengl::PBRUBO = 0;
+    GLuint Opengl::LIGHTUBO = 0;
 
     Opengl::Opengl(GLFWwindow* window)
     {
@@ -130,11 +131,17 @@ namespace VGF::Opengl
         glBindBuffer(GL_UNIFORM_BUFFER, PBRUBO);
         glBufferData(GL_UNIFORM_BUFFER, sizeof(PBRbufferObject), NULL, GL_STATIC_DRAW);
         glBindBufferRange(GL_UNIFORM_BUFFER, 1, PBRUBO, 0, sizeof(PBRbufferObject));
+
+        glGenBuffers(1, &LIGHTUBO);
+        glBindBuffer(GL_UNIFORM_BUFFER, LIGHTUBO);
+        glBufferData(GL_UNIFORM_BUFFER, sizeof(LightBufferObject), NULL, GL_STATIC_DRAW);
+        glBindBufferRange(GL_UNIFORM_BUFFER, 7, LIGHTUBO, 0, sizeof(LightBufferObject));
     }
     Opengl::~Opengl()
     {
         glDeleteBuffers(1, &UBO);
         glDeleteBuffers(1, &PBRUBO);
+        glDeleteBuffers(1, &LIGHTUBO);
     }
     int d = 0;
     OpenglRenderer::OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices) : opengl(opengl)
@@ -180,7 +187,7 @@ namespace VGF::Opengl
 
     int i = 0;
 
-    void OpenglRenderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer)
+    void OpenglRenderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer, LightBufferObject lightBuffer)
     {
         int topology;
 
@@ -214,6 +221,9 @@ namespace VGF::Opengl
 
         glBindBuffer(GL_UNIFORM_BUFFER, Opengl::PBRUBO);
         glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(PBRbufferObject), &buffer);
+
+        glBindBuffer(GL_UNIFORM_BUFFER, Opengl::LIGHTUBO);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(LightBufferObject), &lightBuffer);
 
         GLint loc;
         loc = glGetUniformLocation(config.ID(), "colorSampler");

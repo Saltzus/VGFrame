@@ -3,7 +3,7 @@
 namespace VGF
 {
     ApiImpl* Renderer::Api = nullptr;
-    const GraphicsApis Renderer::graphicApi = GraphicsApis::Vulkan;
+    const GraphicsApis Renderer::graphicApi = GraphicsApis::OpenGL;
 
     Renderer::Renderer(std::vector<unsigned int>& indices, std::vector<float>& vertices)
     {
@@ -26,10 +26,10 @@ namespace VGF
         delete this->impl;
     }
 
-    void Renderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer)
+    void Renderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject PBRbuffer, LightBufferObject lightBuffer)
     {
         config.Activate();
-        this->impl->Render(config, camera, model, buffer);
+        this->impl->Render(config, camera, model, PBRbuffer, lightBuffer);
     }
 
     void Renderer::InitApi(GLFWwindow* window)

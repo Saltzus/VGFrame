@@ -11,11 +11,6 @@ layout(std140, binding = 1) uniform PBRbufferObject
     float occlusionStrength;
 }ubo;
 
-vec3 lightDirection = vec3(0, 0.5f, 0.5f);  
-vec3 lightColor = vec3(0,0,5);
-
-vec3 ambientLightColor = vec3(1.0,1.0,1.0);
-float ambientLightIntensity = 0.2;
 
 layout(binding = 2) uniform sampler2D colorSampler;
 layout(binding = 3) uniform sampler2D metallicRoughnessSampler;
@@ -24,32 +19,38 @@ layout(binding = 5) uniform sampler2D occulsionSampler;
 layout(binding = 6) uniform sampler2D normalSampler;
 
 
-layout(location = 0) in vec3 vertexColor;
-layout(location = 1) in vec2 vertexTexCoord;
-layout(location = 2) in vec3 vertexPosition;
-layout(location = 3) in vec3 vertexNormal;
-
-
-layout(location = 0) out vec4 outColor;
-
+struct DirectionalLight
+{
+    vec3 direction;  
+    vec3 color;
+};
 
 struct PointLight
 {
     vec3  position;
     vec3  color;
-    float constant;
-    float linear;
-    float quadratic;
 };
 
-PointLight pointLight = PointLight(
-    vec3(  0.0,  3.0,  -20.0 ),   // position: above and in front of the origin
-    vec3(  10,  0,  0 ),   // color: warm hue, roughly “tungsten”
-    1.0,                        // constant: no extra dimming at zero distance
-    0.14,                       // linear: moderate range
-    0.07                        // quadratic: gives ~20–30 unit falloff radius
-);
 
+layout(std140, binding = 7) uniform LightBufferObject 
+{
+    vec3 ambientLightColor;
+    float ambientLightIntensity;
+
+    DirectionalLight directionalLights[30];
+    PointLight pointLights[30];
+    float directionLightAmount;
+    float pointLightAmount;
+}lightUbo;
+
+
+
+layout(location = 0) in vec3 vertexColor;
+layout(location = 1) in vec2 vertexTexCoord;
+layout(location = 2) in vec3 vertexPosition;
+layout(location = 3) in vec3 vertexNormal;
+
+layout(location = 0) out vec4 outColor;
 
 struct PBRInfo
 {
@@ -212,28 +213,31 @@ void main()
     vec3 normal = getNormal();                                           // normal at surface point
     vec3 vector = normalize(ubo.cameraPosition - vertexPosition);        // Vector from surface point to camera
 
-    vec3 color = {1,1,1};
+    vec3 f0 = vec3(0.04);
+    vec3 diffuseColor = baseColor.rgb * (vec3(1.0) - f0) * (1.0 - metallic);
+    vec3 specularColor = mix(f0, baseColor.rgb, metallic);
+
+    vec3 color = vec3(0);
 
     // Directional light
-    
-        vec3 lightDir = normalize(lightDirection);
+    for (int i = 0; i < lightUbo.directionLightAmount; i++)
+    {
+        vec3 lightDir = normalize(lightUbo.directionalLights[i].direction);
         PBRInfo dirInfo = makePBRInfo(normal, vector, lightDir, baseColor, perceptualRoughness, metallic);
         vec3 F = specularReflection(dirInfo);
         float G = geometricOcclusion(dirInfo);
         float D = microfacetDistribution(dirInfo);
         vec3 diffuseContrib = (1.0 - F) * diffuse(dirInfo);
         vec3 specContrib = F * G * D / (4.0 * dirInfo.NdotL * dirInfo.NdotV);
-        color = dirInfo.NdotL * lightColor * (diffuseContrib + specContrib);
-    
+        color += dirInfo.NdotL * lightUbo.directionalLights[i].color * (diffuseContrib + specContrib);
+    }
 
     // Point light
+    for (int i = 0; i < lightUbo.pointLightAmount; i++)
     {
-        vec3   lightVec = pointLight.position - vertexPosition;
+        vec3   lightVec = lightUbo.pointLights[i].position - vertexPosition;
         float  dist     = length(lightVec);
         vec3   lightPoint     = normalize(lightVec);
-        float  attenuation = 1.0 / (pointLight.constant
-                                  + pointLight.linear  * dist
-                                  + pointLight.quadratic * dist * dist);
 
         PBRInfo ptInfo = makePBRInfo(normal, vector, lightPoint, baseColor, perceptualRoughness, metallic);
         vec3 Fp = specularReflection(ptInfo);
@@ -241,17 +245,15 @@ void main()
         float Dp = microfacetDistribution(ptInfo);
         vec3 diffp = (1.0 - Fp) * diffuse(ptInfo);
         vec3 specp = Fp * Gp * Dp / (4.0 * ptInfo.NdotL * ptInfo.NdotV);
-
-        color += attenuation * ptInfo.NdotL * pointLight.color * (diffp + specp);
+        color += ptInfo.NdotL * lightUbo.pointLights[i].color * (diffp + specp);
     }
 
-    color += ambientLightColor * ambientLightIntensity * baseColor.xyz;
+    color += lightUbo.ambientLightColor * lightUbo.ambientLightIntensity * baseColor.xyz;
 
     float ao = texture(occulsionSampler, vertexTexCoord).a;
     color = mix(color, color * ao, ubo.occlusionStrength);
 
     vec3 emissive = texture(emissiveSampler, vertexTexCoord).rgb * ubo.emissiveFactor;
-
     color += emissive;
 
     outColor = vec4(color, 1);

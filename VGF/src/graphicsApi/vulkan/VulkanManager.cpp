@@ -552,7 +552,7 @@ namespace VGF::Vulkan
     }
     void Vulkan::createDescriptorSetLayout() 
     {
-        std::array<VkDescriptorSetLayoutBinding, 7> bindings{};
+        std::array<VkDescriptorSetLayoutBinding, 8> bindings{};
 
         bindings[0].binding = 0;
         bindings[0].descriptorCount = 1;
@@ -596,6 +596,11 @@ namespace VGF::Vulkan
         bindings[6].pImmutableSamplers = nullptr;
         bindings[6].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
+        bindings[7].binding = 7;
+        bindings[7].descriptorCount = 1;
+        bindings[7].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings[7].pImmutableSamplers = nullptr;
+        bindings[7].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -607,7 +612,7 @@ namespace VGF::Vulkan
             throw std::runtime_error("failed to create descriptor set layout!");
         }
     }
-    std::vector<VkDescriptorSet> Vulkan::createDescriptorSets(std::vector<VkBuffer>& uniformBuffers, std::vector<VkBuffer>& PBRuniformBuffers)
+    std::vector<VkDescriptorSet> Vulkan::createDescriptorSets(std::vector<VkBuffer>& uniformBuffers, std::vector<VkBuffer>& PBRuniformBuffers, std::vector<VkBuffer>& lightUniformBuffers)
     {
         std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo{};
@@ -634,6 +639,11 @@ namespace VGF::Vulkan
             PBRbufferInfo.offset = 0;
             PBRbufferInfo.range = sizeof(PBRbufferObject);
 
+            VkDescriptorBufferInfo lightBufferInfo{};
+            lightBufferInfo.buffer = lightUniformBuffers[i];
+            lightBufferInfo.offset = 0;
+            lightBufferInfo.range = sizeof(LightBufferObject);
+
             VkDescriptorImageInfo colorInfo{};
             colorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             colorInfo.imageView = colorTextureImageView;
@@ -659,7 +669,7 @@ namespace VGF::Vulkan
             normalInfo.imageView = normalTextureImageView;
             normalInfo.sampler = textureSampler;
 
-            std::array<VkWriteDescriptorSet, 7> descriptorWrites{};
+            std::array<VkWriteDescriptorSet, 8> descriptorWrites{};
 
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[0].dstSet = descriptorSets[i];
@@ -716,6 +726,14 @@ namespace VGF::Vulkan
             descriptorWrites[6].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[6].descriptorCount = 1;
             descriptorWrites[6].pImageInfo = &normalInfo;
+
+            descriptorWrites[7].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[7].dstSet = descriptorSets[i];
+            descriptorWrites[7].dstBinding = 7;
+            descriptorWrites[7].dstArrayElement = 0;
+            descriptorWrites[7].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrites[7].descriptorCount = 1;
+            descriptorWrites[7].pBufferInfo = &lightBufferInfo;
 
             vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
@@ -900,11 +918,12 @@ namespace VGF::Vulkan
         object->ubo.proj[1][1] *= -1;
         memcpy(object->uniformBuffersMapped[currentImage], &object->ubo, sizeof(object->ubo));
         memcpy(object->PBRuniformBuffersMapped[currentImage], &object->PBRubo, sizeof(object->PBRubo));
+        memcpy(object->lightUniformBuffersMapped[currentImage], &object->lightUbo, sizeof(object->lightUbo));
     }
 
     VkDescriptorPool Vulkan::createDescriptorPool() 
     {
-        std::array<VkDescriptorPoolSize, 7> poolSizes{};
+        std::array<VkDescriptorPoolSize, 8> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -919,6 +938,8 @@ namespace VGF::Vulkan
         poolSizes[5].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
         poolSizes[6].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         poolSizes[6].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        poolSizes[7].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSizes[7].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1567,9 +1588,10 @@ namespace VGF::Vulkan
 
         vulkan->createUniformBuffers(uniformBuffers, uniformBuffersMapped, uniformBuffersMemory, UniformBufferObject());
         vulkan->createUniformBuffers(PBRuniformBuffers, PBRuniformBuffersMapped, PBRuniformBuffersMemory, PBRbufferObject());
+        vulkan->createUniformBuffers(lightUniformBuffers, lightUniformBuffersMapped, lightUniformBuffersMemory, LightBufferObject());
 
         descriptorPool = vulkan->createDescriptorPool();
-        descriptorSets = vulkan->createDescriptorSets(uniformBuffers, PBRuniformBuffers);
+        descriptorSets = vulkan->createDescriptorSets(uniformBuffers, PBRuniformBuffers, lightUniformBuffers);
 
         indicesSize = indices.size();
     }
@@ -1596,8 +1618,13 @@ namespace VGF::Vulkan
             vkDestroyBuffer(vulkan->device, PBRuniformBuffers[i], nullptr);
             vkFreeMemory(vulkan->device, PBRuniformBuffersMemory[i], nullptr);
         }
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            vkDestroyBuffer(vulkan->device, lightUniformBuffers[i], nullptr);
+            vkFreeMemory(vulkan->device, lightUniformBuffersMemory[i], nullptr);
+        }
     }
-    void VulkanRenderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer)
+    void VulkanRenderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer, LightBufferObject lightBuffer)
     {
         this->config = config;
         vulkan->getOrCreatePipeline(config);
@@ -1609,6 +1636,7 @@ namespace VGF::Vulkan
         ubo.proj = camera->projection;
 
         PBRubo = buffer;
+        lightUbo = lightBuffer;
 
         objects.push_back(this);
     }

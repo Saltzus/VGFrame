@@ -112,7 +112,7 @@ namespace VGF::Vulkan
         void updateUniformBuffer(uint32_t currentImage, VulkanRenderer* object);
 
         VkDescriptorPool createDescriptorPool();
-        std::vector<VkDescriptorSet> createDescriptorSets(std::vector<VkBuffer>& uniformBuffers, std::vector<VkBuffer>& PBRuniformBuffers);
+        std::vector<VkDescriptorSet> createDescriptorSets(std::vector<VkBuffer>& uniformBuffers, std::vector<VkBuffer>& PBRuniformBuffers, std::vector<VkBuffer>& lightUniformBuffers);
 
         uint32_t getCurrentFrame() { return currentFrame; }
 
@@ -251,10 +251,15 @@ namespace VGF::Vulkan
         std::vector<void*> PBRuniformBuffersMapped;
         std::vector<VkDeviceMemory> PBRuniformBuffersMemory;
 
+        LightBufferObject lightUbo;
+        std::vector<VkBuffer> lightUniformBuffers;
+        std::vector<void*> lightUniformBuffersMapped;
+        std::vector<VkDeviceMemory> lightUniformBuffersMemory;
+
         VkDescriptorPool descriptorPool;
         std::vector<VkDescriptorSet> descriptorSets;
 
-        virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer) override;
+        virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer, LightBufferObject lightBuffer) override;
     private:
         void checkTextureChange();
         

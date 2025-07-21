@@ -230,7 +230,7 @@ namespace VGF
 		if (node.mesh >= 0)
 		{
 			Renderer* renderer = renderers[node.mesh];
-			renderer->Render(config, camera, modelMatrix, bindMaterial(camera, mesh.primitives[0].material));
+			renderer->Render(config, camera, modelMatrix, bindMaterial(camera, mesh.primitives[0].material), LightBufferObject::getDefaultLightBuffer());
 		}
 		
 		for (const auto childNodeIdx : node.children) 
@@ -241,7 +241,7 @@ namespace VGF
 	{
 		if (customModel)
 			for (size_t i = 0; i < meshes.size(); i++)
-				renderers[i]->Render(config, camera, parentMatrix, bindMaterial(camera, -1));
+				renderers[i]->Render(config, camera, parentMatrix, bindMaterial(camera, -1), LightBufferObject::getDefaultLightBuffer());
 		else
 			for (const auto nodeIdx : model.scenes[model.defaultScene].nodes)
 				drawNodes(renderers, nodeIdx, parentMatrix, config, camera);
