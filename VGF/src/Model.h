@@ -30,14 +30,14 @@ namespace VGF
 
 		~Model();
 
-		void Model::renderModel(std::vector<Renderer*> renderers, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera);
+		void renderModel(std::vector<Renderer*> renderers, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera);
 		tinygltf::Model model;
 		std::vector <Mesh> meshes;
 
 		bool isCustomModel() { return customModel; }
 
 	private:
-		void Model::drawNodes(std::vector<Renderer*> renderers, int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera, LightBufferObject lightBuffer);
+		void drawNodes(std::vector<Renderer*> renderers, int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera, LightBufferObject lightBuffer);
 
 		MatrixBufferObject* matrixBuffer = new MatrixBufferObject;
 		PBRbufferObject* pbrBuffer = new PBRbufferObject;
