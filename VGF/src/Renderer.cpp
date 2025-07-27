@@ -2,10 +2,9 @@
 
 namespace VGF
 {
-    ApiImpl* Renderer::Api = nullptr;
-    const GraphicsApis Renderer::graphicApi = GraphicsApis::OpenGL;
+    const GraphicsApis Renderer::graphicApi = GraphicsApis::Vulkan;
 
-    Renderer::Renderer(std::vector<unsigned int>& indices, std::vector<float>& vertices)
+    Renderer::Renderer(std::vector<unsigned int>& indices, std::vector<float>& vertices, std::vector<UniformBufferObject*> uniformBuffers)
     {
         switch (this->graphicApi)
         {
@@ -13,7 +12,7 @@ namespace VGF
             this->impl = new VGF::Opengl::OpenglRenderer(indices, vertices);
             break;
         case GraphicsApis::Vulkan:
-            this->impl = new VGF::Vulkan::VulkanRenderer(indices, vertices);
+            this->impl = new VGF::Vulkan::VulkanRenderer(indices, vertices, uniformBuffers);
             break;
         default:
             this->impl = new VGF::Opengl::OpenglRenderer(indices, vertices);
@@ -26,10 +25,10 @@ namespace VGF
         delete this->impl;
     }
 
-    void Renderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject PBRbuffer, LightBufferObject lightBuffer)
+    void Renderer::Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
     {
         config.Activate();
-        this->impl->Render(config, camera, model, PBRbuffer, lightBuffer);
+        this->impl->Render(config, uniformBuffers);
     }
 
     void Renderer::InitApi(GLFWwindow* window)

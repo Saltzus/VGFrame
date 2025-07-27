@@ -57,7 +57,6 @@ namespace VGF
 				{
 					trans = obj->getWorldTransform();
 				}
-				//printf("world pos object %d = %f,%f,%f\n", j, float(trans.getOrigin().getX()), float(trans.getOrigin().getY()), float(trans.getOrigin().getZ()));
 			}
 		}
 	}
@@ -75,7 +74,7 @@ namespace VGF
 	}
 
 	VGF::Renderer* lines;
-
+	MatrixBufferObject matrixBuffer;
 
 	void Physics::debugRender(Window* window, Camera* camera)
 	{
@@ -83,13 +82,19 @@ namespace VGF
 		{
 			delete lines;
 
+			matrixBuffer.data.model = glm::mat4(1.f);
+			matrixBuffer.data.proj = camera->projection;
+			matrixBuffer.data.view = camera->view;
+
+			matrixBuffer.data.proj[1][1] *= -1;
+
 			debug->indices.clear();
 			debug->vertices.clear();
 
 			dynamicsWorld->debugDrawWorld();
 
-			lines = new VGF::Renderer(debug->indices, debug->vertices);
-			lines->Render(*linePipeline, camera);
+			lines = new VGF::Renderer(debug->indices, debug->vertices, {MatrixBufferObject::getDefault()});
+			lines->Render(*linePipeline, { &matrixBuffer });
 		}
 	}
 }

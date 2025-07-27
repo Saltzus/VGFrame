@@ -7,8 +7,10 @@
 #include "Camera.h"
 
 #include "RenderImpl.h"
-#include "PBRBuffer.h"
-#include "LightBuffer.h"
+
+#include "UniformBuffers/LightBuffer.h"
+#include "UniformBuffers/MatrixBuffer.h"
+#include "UniformBuffers/PBRBuffer.h"
 
 namespace VGF
 {
@@ -22,14 +24,14 @@ namespace VGF
     class Renderer
     {
     private:
-        static ApiImpl* Api;
+        inline static ApiImpl* Api = nullptr;
         RendererImpl* impl = nullptr;
         const static GraphicsApis graphicApi;
     public:
-        Renderer(std::vector<unsigned int>& indices, std::vector<float>& vertices);
+        Renderer(std::vector<unsigned int>& indices, std::vector<float>& vertices, std::vector<UniformBufferObject*> uniformBuffers);
         ~Renderer();
 
-        void Render(PipelineConfig& config, Camera* camera, glm::mat4 model = glm::mat4(1.0f), PBRbufferObject buffer = PBRbufferObject(), LightBufferObject lightBuffer = LightBufferObject());
+        void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers);
         static GraphicsApis GetGraphicsApi() {return graphicApi;};
         static void InitApi(GLFWwindow* window); 
         static void RenderGraphics();

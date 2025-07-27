@@ -60,7 +60,10 @@ namespace VGF::Vulkan
     };
 
     static std::vector<Vertex> fromGLFloats(const std::vector<GLfloat>& vertexData) {
+        assert(vertexData.size() % 11 == 0 && "vertexData size must be divisible by 11");
         std::vector<Vertex> vertices;
+        vertices.reserve(vertexData.size() / 11);
+
         for (size_t i = 0; i < vertexData.size(); i += 11) {
             Vertex vertex;
             vertex.position = glm::vec3(vertexData[i], vertexData[i + 1], vertexData[i + 2]);

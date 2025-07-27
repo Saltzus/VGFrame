@@ -40,6 +40,9 @@ namespace VGF
 
 	Model::~Model()
 	{
+		delete matrixBuffer;
+		delete pbrBuffer;
+		delete lightBuffer;
 	}
 
 	/// Read flat floats from an accessor
@@ -221,43 +224,68 @@ namespace VGF
 
 
 
-	void Model::drawNodes(std::vector<Renderer*> renderers, int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera)
+	void Model::drawNodes(std::vector<Renderer*> renderers, int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera, LightBufferObject lightBufffer)
 	{
 		const auto& node = model.nodes[nodeIdx];
 		const glm::mat4 modelMatrix = getLocalToWorldMatrix(node, parentMatrix);
 		const auto& mesh = model.meshes[node.mesh];
 
+		matrixBuffer->data.model = parentMatrix;
+		matrixBuffer->data.proj = camera->projection;
+		matrixBuffer->data.view = camera->view;
+
+		matrixBuffer->data.proj[1][1] *= -1;
+
+		std::vector<UniformBufferObject*> uniformBuffers;
+		uniformBuffers.push_back(matrixBuffer);
+		uniformBuffers.push_back(bindMaterial(camera, mesh.primitives[0].material));
+		uniformBuffers.push_back(lightBuffer->getDefault());
+
 		if (node.mesh >= 0)
 		{
 			Renderer* renderer = renderers[node.mesh];
-			renderer->Render(config, camera, modelMatrix, bindMaterial(camera, mesh.primitives[0].material), LightBufferObject::getDefaultLightBuffer());
+			renderer->Render(config, uniformBuffers);
 		}
 		
 		for (const auto childNodeIdx : node.children) 
-			drawNodes(renderers, childNodeIdx, modelMatrix, config, camera);
+			drawNodes(renderers, childNodeIdx, modelMatrix, config, camera, *lightBuffer);
 	};
 
 	void Model::renderModel(std::vector<Renderer*> renderers, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera)
 	{
 		if (customModel)
 			for (size_t i = 0; i < meshes.size(); i++)
-				renderers[i]->Render(config, camera, parentMatrix, bindMaterial(camera, -1), LightBufferObject::getDefaultLightBuffer());
+			{
+				matrixBuffer->data.model = parentMatrix;
+				matrixBuffer->data.proj = camera->projection;
+				matrixBuffer->data.view = camera->view;
+
+				matrixBuffer->data.proj[1][1] *= -1;
+
+				std::vector<UniformBufferObject*> uniformBuffers;
+				uniformBuffers.push_back(matrixBuffer);
+				uniformBuffers.push_back(bindMaterial(camera, -1));
+				uniformBuffers.push_back(lightBuffer->getDefault());
+
+
+				renderers[i]->Render(config, uniformBuffers);
+			}
+
 		else
 			for (const auto nodeIdx : model.scenes[model.defaultScene].nodes)
-				drawNodes(renderers, nodeIdx, parentMatrix, config, camera);
+				drawNodes(renderers, nodeIdx, parentMatrix, config, camera, *lightBuffer);
 	}
 
-	const PBRbufferObject Model::bindMaterial(Camera* camera, const int materialIndex)
+	PBRbufferObject* Model::bindMaterial(Camera* camera, const int materialIndex)
 	{
-		PBRbufferObject pushConstant;
-		pushConstant.cameraPosition = camera->Position;
+		pbrBuffer->data.cameraPosition = camera->Position;
 
 		if (materialIndex >= 0)
 		{
 			const auto& modelMaterial = model.materials[materialIndex];
 			const auto& pbrMetallicRoughness = modelMaterial.pbrMetallicRoughness;
 
-			pushConstant.baseColorFactor = 
+			pbrBuffer->data.baseColorFactor =
 			{
 				(float)pbrMetallicRoughness.baseColorFactor[0],
 				(float)pbrMetallicRoughness.baseColorFactor[1],
@@ -278,9 +306,9 @@ namespace VGF
 			textureObject->Bind(textureType::color);
 
 
-			pushConstant.metallicFactor = (float)pbrMetallicRoughness.metallicFactor;
+			pbrBuffer->data.metallicFactor = (float)pbrMetallicRoughness.metallicFactor;
 
-			pushConstant.roughnessFactor = (float)pbrMetallicRoughness.roughnessFactor;
+			pbrBuffer->data.roughnessFactor = (float)pbrMetallicRoughness.roughnessFactor;
 
 
 			textureObject = Texture::GetWhiteTexture();
@@ -294,7 +322,7 @@ namespace VGF
 			}
 			textureObject->Bind(textureType::metallicRoughness);
 
-			pushConstant.emissiveFactor =
+			pbrBuffer->data.emissiveFactor =
 			{
 				(float)modelMaterial.emissiveFactor[0],
 				(float)modelMaterial.emissiveFactor[1],
@@ -314,7 +342,7 @@ namespace VGF
 			textureObject->Bind(textureType::emissive);
 
 
-			pushConstant.occlusionStrength = (float)modelMaterial.occlusionTexture.strength;
+			pbrBuffer->data.occlusionStrength = (float)modelMaterial.occlusionTexture.strength;
 
 
 			textureObject = Texture::GetWhiteTexture();
@@ -351,7 +379,7 @@ namespace VGF
 			text[4]->Bind(textureType::normal);
 		}
 
-		return pushConstant;
+		return pbrBuffer;
 	};
 }
 

@@ -3,9 +3,9 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <vector>
 
-#include "PBRBuffer.h"
-#include "LightBuffer.h"
+#include "UniformBuffers/UniformBuffer.h"
 
 namespace VGF
 {
@@ -26,7 +26,7 @@ namespace VGF
     {
     public:
         virtual ~RendererImpl() {}
-        virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer, LightBufferObject lightBuffer) = 0;
+        virtual void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) = 0;
     };
 
     class ApiImpl

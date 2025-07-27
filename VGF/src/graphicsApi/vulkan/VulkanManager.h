@@ -24,23 +24,30 @@
 
 
 #include "../../PipelineConfig.h"
-#include "../../PBRBuffer.h"
+#include "../../UniformBuffers/UniformBuffer.h"
 
 #include "../../RenderImpl.h"
 #include "../../Window.h"
 
 #include "VulkanGraphicsPipeline.h"
 
+
+
 namespace VGF::Vulkan
 {
+    inline static const int MAX_FRAMES_IN_FLIGHT = 2;
+
+
+    struct VulkanUniformBuffer
+    {
+        UniformBufferObject* uniformBufferObject;
+        std::vector<VkBuffer> uniformBuffers;
+        std::vector<void*> uniformBuffersMapped;
+        std::vector<VkDeviceMemory> uniformBuffersMemory;
+    };
+
 
     class VulkanRenderer;
-
-    struct UniformBufferObject {
-        alignas(16) glm::mat4 model;
-        alignas(16) glm::mat4 view;
-        alignas(16) glm::mat4 proj;
-    };
 
     class VulkanTexture : public TextureImpl
     {
@@ -66,7 +73,7 @@ namespace VGF::Vulkan
 
         static Vulkan* vulkan;
 
-        std::vector<UniformBufferObject> ubo;
+        //std::vector<UniformBufferObject*> ubo;
 
         VkDevice device;
 
@@ -79,10 +86,10 @@ namespace VGF::Vulkan
         VkSampler textureSampler;
 
         //std::map<std::pair<const char*, const char*>,VkPipeline> graphicsPipelines;
-        std::unordered_map<PipelineConfig, VkPipeline, PipelineConfigHash> pipelineCache;
+        std::unordered_map<PipelineConfig, std::pair<VkPipeline, VkPipelineLayout>, PipelineConfigHash> pipelineCache;
 
-        VkPipeline getOrCreatePipeline(const PipelineConfig& config);
-        VkPipeline createGraphicsPipeline(const PipelineConfig& config);
+        std::pair<VkPipeline, VkPipelineLayout> getOrCreatePipeline(VulkanRenderer* object, const PipelineConfig& config);
+        std::pair<VkPipeline, VkPipelineLayout> createGraphicsPipeline(VulkanRenderer* object, const PipelineConfig& config);
 
 
         VkDescriptorPool descriptorPool;
@@ -100,19 +107,17 @@ namespace VGF::Vulkan
         std::pair<VkBuffer, VkDeviceMemory> createVertexBuffer(std::vector<GLfloat>& vertices);
         std::pair<VkBuffer, VkDeviceMemory> createIndexBuffer(std::vector<uint16_t> indices);
 
-        template<typename T>
         void createUniformBuffers
         (
-            std::vector<VkBuffer>& uniformBuffers,
-            std::vector<void*>& uniformBuffersMapped,
-            std::vector<VkDeviceMemory>& uniformBuffersMemory,
-            T type
+            VulkanUniformBuffer& buffer,
+            size_t typeSize
         );
 
         void updateUniformBuffer(uint32_t currentImage, VulkanRenderer* object);
 
-        VkDescriptorPool createDescriptorPool();
-        std::vector<VkDescriptorSet> createDescriptorSets(std::vector<VkBuffer>& uniformBuffers, std::vector<VkBuffer>& PBRuniformBuffers, std::vector<VkBuffer>& lightUniformBuffers);
+        void createDescriptorSetLayout(VkDescriptorSetLayout& descriptorsetLayout, std::vector<VulkanUniformBuffer>& uniformBuffers);
+        VkDescriptorPool createDescriptorPool(size_t uniformBuffersCount);
+        std::vector<VkDescriptorSet> createDescriptorSets(VulkanRenderer* object, std::vector<VulkanUniformBuffer>& uniformBuffers);
 
         uint32_t getCurrentFrame() { return currentFrame; }
 
@@ -136,8 +141,7 @@ namespace VGF::Vulkan
         std::vector<VkFramebuffer> swapChainFramebuffers;
 
         VkRenderPass renderPass;
-        VkDescriptorSetLayout descriptorSetLayout;
-        VkPipelineLayout pipelineLayout;
+        //VkPipelineLayout pipelineLayout;
         VkPipeline graphicsPipeline;
 
 
@@ -201,7 +205,6 @@ namespace VGF::Vulkan
         void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
-        void createDescriptorSetLayout();
         VkShaderModule createShaderModule(const std::vector<char>& code);
 
         void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
@@ -230,10 +233,10 @@ namespace VGF::Vulkan
     class VulkanRenderer : public RendererImpl
     {
     public:
-        unsigned int id;
-        int indicesSize;
+        //unsigned int id;
+        int indicesSize = 0;
 
-        VulkanRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices);
+        VulkanRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, std::vector<UniformBufferObject*> uniformBuffers);
         ~VulkanRenderer();
 
         PipelineConfig config;
@@ -241,36 +244,24 @@ namespace VGF::Vulkan
         std::pair<VkBuffer, VkDeviceMemory> vertexBuffer_vertexBufferMemory;
         std::pair<VkBuffer, VkDeviceMemory> indexBuffer_indexBufferMemory;
 
-        UniformBufferObject ubo;
-        std::vector<VkBuffer> uniformBuffers;
-        std::vector<void*> uniformBuffersMapped;
-        std::vector<VkDeviceMemory> uniformBuffersMemory;
+        std::vector<VulkanUniformBuffer> vulkanUniformBuffers;
 
-        PBRbufferObject PBRubo;
-        std::vector<VkBuffer> PBRuniformBuffers;
-        std::vector<void*> PBRuniformBuffersMapped;
-        std::vector<VkDeviceMemory> PBRuniformBuffersMemory;
-
-        LightBufferObject lightUbo;
-        std::vector<VkBuffer> lightUniformBuffers;
-        std::vector<void*> lightUniformBuffersMapped;
-        std::vector<VkDeviceMemory> lightUniformBuffersMemory;
-
+        VkDescriptorSetLayout descriptorSetLayout;
         VkDescriptorPool descriptorPool;
         std::vector<VkDescriptorSet> descriptorSets;
 
-        virtual void Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer, LightBufferObject lightBuffer) override;
+        virtual void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override;
     private:
         void checkTextureChange();
         
-        void* lastTextureColor;
-        void* lastTextureMetallicRoughness;
-        void* lastTextureEmission;
-        void* lastTextureOcculsion;
-        void* lastTextureNormal;
+        void* lastTextureColor = nullptr;
+        void* lastTextureMetallicRoughness = nullptr;
+        void* lastTextureEmission = nullptr;
+        void* lastTextureOcculsion = nullptr;
+        void* lastTextureNormal = nullptr;
 
 
-        Vulkan* vulkan;
+        Vulkan* vulkan = nullptr;
     };
 }
     

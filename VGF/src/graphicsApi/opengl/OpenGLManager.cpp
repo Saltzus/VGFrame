@@ -122,20 +122,20 @@ namespace VGF::Opengl
 
     Opengl::Opengl(GLFWwindow* window)
     {
-        glGenBuffers(1, &UBO);
-        glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-        glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 3, NULL, GL_STATIC_DRAW);
-        glBindBufferRange(GL_UNIFORM_BUFFER, 0, UBO, 0, 3 * sizeof(glm::mat4));
-
-        glGenBuffers(1, &PBRUBO);
-        glBindBuffer(GL_UNIFORM_BUFFER, PBRUBO);
-        glBufferData(GL_UNIFORM_BUFFER, sizeof(PBRbufferObject), NULL, GL_STATIC_DRAW);
-        glBindBufferRange(GL_UNIFORM_BUFFER, 1, PBRUBO, 0, sizeof(PBRbufferObject));
-
-        glGenBuffers(1, &LIGHTUBO);
-        glBindBuffer(GL_UNIFORM_BUFFER, LIGHTUBO);
-        glBufferData(GL_UNIFORM_BUFFER, sizeof(LightBufferObject), NULL, GL_STATIC_DRAW);
-        glBindBufferRange(GL_UNIFORM_BUFFER, 7, LIGHTUBO, 0, sizeof(LightBufferObject));
+       //glGenBuffers(1, &UBO);
+       //glBindBuffer(GL_UNIFORM_BUFFER, UBO);
+       //glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 3, NULL, GL_STATIC_DRAW);
+       //glBindBufferRange(GL_UNIFORM_BUFFER, 0, UBO, 0, 3 * sizeof(glm::mat4));
+       //
+       //glGenBuffers(1, &PBRUBO);
+       //glBindBuffer(GL_UNIFORM_BUFFER, PBRUBO);
+       //glBufferData(GL_UNIFORM_BUFFER, sizeof(PBRbufferObject), NULL, GL_STATIC_DRAW);
+       //glBindBufferRange(GL_UNIFORM_BUFFER, 1, PBRUBO, 0, sizeof(PBRbufferObject));
+       //
+       //glGenBuffers(1, &LIGHTUBO);
+       //glBindBuffer(GL_UNIFORM_BUFFER, LIGHTUBO);
+       //glBufferData(GL_UNIFORM_BUFFER, sizeof(LightBufferObject), NULL, GL_STATIC_DRAW);
+       //glBindBufferRange(GL_UNIFORM_BUFFER, 7, LIGHTUBO, 0, sizeof(LightBufferObject));
     }
     Opengl::~Opengl()
     {
@@ -187,7 +187,7 @@ namespace VGF::Opengl
 
     int i = 0;
 
-    void OpenglRenderer::Render(PipelineConfig& config, Camera* camera, glm::mat4 model, PBRbufferObject buffer, LightBufferObject lightBuffer)
+    void OpenglRenderer::Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
     {
         int topology;
 
@@ -204,10 +204,10 @@ namespace VGF::Opengl
             break;
         }
 
-        glm::mat4 matrices[3];
-        matrices[0] = model;
-        matrices[1] = camera->view;
-        matrices[2] = camera->projection;
+        //glm::mat4 matrices[3];
+        //matrices[0] = model;
+        //matrices[1] = camera->view;
+        //matrices[2] = camera->projection;
 
         GLuint blockIndex = glGetUniformBlockIndex(config.ID(), "UniformBufferObject");
         glUniformBlockBinding(config.ID(), blockIndex, 0);
@@ -217,13 +217,13 @@ namespace VGF::Opengl
 
         // Update the UBO with matrix data
         glBindBuffer(GL_UNIFORM_BUFFER, Opengl::UBO);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4) * 3, &matrices[0]);
+        //glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4) * 3, &matrices[0]);
 
-        glBindBuffer(GL_UNIFORM_BUFFER, Opengl::PBRUBO);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(PBRbufferObject), &buffer);
+        //glBindBuffer(GL_UNIFORM_BUFFER, Opengl::PBRUBO);
+        //glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(PBRbufferObject), &buffer);
 
-        glBindBuffer(GL_UNIFORM_BUFFER, Opengl::LIGHTUBO);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(LightBufferObject), &lightBuffer);
+        //glBindBuffer(GL_UNIFORM_BUFFER, Opengl::LIGHTUBO);
+        //glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(LightBufferObject), &lightBuffer);
 
         GLint loc;
         loc = glGetUniformLocation(config.ID(), "colorSampler");

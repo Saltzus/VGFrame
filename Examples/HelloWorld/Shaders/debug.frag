@@ -1,6 +1,10 @@
 #version 450
 
-layout(binding = 1) uniform sampler2D texSampler;
+layout(binding = 1) uniform sampler2D colorSampler;
+layout(binding = 3) uniform sampler2D metallicRoughnessSampler;
+layout(binding = 4) uniform sampler2D emissiveSampler;
+layout(binding = 5) uniform sampler2D occulsionSampler;
+layout(binding = 6) uniform sampler2D normalSampler;
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;

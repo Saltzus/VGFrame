@@ -20,29 +20,39 @@ public:
 
 	virtual void drawLine(const btVector3& from, const btVector3& to, const btVector3& color)
 	{
-		vertices.push_back(from.x());
+		// Vertex 1
+		vertices.push_back(from.x());	// position 1
 		vertices.push_back(from.y());
 		vertices.push_back(from.z());
 
-		vertices.push_back(color.x());
+		vertices.push_back(0);			// normal 1
+		vertices.push_back(0);
+		vertices.push_back(0);
+
+		vertices.push_back(color.x());	// color 1
 		vertices.push_back(color.y());
 		vertices.push_back(color.z());
 
-		vertices.push_back(0.0f);
+		vertices.push_back(0.0f);		// textureCoordinates 1
 		vertices.push_back(0.0f);
 
-
-		vertices.push_back(to.x());
+		// Vertex 2
+		vertices.push_back(to.x());		// position 2
 		vertices.push_back(to.y());
 		vertices.push_back(to.z());
 
-		vertices.push_back(color.x());
+		vertices.push_back(0);			// normal 2
+		vertices.push_back(0);
+		vertices.push_back(0);
+
+		vertices.push_back(color.x());	// color 2
 		vertices.push_back(color.y());
 		vertices.push_back(color.z());
 
-		vertices.push_back(0.0f);
+		vertices.push_back(0.0f);		// textureCoordinates 2
 		vertices.push_back(0.0f);
 
+		// Indices for the vertex pair
 		indices.push_back(indices.size());
 		indices.push_back(indices.size());
 	}

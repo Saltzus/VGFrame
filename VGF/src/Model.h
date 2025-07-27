@@ -7,6 +7,10 @@
 #include "Material.h"
 #include "Renderer.h"
 
+#include "UniformBuffers/MatrixBuffer.h"
+#include "UniformBuffers/LightBuffer.h"
+#include "UniformBuffers/PBRBuffer.h"
+
 namespace VGF
 {
 	struct Mesh
@@ -33,7 +37,12 @@ namespace VGF
 		bool isCustomModel() { return customModel; }
 
 	private:
-		void Model::drawNodes(std::vector<Renderer*> renderers, int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera);
+		void Model::drawNodes(std::vector<Renderer*> renderers, int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera, LightBufferObject lightBuffer);
+
+		MatrixBufferObject* matrixBuffer = new MatrixBufferObject;
+		PBRbufferObject* pbrBuffer = new PBRbufferObject;
+		LightBufferObject* lightBuffer = new LightBufferObject;
+
 
 		bool customModel = false;
 
@@ -84,6 +93,6 @@ namespace VGF
 
 		std::vector<Texture*> createTextureObjects(const tinygltf::Model& model) const;
 		glm::mat4 getLocalToWorldMatrix(const tinygltf::Node& node, const glm::mat4& parentMatrix);
-		const PBRbufferObject bindMaterial(Camera* camera, const int materialIndex);
+		PBRbufferObject* bindMaterial(Camera* camera, const int materialIndex);
 	};
 } 

@@ -9,7 +9,13 @@ namespace VGF
         this->model = model;
 
         for (auto mesh : this->model->meshes)
-            modelRenderers.emplace_back(new Renderer(mesh.indices, mesh.vertices));
+            modelRenderers.emplace_back(new Renderer(mesh.indices, mesh.vertices, 
+                { 
+                    MatrixBufferObject::getDefault(),
+                    PBRbufferObject::getDefault(),
+                    LightBufferObject::getDefault()
+                }
+            ));
     }
 
     void Object::SetModel(Model* model)
@@ -22,7 +28,13 @@ namespace VGF
         this->model = model;
 
         for (auto mesh : this->model->meshes)
-            modelRenderers.emplace_back(new Renderer(mesh.indices, mesh.vertices));
+            modelRenderers.emplace_back(new Renderer(mesh.indices, mesh.vertices,
+                {
+                    MatrixBufferObject::getDefault(),
+                    PBRbufferObject::getDefault(),
+                    LightBufferObject::getDefault()
+                }
+            ));
     }
     
     Object::~Object()
@@ -33,6 +45,8 @@ namespace VGF
 
     void Object::Render(PipelineConfig& config, Camera* camera, glm::mat4 model)
     {
+        model = glm::mat4(1.f);
+
         model = glm::translate(model, translation);
 
         model = glm::rotate(model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
