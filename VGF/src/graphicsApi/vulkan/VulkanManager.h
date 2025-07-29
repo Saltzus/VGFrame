@@ -252,7 +252,8 @@ namespace VGF::Vulkan
 
         virtual void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override;
     private:
-        void checkTextureChange();
+        void UpdateTexture(void* lastTexture, VkImageView imageView, uint32_t binding);
+        void CheckTextureChange();
         
         void* lastTextureColor = nullptr;
         void* lastTextureMetallicRoughness = nullptr;
