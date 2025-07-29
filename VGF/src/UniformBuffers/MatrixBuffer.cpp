@@ -1,4 +1,5 @@
 #include "MatrixBuffer.h"
+#include "../Renderer.h"
 
 namespace VGF
 {
@@ -25,6 +26,9 @@ namespace VGF
 
     void* MatrixBufferObject::Data()
     {
+        if (Renderer::GetGraphicsApi() == GraphicsApis::Vulkan)
+            data.proj[1][1] *= -1;
+
         return &data;
     }
 }

@@ -86,8 +86,6 @@ namespace VGF
 			matrixBuffer.data.proj = camera->projection;
 			matrixBuffer.data.view = camera->view;
 
-			matrixBuffer.data.proj[1][1] *= -1;
-
 			debug->indices.clear();
 			debug->vertices.clear();
 

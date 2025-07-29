@@ -9,13 +9,13 @@ namespace VGF
         switch (this->graphicApi)
         {
         case GraphicsApis::OpenGL:
-            this->impl = new VGF::Opengl::OpenglRenderer(indices, vertices);
+            this->impl = new VGF::Opengl::OpenglRenderer(indices, vertices, uniformBuffers);
             break;
         case GraphicsApis::Vulkan:
             this->impl = new VGF::Vulkan::VulkanRenderer(indices, vertices, uniformBuffers);
             break;
         default:
-            this->impl = new VGF::Opengl::OpenglRenderer(indices, vertices);
+            this->impl = new VGF::Opengl::OpenglRenderer(indices, vertices, uniformBuffers);
             break;
         }
     }

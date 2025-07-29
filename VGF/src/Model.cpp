@@ -234,8 +234,6 @@ namespace VGF
 		matrixBuffer->data.proj = camera->projection;
 		matrixBuffer->data.view = camera->view;
 
-		matrixBuffer->data.proj[1][1] *= -1;
-
 		std::vector<UniformBufferObject*> uniformBuffers;
 		uniformBuffers.push_back(matrixBuffer);
 		uniformBuffers.push_back(bindMaterial(camera, mesh.primitives[0].material));
@@ -259,8 +257,6 @@ namespace VGF
 				matrixBuffer->data.model = parentMatrix;
 				matrixBuffer->data.proj = camera->projection;
 				matrixBuffer->data.view = camera->view;
-
-				matrixBuffer->data.proj[1][1] *= -1;
 
 				std::vector<UniformBufferObject*> uniformBuffers;
 				uniformBuffers.push_back(matrixBuffer);

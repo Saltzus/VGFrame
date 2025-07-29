@@ -115,37 +115,26 @@ namespace VGF::Opengl
         glBindTexture(GL_TEXTURE_2D, texture);
     }
 
-
-    GLuint Opengl::UBO = 0;
-    GLuint Opengl::PBRUBO = 0;
-    GLuint Opengl::LIGHTUBO = 0;
-
     Opengl::Opengl(GLFWwindow* window)
     {
-       //glGenBuffers(1, &UBO);
-       //glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-       //glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 3, NULL, GL_STATIC_DRAW);
-       //glBindBufferRange(GL_UNIFORM_BUFFER, 0, UBO, 0, 3 * sizeof(glm::mat4));
-       //
-       //glGenBuffers(1, &PBRUBO);
-       //glBindBuffer(GL_UNIFORM_BUFFER, PBRUBO);
-       //glBufferData(GL_UNIFORM_BUFFER, sizeof(PBRbufferObject), NULL, GL_STATIC_DRAW);
-       //glBindBufferRange(GL_UNIFORM_BUFFER, 1, PBRUBO, 0, sizeof(PBRbufferObject));
-       //
-       //glGenBuffers(1, &LIGHTUBO);
-       //glBindBuffer(GL_UNIFORM_BUFFER, LIGHTUBO);
-       //glBufferData(GL_UNIFORM_BUFFER, sizeof(LightBufferObject), NULL, GL_STATIC_DRAW);
-       //glBindBufferRange(GL_UNIFORM_BUFFER, 7, LIGHTUBO, 0, sizeof(LightBufferObject));
     }
     Opengl::~Opengl()
     {
-        glDeleteBuffers(1, &UBO);
-        glDeleteBuffers(1, &PBRUBO);
-        glDeleteBuffers(1, &LIGHTUBO);
     }
-    int d = 0;
-    OpenglRenderer::OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices) : opengl(opengl)
+
+    OpenglRenderer::OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, std::vector<UniformBufferObject*> uniformBuffers) : opengl(opengl)
     {
+        for (size_t i = 0; i < uniformBuffers.size(); i++)
+        {
+            GLuint openglBuffer;
+            glGenBuffers(1, &openglBuffer);
+            glBindBuffer(GL_UNIFORM_BUFFER, openglBuffer);
+            glBufferData(GL_UNIFORM_BUFFER, uniformBuffers[i]->SizeOf(), NULL, GL_STATIC_DRAW);
+            glBindBufferRange(GL_UNIFORM_BUFFER, i, openglBuffer, 0, uniformBuffers[i]->SizeOf());
+
+            openglUniformBuffers.push_back(openglBuffer);
+        }
+
         glGenVertexArrays(1, &VAO);
 
         glGenBuffers(1, &VBO);
@@ -180,12 +169,13 @@ namespace VGF::Opengl
     }
     OpenglRenderer::~OpenglRenderer()
     {
+        for (auto buffer : openglUniformBuffers)
+            glDeleteBuffers(1, &buffer);
+
         glDeleteVertexArrays(1, &VAO);
         glDeleteBuffers(1, &VBO);
         glDeleteBuffers(1, &EBO);
     }
-
-    int i = 0;
 
     void OpenglRenderer::Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
     {
@@ -204,26 +194,15 @@ namespace VGF::Opengl
             break;
         }
 
-        //glm::mat4 matrices[3];
-        //matrices[0] = model;
-        //matrices[1] = camera->view;
-        //matrices[2] = camera->projection;
+        assert(uniformBuffers.size() == openglUniformBuffers.size() && "sent uniform buffers did not match initialized buffers!!");
+        for (size_t i = 0; i < uniformBuffers.size(); i++)
+        {
+            glBindBuffer(GL_UNIFORM_BUFFER, openglUniformBuffers[i]);
+            glBindBufferBase(GL_UNIFORM_BUFFER, i, openglUniformBuffers[i]);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, uniformBuffers[i]->SizeOf(), uniformBuffers[i]->Data());
+        }
 
-        GLuint blockIndex = glGetUniformBlockIndex(config.ID(), "UniformBufferObject");
-        glUniformBlockBinding(config.ID(), blockIndex, 0);
-
-        GLuint blockIndexPBR = glGetUniformBlockIndex(config.ID(), "PBRbufferObject");
-        glUniformBlockBinding(config.ID(), blockIndexPBR, 1);
-
-        // Update the UBO with matrix data
-        glBindBuffer(GL_UNIFORM_BUFFER, Opengl::UBO);
-        //glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4) * 3, &matrices[0]);
-
-        //glBindBuffer(GL_UNIFORM_BUFFER, Opengl::PBRUBO);
-        //glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(PBRbufferObject), &buffer);
-
-        //glBindBuffer(GL_UNIFORM_BUFFER, Opengl::LIGHTUBO);
-        //glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(LightBufferObject), &lightBuffer);
+        size_t size = openglUniformBuffers.size();
 
         GLint loc;
         loc = glGetUniformLocation(config.ID(), "colorSampler");

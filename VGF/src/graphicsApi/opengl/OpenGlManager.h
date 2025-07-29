@@ -39,24 +39,19 @@ namespace VGF::Opengl
     public:
         Opengl(GLFWwindow* window);
         ~Opengl();
-
-        static GLuint UBO;
-        static GLuint PBRUBO;
-        static GLuint LIGHTUBO;
-
-        static std::vector<std::pair<GLuint, GLuint>> vbos_ebos;
     private:
     };
 
     class OpenglRenderer : public RendererImpl
     {
     public:
-        OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices);
+        OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, std::vector<UniformBufferObject*> uniformBuffers);
         ~OpenglRenderer();    
 
         virtual void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override; // Declare draw
     private:
         Opengl& opengl;
+        std::vector<GLuint> openglUniformBuffers;
 
         int indicesSize;
 
