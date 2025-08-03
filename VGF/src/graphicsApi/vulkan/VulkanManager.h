@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #define GLM_ENABLE_EXPERIMENTAL
 
@@ -46,8 +46,14 @@ namespace VGF::Vulkan
         std::vector<VkDeviceMemory> uniformBuffersMemory;
     };
 
+    struct VulkanImageSampler
+    {
+        std::vector<VkImageView> imageViews;
+        VkSampler& textureSampler;
+    };
 
     class VulkanRenderer;
+    class VulkanPostProcess;
 
     class VulkanTexture : public TextureImpl
     {
@@ -73,9 +79,9 @@ namespace VGF::Vulkan
 
         static Vulkan* vulkan;
 
-        //std::vector<UniformBufferObject*> ubo;
-
         VkDevice device;
+
+        VulkanPostProcess* defaultPostProcess;
 
         VkImageView colorTextureImageView;
         VkImageView metallicRoughnessTextureImageView;
@@ -84,12 +90,15 @@ namespace VGF::Vulkan
         VkImageView normalTextureImageView;
 
         VkSampler textureSampler;
+        std::vector<VkImageView> offscreenImageViews;
+        std::array<VkImageView, MAX_FRAMES_IN_FLIGHT + 1> lastTextures = {nullptr};
 
-        //std::map<std::pair<const char*, const char*>,VkPipeline> graphicsPipelines;
         std::unordered_map<PipelineConfig, std::pair<VkPipeline, VkPipelineLayout>, PipelineConfigHash> pipelineCache;
 
         std::pair<VkPipeline, VkPipelineLayout> getOrCreatePipeline(VulkanRenderer* object, const PipelineConfig& config);
-        std::pair<VkPipeline, VkPipelineLayout> createGraphicsPipeline(VulkanRenderer* object, const PipelineConfig& config);
+        std::pair<VkPipeline, VkPipelineLayout> getOrCreatePipeline(VulkanPostProcess* process, const PipelineConfig& config);
+        std::pair<VkPipeline, VkPipelineLayout> createGraphicsPipeline(VulkanRenderer* object, const PipelineConfig& config, VkRenderPass& renderPass);
+        std::pair<VkPipeline, VkPipelineLayout> createGraphicsPipeline(VulkanPostProcess* process, const PipelineConfig& config, VkRenderPass& renderPass);
 
 
         VkDescriptorPool descriptorPool;
@@ -99,10 +108,12 @@ namespace VGF::Vulkan
         void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
         VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
         
-
+        void UpdateTexture(const std::vector<VkDescriptorSet> descriptorSets, VkImageView& lastTexture, const VkImageView imageView, const uint32_t binding);
+        void createPresentImages();
 
         void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
         void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
 
         std::pair<VkBuffer, VkDeviceMemory> createVertexBuffer(std::vector<GLfloat>& vertices);
         std::pair<VkBuffer, VkDeviceMemory> createIndexBuffer(std::vector<uint16_t> indices);
@@ -115,9 +126,9 @@ namespace VGF::Vulkan
 
         void updateUniformBuffer(uint32_t currentImage, VulkanRenderer* object);
 
-        void createDescriptorSetLayout(VkDescriptorSetLayout& descriptorsetLayout, std::vector<VulkanUniformBuffer>& uniformBuffers);
-        VkDescriptorPool createDescriptorPool(size_t uniformBuffersCount);
-        std::vector<VkDescriptorSet> createDescriptorSets(VulkanRenderer* object, std::vector<VulkanUniformBuffer>& uniformBuffers);
+        void createDescriptorSetLayout(VkDescriptorSetLayout& descriptorsetLayout, std::vector<VulkanUniformBuffer>& uniformBuffers, std::vector<VulkanImageSampler>& imageSamplers);
+        VkDescriptorPool createDescriptorPool(size_t uniformBufferCount, size_t imageSamplerCount);
+        std::vector<VkDescriptorSet> createDescriptorSets(VkDescriptorSetLayout layout, std::vector<VulkanUniformBuffer>& uniformBuffers, std::vector<VulkanImageSampler>& imageSamplers);
 
         uint32_t getCurrentFrame() { return currentFrame; }
 
@@ -140,7 +151,14 @@ namespace VGF::Vulkan
         std::vector<VkImageView> swapChainImageViews;
         std::vector<VkFramebuffer> swapChainFramebuffers;
 
+        
+        std::vector<VkImage> offscreenImages;
+        std::vector <VkDeviceMemory> offscreenImageMemory;
+        VkFormat offscreenImageFormat;
+        std::vector<VkFramebuffer> offscreenFramebuffers;
+
         VkRenderPass renderPass;
+        VkRenderPass offscreenRenderPass;
         //VkPipelineLayout pipelineLayout;
         VkPipeline graphicsPipeline;
 
@@ -162,6 +180,7 @@ namespace VGF::Vulkan
 
 
         std::vector<VkCommandBuffer> commandBuffers;
+        std::vector<VkCommandBuffer> offscreenCommandBuffers;
 
         std::vector<VkSemaphore> imageAvailableSemaphores;
         std::vector<VkSemaphore> renderFinishedSemaphores;
@@ -193,8 +212,6 @@ namespace VGF::Vulkan
         
         void createImageViews();
         void createFramebuffers();
-
-        //void createTextureImage();
         void createTextureImageView();
         void createTextureSampler();
 
@@ -208,6 +225,7 @@ namespace VGF::Vulkan
         VkShaderModule createShaderModule(const std::vector<char>& code);
 
         void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+        void recordOffscreenCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
         void createCommandPool();
         void createCommandBuffers();
 
@@ -220,6 +238,7 @@ namespace VGF::Vulkan
         void createSyncObjects();
 
         void createRenderPass();
+        void createOffscreenRenderPass();
         void createLogicalDevice();
 
         void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
@@ -228,6 +247,31 @@ namespace VGF::Vulkan
         bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
 
+    };
+
+    class VulkanPostProcess
+    {
+    public:
+        VulkanPostProcess(std::vector<UniformBufferObject*> uniformBuffers = {});
+        ~VulkanPostProcess();
+
+        void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers = {});
+
+        int indicesSize = 0;
+
+
+        std::pair<VkBuffer, VkDeviceMemory> vertexBuffer_vertexBufferMemory;
+        std::pair<VkBuffer, VkDeviceMemory> indexBuffer_indexBufferMemory;
+
+        std::vector<VulkanUniformBuffer> vulkanUniformBuffers;
+        VkDescriptorSetLayout descriptorSetLayout;
+        PipelineConfig config;
+
+        VkDescriptorPool descriptorPool;
+        std::vector<VkDescriptorSet> descriptorSets;
+
+    private:
+        Vulkan* vulkan = nullptr;
     };
 
     class VulkanRenderer : public RendererImpl
@@ -240,7 +284,7 @@ namespace VGF::Vulkan
         ~VulkanRenderer();
 
         PipelineConfig config;
-        
+
         std::pair<VkBuffer, VkDeviceMemory> vertexBuffer_vertexBufferMemory;
         std::pair<VkBuffer, VkDeviceMemory> indexBuffer_indexBufferMemory;
 
@@ -252,14 +296,13 @@ namespace VGF::Vulkan
 
         virtual void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override;
     private:
-        void UpdateTexture(void* lastTexture, VkImageView imageView, uint32_t binding);
         void CheckTextureChange();
         
-        void* lastTextureColor = nullptr;
-        void* lastTextureMetallicRoughness = nullptr;
-        void* lastTextureEmission = nullptr;
-        void* lastTextureOcculsion = nullptr;
-        void* lastTextureNormal = nullptr;
+        VkImageView lastTextureColor = nullptr;
+        VkImageView lastTextureMetallicRoughness = nullptr;
+        VkImageView lastTextureEmission = nullptr;
+        VkImageView lastTextureOcculsion = nullptr;
+        VkImageView lastTextureNormal = nullptr;
 
 
         Vulkan* vulkan = nullptr;

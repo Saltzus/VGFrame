@@ -4,6 +4,9 @@ namespace VGF
 {
     Texture::Texture(const char* filePath)
     {
+        system("dir");
+        std::cout << filePath << "\n";
+
         switch (Renderer::GetGraphicsApi())
         {
         case GraphicsApis::OpenGL:
