@@ -114,7 +114,11 @@ namespace VGF::Vulkan
     const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
+
     Vulkan* Vulkan::vulkan = nullptr;
+    std::unordered_map<PipelineConfig, std::pair<VkPipeline, VkPipelineLayout>, PipelineConfigHash> Vulkan::pipelineCache = {};
+
+
     Vulkan::Vulkan(GLFWwindow* window)
     {
         Vulkan::vulkan = this;

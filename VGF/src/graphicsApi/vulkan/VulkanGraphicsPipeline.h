@@ -15,7 +15,7 @@ namespace VGF::Vulkan
     class VulkanGraphicsPipeline
     {
     public:
-        VulkanGraphicsPipeline(const char* vertexFile, const char* fragmentFile, VkPrimitiveTopology topology, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline);
+        VulkanGraphicsPipeline(std::string_view vertexFile, std::string_view fragmentFile, VkPrimitiveTopology topology, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline);
 
         void Bind();
         void Delete();

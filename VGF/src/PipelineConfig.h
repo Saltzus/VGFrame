@@ -14,19 +14,20 @@ namespace VGF
     class PipelineConfig 
     {
     public:
-        PipelineConfig(const char* vertShader, const char* fragShader, Topology topology = Topology::TRIANGLE_LIST);
+        PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology = Topology::TRIANGLE_LIST);
         PipelineConfig();
 
         ~PipelineConfig();
 
         Topology topology = Topology::TRIANGLE_LIST;
-        const char* vertShader;
-        const char* fragShader;
+        std::string vertShader;
+        std::string fragShader;
 
-        bool operator==(const PipelineConfig& other) const {
-            return topology == other.topology &&
-                vertShader == other.vertShader &&
-                fragShader == other.fragShader;
+        bool operator==(const PipelineConfig& other) const 
+        {
+            return topology    == other.topology &&
+                   vertShader   == other.vertShader &&
+                   fragShader   == other.fragShader;
         }
 
         void Activate();
@@ -38,11 +39,15 @@ namespace VGF
     };
 
     // Custom hash function
-    struct PipelineConfigHash {
-        std::size_t operator()(const PipelineConfig& config) const {
+    struct PipelineConfigHash 
+    {
+        std::size_t operator()(const PipelineConfig& config) const noexcept 
+        {
+            // note: std::hash<std::string> is well-defined
             size_t h1 = std::hash<int>()(static_cast<int>(config.topology));
-            size_t h2 = std::hash<const char*>()(config.vertShader);
-            size_t h3 = std::hash<const char*>()(config.fragShader);
+            size_t h2 = std::hash<std::string>()(config.vertShader);
+            size_t h3 = std::hash<std::string>()(config.fragShader);
+            // simple combinator—feel free to replace with boost::hash_combine
             return h1 ^ (h2 << 1) ^ (h3 << 2);
         }
     };

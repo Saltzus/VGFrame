@@ -8,7 +8,7 @@ namespace VGF
 {
 	bool configCreated = false;
 
-	PipelineConfig::PipelineConfig(const char* vertShader, const char* fragShader, Topology topology)
+	PipelineConfig::PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology)
 	{
 		this->topology = topology;
 		this->vertShader = vertShader;

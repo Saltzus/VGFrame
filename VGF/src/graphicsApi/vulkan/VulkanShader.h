@@ -9,14 +9,14 @@
 
 #include "../../RenderImpl.h"
 
-std::string get_file_contents(const char* filename);
+std::string get_file_contents(std::string_view filename);
 
 namespace VGF::Vulkan
 {
     class VulkanShader : public ShaderImpl
     {
     public:
-        VulkanShader(const char* vertexFile, const char* fragmentFile);
+        VulkanShader(std::string_view vertexFile, std::string_view fragmentFile);
 
         void Activate() override;
         void Delete() override;

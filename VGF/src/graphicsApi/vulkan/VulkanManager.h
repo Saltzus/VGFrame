@@ -93,7 +93,7 @@ namespace VGF::Vulkan
         std::vector<VkImageView> offscreenImageViews;
         std::array<VkImageView, MAX_FRAMES_IN_FLIGHT + 1> lastTextures = {nullptr};
 
-        std::unordered_map<PipelineConfig, std::pair<VkPipeline, VkPipelineLayout>, PipelineConfigHash> pipelineCache;
+        static std::unordered_map<PipelineConfig, std::pair<VkPipeline, VkPipelineLayout>, PipelineConfigHash> pipelineCache;
 
         std::pair<VkPipeline, VkPipelineLayout> getOrCreatePipeline(VulkanRenderer* object, const PipelineConfig& config);
         std::pair<VkPipeline, VkPipelineLayout> getOrCreatePipeline(VulkanPostProcess* process, const PipelineConfig& config);

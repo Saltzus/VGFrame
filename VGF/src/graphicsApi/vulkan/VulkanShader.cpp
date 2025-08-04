@@ -5,9 +5,9 @@ namespace VGF::Vulkan
 {
 
 	// Reads a text file and outputs a string with everything in the text file
-	std::string get_file_contents(const char* filename)
+	std::string get_file_contents(std::string_view filename)
 	{
-		std::ifstream in(filename, std::ios::binary);
+		std::ifstream in(filename.data(), std::ios::binary);
 		if (in)
 		{
 			std::string contents;
@@ -22,7 +22,7 @@ namespace VGF::Vulkan
 	}
 
 	// Constructor that build the Shader Program from 2 different shaders
-	VulkanShader::VulkanShader(const char* vertexFile, const char* fragmentFile)
+	VulkanShader::VulkanShader(std::string_view vertexFile, std::string_view fragmentFile)
 	{
 		//Vulkan::vulkan->createGraphicsPipeline(vertexFile, fragmentFile);
 	}

@@ -36,12 +36,12 @@ namespace VGF::Vulkan
     }
 
 	// Constructor that build the Shader Program from 2 different shaders
-	VulkanGraphicsPipeline::VulkanGraphicsPipeline(const char* vertexFile, const char* fragmentFile, VkPrimitiveTopology topology, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline)
+	VulkanGraphicsPipeline::VulkanGraphicsPipeline(std::string_view vertexFile, std::string_view fragmentFile, VkPrimitiveTopology topology, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline)
 	{
-        std::string vulkanVertexFile = vertexFile;
+        std::string vulkanVertexFile = vertexFile.data();
         vulkanVertexFile += ".spv";
 
-        std::string vulkanFragmentFile = fragmentFile;
+        std::string vulkanFragmentFile = fragmentFile.data();
         vulkanFragmentFile += ".spv";
 
         vertShaderCode = readFile(vulkanVertexFile);
