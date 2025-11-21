@@ -45,7 +45,7 @@ namespace VGF::Opengl
         inline static GLFWwindow* window;
         inline static unsigned int textureColorbuffer;
 
-        inline static GLuint framebuffer = NULL;
+        inline static GLuint framebuffer = 0;
         inline static GLuint renderbufferObject;
     private:
     };

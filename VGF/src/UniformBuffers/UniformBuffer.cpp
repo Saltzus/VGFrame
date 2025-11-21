@@ -9,7 +9,7 @@ namespace VGF
 
     size_t UniformBufferObject::SizeOf()
     {
-        return NULL;
+        return 0;
     }
 
     void* UniformBufferObject::Data()

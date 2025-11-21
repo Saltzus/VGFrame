@@ -263,7 +263,7 @@ namespace VGF::Opengl
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
         if (inProcess != nullptr && inProcess->postImages.size() >= 1)
-            glBindTexture(GL_TEXTURE_2D, (GLuint)inProcess->postImages[0]);
+            glBindTexture(GL_TEXTURE_2D, *(GLuint*)inProcess->postImages[0]);
         else
             glBindTexture(GL_TEXTURE_2D, opengl->textureColorbuffer);
 
@@ -274,7 +274,7 @@ namespace VGF::Opengl
 
     OpenglRenderer::OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, std::vector<UniformBufferObject*> uniformBuffers) : opengl(Opengl::openglInstance)
     {
-        if (opengl->framebuffer == NULL)
+        if (opengl->framebuffer == 0)
         { 
             glGenFramebuffers(1, &opengl->framebuffer);
             glBindFramebuffer(GL_FRAMEBUFFER, opengl->framebuffer);
