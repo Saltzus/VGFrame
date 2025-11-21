@@ -274,7 +274,7 @@ namespace VGF::Opengl
 
     OpenglRenderer::OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, std::vector<UniformBufferObject*> uniformBuffers) : opengl(Opengl::openglInstance)
     {
-        if (opengl->framebuffer == NULL)
+        if (opengl->framebuffer == 0)
         { 
             glGenFramebuffers(1, &opengl->framebuffer);
             glBindFramebuffer(GL_FRAMEBUFFER, opengl->framebuffer);
