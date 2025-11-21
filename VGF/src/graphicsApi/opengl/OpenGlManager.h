@@ -39,7 +39,44 @@ namespace VGF::Opengl
     public:
         Opengl(GLFWwindow* window);
         ~Opengl();
+
+
+        inline static Opengl* openglInstance;
+        inline static GLFWwindow* window;
+        inline static unsigned int textureColorbuffer;
+
+        inline static GLuint framebuffer = NULL;
+        inline static GLuint renderbufferObject;
     private:
+    };
+
+    class OpenglPostProcess : public PostProcessImpl
+    {
+    public:
+        OpenglPostProcess(bool renderToScreen, std::vector<UniformBufferObject*> uniformBuffers, PostProcessImpl* inProcess, std::vector<GLuint> indices = {}, std::vector<GLfloat> vertices = {});
+        ~OpenglPostProcess();
+
+        virtual void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override; // Declare draw
+    private:
+        inline static unsigned int postProcesses = 0;
+        unsigned int id;
+
+        Opengl* opengl;
+        std::vector<GLuint> openglUniformBuffers;
+
+        int indicesSize;
+        bool renderToScreen = false;
+
+        GLuint framebuffer;
+        GLuint textureColorbuffer;
+        PostProcessImpl* inProcess;
+
+        std::vector<GLuint> indices = {};
+        std::vector<GLfloat> vertices = {};
+
+        GLuint VAO;
+        GLuint VBO;
+        GLuint EBO;
     };
 
     class OpenglRenderer : public RendererImpl
@@ -50,7 +87,8 @@ namespace VGF::Opengl
 
         virtual void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override; // Declare draw
     private:
-        Opengl& opengl;
+
+        Opengl* opengl;
         std::vector<GLuint> openglUniformBuffers;
 
         int indicesSize;

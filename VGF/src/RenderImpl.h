@@ -22,6 +22,14 @@ namespace VGF
     class Shader;
     class Camera;
 
+    class PostProcessImpl
+    {
+    public:
+        virtual ~PostProcessImpl() {}
+        virtual void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) = 0;
+        std::vector<void*> postImages;
+    };
+
     class RendererImpl 
     {
     public:

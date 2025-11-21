@@ -117,6 +117,7 @@ namespace VGF::Vulkan
 
     Vulkan* Vulkan::vulkan = nullptr;
     std::unordered_map<PipelineConfig, std::pair<VkPipeline, VkPipelineLayout>, PipelineConfigHash> Vulkan::pipelineCache = {};
+    std::unordered_map<PipelineConfig, std::pair<VkPipeline, VkPipelineLayout>, PipelineConfigHash> Vulkan::offscreenPipelineCache = {};
 
 
     Vulkan::Vulkan(GLFWwindow* window)
@@ -131,23 +132,29 @@ namespace VGF::Vulkan
         pickPhysicalDevice();
         createLogicalDevice();
         createSwapChain();
-        createPresentImages();
-        createImageViews();
+        //createPresentImages();
+        createImages(offscreenImages, offscreenImageMemory);
+
+        
+        createImageViews(swapChainImageViews, swapChainImages);
+        createImageViews(offscreenImageViews, offscreenImages);
+
         createRenderPass();
         createOffscreenRenderPass();
         createCommandPool();
         createDepthResources();
-        createFramebuffers();
+
+        //createFramebuffers();
+        createFramebuffers(swapChainFramebuffers, swapChainImageViews, false);
+        createFramebuffers(offscreenFramebuffers, offscreenImageViews, true);
+
+
         createTextureSampler();
         createCommandBuffers();
         createSyncObjects();
-
-        defaultPostProcess = new VulkanPostProcess({MatrixBufferObject::getDefault()});
     }
     Vulkan::~Vulkan()
     {
-        delete defaultPostProcess;
-
         //cleanup -----------------------
         cleanupSwapChain();
 
@@ -169,6 +176,12 @@ namespace VGF::Vulkan
         vkFreeMemory(device, textureImageMemory, nullptr);
 
         for (auto pipeline_pipelineLayout : pipelineCache)
+        {
+            vkDestroyPipeline(device, pipeline_pipelineLayout.second.first, nullptr);
+            vkDestroyPipelineLayout(vulkan->device, pipeline_pipelineLayout.second.second, nullptr);
+        }
+
+        for (auto pipeline_pipelineLayout : offscreenPipelineCache)
         {
             vkDestroyPipeline(device, pipeline_pipelineLayout.second.first, nullptr);
             vkDestroyPipelineLayout(vulkan->device, pipeline_pipelineLayout.second.second, nullptr);
@@ -211,11 +224,29 @@ namespace VGF::Vulkan
             vkDestroyFramebuffer(device, framebuffer, nullptr);
         for (auto imageView : swapChainImageViews)
             vkDestroyImageView(device, imageView, nullptr);
+        for (auto image : swapChainImages)
+            vkDestroyImage(device, image, nullptr);
 
         for (auto framebuffer : offscreenFramebuffers)
             vkDestroyFramebuffer(device, framebuffer, nullptr);
         for (auto imageView : offscreenImageViews)
             vkDestroyImageView(device, imageView, nullptr);
+        for (auto image : offscreenImages)
+            vkDestroyImage(device, image, nullptr);
+        for (auto memory : offscreenImageMemory)
+            vkFreeMemory(device, memory, nullptr);
+
+        for (auto process : processes)
+        {
+            for (auto framebuffer : process->frameBuffers)
+                vkDestroyFramebuffer(device, framebuffer, nullptr);
+            for (auto imageView : process->imageViews)
+                vkDestroyImageView(device, imageView, nullptr);
+            for (auto image : process->images)
+                vkDestroyImage(device, image, nullptr);
+            for (auto memory : process->imageMemory)
+                vkFreeMemory(device, memory, nullptr);
+        }
 
         vkDestroySwapchainKHR(device, swapChain, nullptr);
     }
@@ -232,9 +263,21 @@ namespace VGF::Vulkan
         cleanupSwapChain();
 
         createSwapChain();
-        createImageViews();
+
+        createImageViews(swapChainImageViews, swapChainImages);
+        createImageViews(offscreenImageViews, offscreenImages);
+
+        for (auto process : processes)
+            createImageViews(process->imageViews, process->images);
+
         createDepthResources();
-        createFramebuffers();
+        //createFramebuffers();
+
+        for (auto process : processes)
+            createFramebuffers(process->frameBuffers, process->imageViews, true);
+
+        createFramebuffers(swapChainFramebuffers, swapChainImageViews, false);
+        createFramebuffers(offscreenFramebuffers, offscreenImageViews, true);
     }
 
     VkResult Vulkan::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
@@ -365,15 +408,6 @@ namespace VGF::Vulkan
     }
     void Vulkan::render()
     {
-        VGF::PipelineConfig defaultPipeline
-        (
-            "../../../Examples/HelloWorld/Shaders/defaultPostProcess.vert",
-            "../../../Examples/HelloWorld/Shaders/defaultPostProcess.frag",
-            VGF::Topology::TRIANGLE_LIST
-        );
-
-        defaultPostProcess->Render(defaultPipeline, {MatrixBufferObject::getDefault()});
-
         drawFrame();
     }
 
@@ -474,7 +508,11 @@ namespace VGF::Vulkan
 
         swapChainImageFormat = surfaceFormat.format;
         swapChainExtent = extent;
-        createPresentImages();
+        //createPresentImages();
+        createImages(offscreenImages, offscreenImageMemory);
+
+        for (auto process : processes)
+            createImages(process->images, process->imageMemory);
     }
     VkSurfaceFormatKHR Vulkan::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
         for (const auto& availableFormat : availableFormats) {
@@ -539,10 +577,52 @@ namespace VGF::Vulkan
         return details;
     }
 
-    void Vulkan::createPresentImages()
+    //void Vulkan::createPresentImages()
+    //{
+    //    offscreenImages.resize(swapChainImages.size());
+    //    offscreenImageMemory.resize(swapChainImages.size());
+    //
+    //    for (uint32_t i = 0; i < swapChainImages.size(); i++)
+    //    {
+    //        VkImageCreateInfo imageCreateCI{};
+    //        imageCreateCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    //        imageCreateCI.imageType = VK_IMAGE_TYPE_2D;
+    //        imageCreateCI.format = swapChainImageFormat;
+    //        imageCreateCI.extent.width = swapChainExtent.width;
+    //        imageCreateCI.extent.height = swapChainExtent.height;
+    //        imageCreateCI.extent.depth = 1;
+    //        imageCreateCI.mipLevels = 1;
+    //        imageCreateCI.arrayLayers = 1;
+    //        imageCreateCI.samples = VK_SAMPLE_COUNT_1_BIT;
+    //        imageCreateCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+    //        imageCreateCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    //        imageCreateCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    //        imageCreateCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    //
+    //        if (vkCreateImage(device, &imageCreateCI, nullptr, &offscreenImages[i]) != VK_SUCCESS) {
+    //            throw std::runtime_error("failed to create ImGui image!");
+    //        }
+    //
+    //        VkMemoryRequirements memRequirements;
+    //        vkGetImageMemoryRequirements(device, offscreenImages[i], &memRequirements);
+    //
+    //        VkMemoryAllocateInfo allocInfo{};
+    //        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    //        allocInfo.allocationSize = memRequirements.size;
+    //        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    //
+    //        if (vkAllocateMemory(device, &allocInfo, nullptr, &offscreenImageMemory[i]) != VK_SUCCESS) {
+    //            throw std::runtime_error("failed to allocate memory for ImGui image!");
+    //        }
+    //        vkBindImageMemory(device, offscreenImages[i], offscreenImageMemory[i], 0);
+    //
+    //    }
+    //}
+
+    void Vulkan::createImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemory)
     {
-        offscreenImages.resize(swapChainImages.size());
-        offscreenImageMemory.resize(swapChainImages.size());
+        images.resize(swapChainImages.size());
+        imageMemory.resize(swapChainImages.size());
 
         for (uint32_t i = 0; i < swapChainImages.size(); i++)
         {
@@ -561,35 +641,35 @@ namespace VGF::Vulkan
             imageCreateCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             imageCreateCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-            if (vkCreateImage(device, &imageCreateCI, nullptr, &offscreenImages[i]) != VK_SUCCESS) {
+            if (vkCreateImage(device, &imageCreateCI, nullptr, &images[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create ImGui image!");
             }
 
             VkMemoryRequirements memRequirements;
-            vkGetImageMemoryRequirements(device, offscreenImages[i], &memRequirements);
+            vkGetImageMemoryRequirements(device, images[i], &memRequirements);
 
             VkMemoryAllocateInfo allocInfo{};
             allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
             allocInfo.allocationSize = memRequirements.size;
             allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-            if (vkAllocateMemory(device, &allocInfo, nullptr, &offscreenImageMemory[i]) != VK_SUCCESS) {
+            if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to allocate memory for ImGui image!");
             }
-            vkBindImageMemory(device, offscreenImages[i], offscreenImageMemory[i], 0);
+            vkBindImageMemory(device, images[i], imageMemory[i], 0);
 
         }
     }
 
-    void Vulkan::createImageViews() 
+    void Vulkan::createImageViews(std::vector<VkImageView>& imageViews, const std::vector<VkImage> images)
     {
-        swapChainImageViews.resize(swapChainImages.size());
+        imageViews.resize(images.size());
 
-        for (size_t i = 0; i < swapChainImages.size(); i++) 
+        for (size_t i = 0; i < images.size(); i++)
         {
             VkImageViewCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            createInfo.image = swapChainImages[i];
+            createInfo.image = images[i];
             createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
             createInfo.format = swapChainImageFormat;
             createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -602,37 +682,66 @@ namespace VGF::Vulkan
             createInfo.subresourceRange.baseArrayLayer = 0;
             createInfo.subresourceRange.layerCount = 1;
 
-            if (vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to create image views!");
-            }
-        }
-
-        offscreenImageViews.resize(offscreenImages.size());
-
-        for (size_t i = 0; i < offscreenImages.size(); i++)
-        {
-            VkImageViewCreateInfo createInfo{};
-            createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            createInfo.image = offscreenImages[i];
-            createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            createInfo.format = swapChainImageFormat;
-            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            createInfo.subresourceRange.baseMipLevel = 0;
-            createInfo.subresourceRange.levelCount = 1;
-            createInfo.subresourceRange.baseArrayLayer = 0;
-            createInfo.subresourceRange.layerCount = 1;
-
-            if (vkCreateImageView(device, &createInfo, nullptr, &offscreenImageViews[i]) != VK_SUCCESS)
+            if (vkCreateImageView(device, &createInfo, nullptr, &imageViews[i]) != VK_SUCCESS)
             {
                 throw std::runtime_error("failed to create image views!");
             }
         }
     }
+
+    //void Vulkan::createImageViews() 
+    //{
+    //    swapChainImageViews.resize(swapChainImages.size());
+    //
+    //    for (size_t i = 0; i < swapChainImages.size(); i++) 
+    //    {
+    //        VkImageViewCreateInfo createInfo{};
+    //        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    //        createInfo.image = swapChainImages[i];
+    //        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    //        createInfo.format = swapChainImageFormat;
+    //        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    //        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    //        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    //        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+    //        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    //        createInfo.subresourceRange.baseMipLevel = 0;
+    //        createInfo.subresourceRange.levelCount = 1;
+    //        createInfo.subresourceRange.baseArrayLayer = 0;
+    //        createInfo.subresourceRange.layerCount = 1;
+    //
+    //        if (vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS)
+    //        {
+    //            throw std::runtime_error("failed to create image views!");
+    //        }
+    //    }
+    //
+    //    offscreenImageViews.resize(offscreenImages.size());
+    //
+    //    for (size_t i = 0; i < offscreenImages.size(); i++)
+    //    {
+    //        VkImageViewCreateInfo createInfo{};
+    //        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    //        createInfo.image = offscreenImages[i];
+    //        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    //        createInfo.format = swapChainImageFormat;
+    //        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    //        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    //        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    //        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+    //        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    //        createInfo.subresourceRange.baseMipLevel = 0;
+    //        createInfo.subresourceRange.levelCount = 1;
+    //        createInfo.subresourceRange.baseArrayLayer = 0;
+    //        createInfo.subresourceRange.layerCount = 1;
+    //
+    //        if (vkCreateImageView(device, &createInfo, nullptr, &offscreenImageViews[i]) != VK_SUCCESS)
+    //        {
+    //            throw std::runtime_error("failed to create image views!");
+    //        }
+    //    }
+    //}
+
     void Vulkan::createDescriptorSetLayout(VkDescriptorSetLayout& descriptorsetLayout, std::vector<VulkanUniformBuffer>& uniformBuffers, std::vector<VulkanImageSampler>& imageSamplers)
     {
         size_t bufferSize = uniformBuffers.size();
@@ -745,39 +854,59 @@ namespace VGF::Vulkan
         return descriptorSets;
     }
 
-    std::pair<VkPipeline, VkPipelineLayout> Vulkan::getOrCreatePipeline(VulkanRenderer* object, const PipelineConfig& config)
+    std::pair<VkPipeline, VkPipelineLayout> Vulkan::getOrCreatePipeline(VulkanRenderer* object, const PipelineConfig& config, const bool offscreen)
     {
-        auto it = pipelineCache.find(config);
-        if (it != pipelineCache.end()) {
-            return it->second;
-        }
-
-        bool present = false;
         VkRenderPass pass = renderPass;
-
-        if (!present)
+        if (offscreen)
+        {
             pass = offscreenRenderPass;
 
-        std::pair<VkPipeline, VkPipelineLayout> pipeline_pipelineLayout = createGraphicsPipeline(object, config, pass); // You define this
-        pipelineCache[config] = pipeline_pipelineLayout;
+            auto it = offscreenPipelineCache.find(config);
+            if (it != offscreenPipelineCache.end())
+                return it->second;
+        }
+        else
+        {
+            auto it = pipelineCache.find(config);
+            if (it != pipelineCache.end())
+                return it->second;
+        }
+
+        std::pair<VkPipeline, VkPipelineLayout> pipeline_pipelineLayout = createGraphicsPipeline(object, config, pass);
+
+        if (offscreen)
+            offscreenPipelineCache[config] = pipeline_pipelineLayout;
+        else
+            pipelineCache[config] = pipeline_pipelineLayout;
+
         return pipeline_pipelineLayout;
     }
 
-    std::pair<VkPipeline, VkPipelineLayout> Vulkan::getOrCreatePipeline(VulkanPostProcess* process, const PipelineConfig& config)
+    std::pair<VkPipeline, VkPipelineLayout> Vulkan::getOrCreatePipeline(VulkanPostProcess* process, const PipelineConfig& config, const bool offscreen)
     {
-        auto it = pipelineCache.find(config);
-        if (it != pipelineCache.end()) {
-            return it->second;
-        }
-
-        bool present = true;
         VkRenderPass pass = renderPass;
-
-        if (!present)
+        if (offscreen)
+        {
             pass = offscreenRenderPass;
 
+            auto it = offscreenPipelineCache.find(config);
+            if (it != offscreenPipelineCache.end())
+                return it->second;
+        }
+        else
+        {
+            auto it = pipelineCache.find(config);
+            if (it != pipelineCache.end())
+                return it->second;
+        }
+
         std::pair<VkPipeline, VkPipelineLayout> pipeline_pipelineLayout = createGraphicsPipeline(process, config, pass); // You define this
-        pipelineCache[config] = pipeline_pipelineLayout;
+        
+        if (offscreen)
+            offscreenPipelineCache[config] = pipeline_pipelineLayout;
+        else
+            pipelineCache[config] = pipeline_pipelineLayout;
+
         return pipeline_pipelineLayout;
     }
 
@@ -894,14 +1023,14 @@ namespace VGF::Vulkan
 
         for (VulkanRenderer* object : objects)
         {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineCache.at(object->config).first);
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object->config).first);
 
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &object->vertexBuffer_vertexBufferMemory.first, offsets);
             vkCmdBindIndexBuffer(commandBuffer, object->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
 
             updateUniformBuffer(currentFrame, object);
 
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineCache.at(object->config).second, 0, 1, &object->descriptorSets[currentFrame], 0, nullptr);
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object->config).second, 0, 1, &object->descriptorSets[currentFrame], 0, nullptr);
             vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object->indicesSize), 1, 0, 0, 0);
         }
 
@@ -931,11 +1060,9 @@ namespace VGF::Vulkan
         if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
             throw std::runtime_error("failed to begin recording command buffer!");
         }
-
+        
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = swapChainExtent;
 
@@ -946,8 +1073,6 @@ namespace VGF::Vulkan
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
 
-        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -955,26 +1080,46 @@ namespace VGF::Vulkan
         viewport.height = (float)swapChainExtent.height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
         VkRect2D scissor{};
         scissor.offset = { 0, 0 };
         scissor.extent = swapChainExtent;
-        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        VkDeviceSize offsets[] = { 0 };
+        for (size_t i = 0; i < processes.size(); i++)
+        {
+            const bool offscreen = i != processes.size() - 1;
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineCache.at(processes[0]->config).first);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineCache.at(processes[0]->config).second, 0, 1, &processes[0]->descriptorSets[currentFrame], 0, nullptr);
-        
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &processes[0]->vertexBuffer_vertexBufferMemory.first, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, processes[0]->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(processes[0]->indicesSize), 1, 0, 0, 0);
+            renderPassInfo.renderPass = offscreen ? offscreenRenderPass : renderPass;
+            renderPassInfo.framebuffer = offscreen ? processes[i]->frameBuffers[imageIndex] : swapChainFramebuffers[imageIndex];
+
+            vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+            vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+            VkDeviceSize offsets[] = { 0 };
+
+            if (offscreen)
+            {
+                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(processes[i]->config).first);
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(processes[i]->config).second, 0, 1, &processes[i]->descriptorSets[currentFrame], 0, nullptr);
+            }
+            else
+            {
+                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineCache.at(processes[i]->config).first);
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineCache.at(processes[i]->config).second, 0, 1, &processes[i]->descriptorSets[currentFrame], 0, nullptr);
+            }
+
+
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &processes[i]->vertexBuffer_vertexBufferMemory.first, offsets);
+            vkCmdBindIndexBuffer(commandBuffer, processes[i]->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
+            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(processes[i]->indicesSize), 1, 0, 0, 0);
+
+            vkCmdEndRenderPass(commandBuffer);
+        }
 
         processes.clear();
-        vkCmdEndRenderPass(commandBuffer);
-        
-
+   
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
@@ -1183,52 +1328,77 @@ namespace VGF::Vulkan
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    void Vulkan::createFramebuffers() 
+    void Vulkan::createFramebuffers(std::vector<VkFramebuffer>& framebuffers, const std::vector<VkImageView> imageViews, bool offscreen)
     {
-        swapChainFramebuffers.resize(swapChainImageViews.size());
-        for (size_t i = 0; i < swapChainImageViews.size(); i++) 
+        framebuffers.resize(imageViews.size());
+        for (size_t i = 0; i < imageViews.size(); i++)
         {
-            std::array<VkImageView, 2> attachments = 
+            std::array<VkImageView, 2> attachments =
             {
-                swapChainImageViews[i],
+                imageViews[i],
                 depthImageView
             };
 
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = renderPass;
+            framebufferInfo.renderPass = offscreen ? offscreenRenderPass : renderPass;
             framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
             framebufferInfo.pAttachments = attachments.data();
             framebufferInfo.width = swapChainExtent.width;
             framebufferInfo.height = swapChainExtent.height;
             framebufferInfo.layers = 1;
 
-            if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) 
-                throw std::runtime_error("failed to create framebuffer!");
-        }
-
-        offscreenFramebuffers.resize(offscreenImageViews.size());
-        for (size_t i = 0; i < offscreenImageViews.size(); i++) 
-        {
-            std::array<VkImageView, 2> attachments = 
-            {
-                offscreenImageViews[i],
-                depthImageView
-            };
-
-            VkFramebufferCreateInfo framebufferInfo{};
-            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = offscreenRenderPass;
-            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-            framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = swapChainExtent.width;
-            framebufferInfo.height = swapChainExtent.height;
-            framebufferInfo.layers = 1;
-
-            if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &offscreenFramebuffers[i]) != VK_SUCCESS) 
+            if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &framebuffers[i]) != VK_SUCCESS)
                 throw std::runtime_error("failed to create framebuffer!");
         }
     }
+
+    //void Vulkan::createFramebuffers() 
+    //{
+    //    swapChainFramebuffers.resize(swapChainImageViews.size());
+    //    for (size_t i = 0; i < swapChainImageViews.size(); i++) 
+    //    {
+    //        std::array<VkImageView, 2> attachments = 
+    //        {
+    //            swapChainImageViews[i],
+    //            depthImageView
+    //        };
+    //
+    //        VkFramebufferCreateInfo framebufferInfo{};
+    //        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    //        framebufferInfo.renderPass = renderPass;
+    //        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    //        framebufferInfo.pAttachments = attachments.data();
+    //        framebufferInfo.width = swapChainExtent.width;
+    //        framebufferInfo.height = swapChainExtent.height;
+    //        framebufferInfo.layers = 1;
+    //
+    //        if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) 
+    //            throw std::runtime_error("failed to create framebuffer!");
+    //    }
+    //
+    //    offscreenFramebuffers.resize(offscreenImageViews.size());
+    //    for (size_t i = 0; i < offscreenImageViews.size(); i++) 
+    //    {
+    //        std::array<VkImageView, 2> attachments = 
+    //        {
+    //            offscreenImageViews[i],
+    //            depthImageView
+    //        };
+    //
+    //        VkFramebufferCreateInfo framebufferInfo{};
+    //        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    //        framebufferInfo.renderPass = offscreenRenderPass;
+    //        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    //        framebufferInfo.pAttachments = attachments.data();
+    //        framebufferInfo.width = swapChainExtent.width;
+    //        framebufferInfo.height = swapChainExtent.height;
+    //        framebufferInfo.layers = 1;
+    //
+    //        if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &offscreenFramebuffers[i]) != VK_SUCCESS) 
+    //            throw std::runtime_error("failed to create framebuffer!");
+    //    }
+    //}
 
     void Vulkan::createRenderPass() 
     {
@@ -1842,8 +2012,7 @@ namespace VGF::Vulkan
         }
     }
 
-
-    std::vector<GLfloat> vertices =
+    std::vector<GLfloat> defaultVertices =
     {
         -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f, 1.0f,   0.0f, 0.0f,
         1.0f, -1.0f, 0.0f,    0.0f, 0.0f, 1.0f,   1.0f, 1.0f, 1.0f,   1.0f, 0.0f,
@@ -1851,19 +2020,32 @@ namespace VGF::Vulkan
         -1.0f,  1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f
     };
 
-    std::vector<GLuint> indices =
+    std::vector<GLuint> defaultIndices =
     {
         0, 1, 2,
         2, 3, 0
     };
 
-    VulkanPostProcess::VulkanPostProcess(std::vector<UniformBufferObject*> uniformBuffers)
+    VulkanPostProcess::VulkanPostProcess(std::vector<UniformBufferObject*> uniformBuffers, PostProcessImpl* inputProcess, std::vector<GLuint> indices, std::vector<GLfloat> vertices)
     {
+        if (indices.size() <= 0 || vertices.size() <= 0)
+        {
+            vertices = defaultVertices;
+            indices = defaultIndices;
+        }
+
         vulkan = Vulkan::vulkan;
         assert(vulkan != nullptr && "Vulkan not initialized");
 
         vertexBuffer_vertexBufferMemory = vulkan->createVertexBuffer(vertices);
         indexBuffer_indexBufferMemory = vulkan->createIndexBuffer(convertIndices(indices));
+
+        vulkan->createImages(images, imageMemory);
+        vulkan->createImageViews(imageViews, images);
+        vulkan->createFramebuffers(frameBuffers, imageViews, true);
+
+        for (size_t i = 0; i < imageViews.size(); i++)
+            postImages.push_back(imageViews[i]);
 
         for (UniformBufferObject* buffer : uniformBuffers)
         {
@@ -1873,10 +2055,17 @@ namespace VGF::Vulkan
             vulkanUniformBuffers.push_back(vulkanBuffer);
         }
 
-        std::vector<VulkanImageSampler> samplers =
+        std::vector<VulkanImageSampler> samplers;
+        if (inputProcess != nullptr)
         {
-            {vulkan->offscreenImageViews, vulkan->textureSampler},
-        };
+            inputImageViews.reserve(inputProcess->postImages.size());
+            for (void* pointer : inputProcess->postImages)
+                inputImageViews.push_back(reinterpret_cast<VkImageView>(pointer));
+
+            samplers.emplace_back(inputImageViews, vulkan->textureSampler);
+        }
+        else
+            samplers.emplace_back(vulkan->offscreenImageViews, vulkan->textureSampler);
 
         vulkan->createDescriptorSetLayout(descriptorSetLayout, vulkanUniformBuffers, samplers);
         descriptorPool = vulkan->createDescriptorPool(vulkanUniformBuffers.size(), samplers.size());
@@ -1886,13 +2075,40 @@ namespace VGF::Vulkan
 
     VulkanPostProcess::~VulkanPostProcess()
     {
+        vkDeviceWaitIdle(vulkan->device);
 
+        vkDestroyDescriptorSetLayout(vulkan->device, descriptorSetLayout, nullptr);
+        vkDestroyDescriptorPool(vulkan->device, descriptorPool, nullptr);
+
+        vkDestroyBuffer(vulkan->device, vertexBuffer_vertexBufferMemory.first, nullptr);
+        vkFreeMemory(vulkan->device, vertexBuffer_vertexBufferMemory.second, nullptr);
+
+        vkDestroyBuffer(vulkan->device, indexBuffer_indexBufferMemory.first, nullptr);
+        vkFreeMemory(vulkan->device, indexBuffer_indexBufferMemory.second, nullptr);
+
+        for (auto framebuffer : frameBuffers)
+            vkDestroyFramebuffer(vulkan->device, framebuffer, nullptr);
+        for (auto imageView : imageViews)
+            vkDestroyImageView(vulkan->device, imageView, nullptr);
+        for (auto image : images)
+            vkDestroyImage(vulkan->device, image, nullptr);
+        for (auto memory : imageMemory)
+            vkFreeMemory(vulkan->device, memory, nullptr);
+
+        for (auto buffer : vulkanUniformBuffers)
+        {
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                vkDestroyBuffer(Vulkan::vulkan->device, buffer.uniformBuffers[i], nullptr);
+                vkFreeMemory(Vulkan::vulkan->device, buffer.uniformBuffersMemory[i], nullptr);
+            }
+        }
     }
 
     void VulkanPostProcess::Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
     {
         this->config = config;
-        vulkan->getOrCreatePipeline(this, config);
+        vulkan->getOrCreatePipeline(this, config, false);
+        vulkan->getOrCreatePipeline(this, config, true);
 
         assert(vulkanUniformBuffers.size() == uniformBuffers.size() && "Wrong amount of UniformBuffers send to renderer!!");
         for (size_t i = 0; i < uniformBuffers.size(); i++)
@@ -1959,7 +2175,7 @@ namespace VGF::Vulkan
     void VulkanRenderer::Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
     {
         this->config = config;
-        vulkan->getOrCreatePipeline(this, config);
+        vulkan->getOrCreatePipeline(this, config, true);
 
         CheckTextureChange();
 
@@ -1973,7 +2189,7 @@ namespace VGF::Vulkan
         objects.push_back(this);
     }
 
-    void VulkanRenderer::CheckTextureChange() // TODO : Make this more dynamic or sum
+    void VulkanRenderer::CheckTextureChange()
     {
         vulkan->UpdateTexture(descriptorSets, lastTextureColor, vulkan->colorTextureImageView, vulkanUniformBuffers.size());
         vulkan->UpdateTexture(descriptorSets, lastTextureMetallicRoughness, vulkan->metallicRoughnessTextureImageView, vulkanUniformBuffers.size() + 1);

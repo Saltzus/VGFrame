@@ -50,6 +50,9 @@ namespace VGF::Vulkan
     {
         std::vector<VkImageView> imageViews;
         VkSampler& textureSampler;
+
+        VulkanImageSampler(const std::vector<VkImageView>& views, VkSampler& sampler) 
+            : imageViews(views), textureSampler(sampler) {}
     };
 
     class VulkanRenderer;
@@ -66,6 +69,7 @@ namespace VGF::Vulkan
         VkImage textureImage;
         VkDeviceMemory textureImageMemory;
         VkImageView textureImageViewTex;
+
     };
 
     class Vulkan : public ApiImpl
@@ -94,9 +98,10 @@ namespace VGF::Vulkan
         std::array<VkImageView, MAX_FRAMES_IN_FLIGHT + 1> lastTextures = {nullptr};
 
         static std::unordered_map<PipelineConfig, std::pair<VkPipeline, VkPipelineLayout>, PipelineConfigHash> pipelineCache;
+        static std::unordered_map<PipelineConfig, std::pair<VkPipeline, VkPipelineLayout>, PipelineConfigHash> offscreenPipelineCache;
 
-        std::pair<VkPipeline, VkPipelineLayout> getOrCreatePipeline(VulkanRenderer* object, const PipelineConfig& config);
-        std::pair<VkPipeline, VkPipelineLayout> getOrCreatePipeline(VulkanPostProcess* process, const PipelineConfig& config);
+        std::pair<VkPipeline, VkPipelineLayout> getOrCreatePipeline(VulkanRenderer* object, const PipelineConfig& config, const bool offscreen);
+        std::pair<VkPipeline, VkPipelineLayout> getOrCreatePipeline(VulkanPostProcess* process, const PipelineConfig& config, const bool offscreen);
         std::pair<VkPipeline, VkPipelineLayout> createGraphicsPipeline(VulkanRenderer* object, const PipelineConfig& config, VkRenderPass& renderPass);
         std::pair<VkPipeline, VkPipelineLayout> createGraphicsPipeline(VulkanPostProcess* process, const PipelineConfig& config, VkRenderPass& renderPass);
 
@@ -108,6 +113,10 @@ namespace VGF::Vulkan
         void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
         VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
         
+        void createImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemory);
+        void createImageViews(std::vector<VkImageView>& imageViews, const std::vector<VkImage> images);
+        void createFramebuffers(std::vector<VkFramebuffer>& framebuffers, const std::vector<VkImageView> imageViews, bool offscreen);
+
         void UpdateTexture(const std::vector<VkDescriptorSet> descriptorSets, VkImageView& lastTexture, const VkImageView imageView, const uint32_t binding);
         void createPresentImages();
 
@@ -210,7 +219,8 @@ namespace VGF::Vulkan
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
         SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
         
-        void createImageViews();
+        //void createImageViews();
+
         void createFramebuffers();
         void createTextureImageView();
         void createTextureSampler();
@@ -249,19 +259,23 @@ namespace VGF::Vulkan
 
     };
 
-    class VulkanPostProcess
+    class VulkanPostProcess : public PostProcessImpl
     {
     public:
-        VulkanPostProcess(std::vector<UniformBufferObject*> uniformBuffers = {});
+        VulkanPostProcess(std::vector<UniformBufferObject*> uniformBuffers = {}, PostProcessImpl* inputProcess = nullptr, std::vector<GLuint> indices = {}, std::vector<GLfloat> vertices = {});
         ~VulkanPostProcess();
 
-        void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers = {});
+        virtual void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers = {}) override;
 
         int indicesSize = 0;
 
-
         std::pair<VkBuffer, VkDeviceMemory> vertexBuffer_vertexBufferMemory;
         std::pair<VkBuffer, VkDeviceMemory> indexBuffer_indexBufferMemory;
+
+        std::vector<VkImageView> imageViews;
+        std::vector<VkImage> images;
+        std::vector<VkDeviceMemory> imageMemory;
+        std::vector<VkFramebuffer> frameBuffers;
 
         std::vector<VulkanUniformBuffer> vulkanUniformBuffers;
         VkDescriptorSetLayout descriptorSetLayout;
@@ -272,6 +286,7 @@ namespace VGF::Vulkan
 
     private:
         Vulkan* vulkan = nullptr;
+        std::vector<VkImageView> inputImageViews;
     };
 
     class VulkanRenderer : public RendererImpl

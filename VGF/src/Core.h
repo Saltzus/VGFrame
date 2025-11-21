@@ -5,6 +5,7 @@
 #include "Camera.h"
 #include "Input.h"
 #include "Renderer.h"
+#include "PostProcess.h"
 #include "Object.h"
 #include "PhysicsObject.h"
 #include "Audio.h"

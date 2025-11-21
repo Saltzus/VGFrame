@@ -26,6 +26,20 @@ int main(int argc, char** argv)
         VGF::Topology::TRIANGLE_LIST
     );
 
+    VGF::PipelineConfig defaultPostPipeline
+    (
+        "../../../Examples/HelloWorld/Shaders/defaultPostProcess.vert",
+        "../../../Examples/HelloWorld/Shaders/defaultPostProcess.frag",
+        VGF::Topology::TRIANGLE_LIST
+    );
+
+    VGF::PipelineConfig inversePostPipeline
+    (
+        "../../../Examples/HelloWorld/Shaders/invertColorsPostProcess.vert",
+        "../../../Examples/HelloWorld/Shaders/invertColorsPostProcess.frag",
+        VGF::Topology::TRIANGLE_LIST
+    );
+
     VGF::Texture* texture = new VGF::Texture("../../../Examples/HelloWorld/Textures/PixelText.png"); texture->Bind(VGF::textureType::color);
     VGF::Texture* texture1 = new VGF::Texture("../../../Examples/HelloWorld/Textures/Image_0.png");  texture1->Bind(VGF::textureType::metallicRoughness);
     VGF::Texture* texture2 = new VGF::Texture("../../../Examples/HelloWorld/Textures/Image_0.png");  texture2->Bind(VGF::textureType::emissive);
@@ -36,6 +50,9 @@ int main(int argc, char** argv)
     VGF::Model planeModel("../../../Examples/HelloWorld/Models/Plane.gltf");
     VGF::Model duckModel("../../../Examples/HelloWorld/Models/Duck.gltf");
     
+    VGF::PostProcess postProcess (false, {VGF::MatrixBufferObject::getDefault()});
+    VGF::PostProcess postProcess2(true,  {VGF::MatrixBufferObject::getDefault()}, &postProcess);
+
     std::vector<float> vertices =
     {
         0, 0.5, -0.1,     0.0f, 0.0995f, 0.9950f,    0,0,0, 2,4,
@@ -79,9 +96,11 @@ int main(int argc, char** argv)
         camera.Inputs(window, delta_time);
 
         groundObject.Render(defaultPipeline, &camera);
-
         physicsObject.Render(defaultPipeline, &camera);
         physicsObject1.Render(defaultPipeline, &camera);
+
+        postProcess.Render(defaultPostPipeline, { VGF::MatrixBufferObject::getDefault() });
+        postProcess2.Render(inversePostPipeline, { VGF::MatrixBufferObject::getDefault() });
 
         VGF::PhysicsObject* object = VGF::Input::pickObject(&window, physics.dynamicsWorld, &camera);
         if (object)

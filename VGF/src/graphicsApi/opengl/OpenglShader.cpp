@@ -39,7 +39,6 @@ namespace VGF::Opengl
 		glCompileShader(vertexShader);
 		// Checks if Shader compiled succesfully
 		compileErrors(vertexShader, "VERTEX");
-
 		// Create Fragment Shader Object and get its reference
 		GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 		// Attach Fragment Shader source to the Fragment Shader Object
@@ -48,7 +47,6 @@ namespace VGF::Opengl
 		glCompileShader(fragmentShader);
 		// Checks if Shader compiled succesfully
 		compileErrors(fragmentShader, "FRAGMENT");
-
 		// Create Shader Program Object and get its reference
 		ID = glCreateProgram();
 		// Attach the Vertex and Fragment Shaders to the Shader Program
@@ -58,12 +56,11 @@ namespace VGF::Opengl
 		glLinkProgram(ID);
 
 		// Checks if Shaders linked succesfully
-		compileErrors(ID, "PROGRAM");
-
+		compileErrors(vertexShader, "PROGRAM");
+		compileErrors(fragmentShader, "PROGRAM");
 		// Delete the now useless Vertex and Fragment Shader objects
 		glDeleteShader(vertexShader);
 		glDeleteShader(fragmentShader);
-
 	}
 
 	// Activates the Shader Program
@@ -88,6 +85,7 @@ namespace VGF::Opengl
 		if (type != "PROGRAM")
 		{
 			glGetShaderiv(shader, GL_COMPILE_STATUS, &hasCompiled);
+			int error = glGetError();
 			if (hasCompiled == GL_FALSE)
 			{
 				glGetShaderInfoLog(shader, 1024, NULL, infoLog);
@@ -97,6 +95,7 @@ namespace VGF::Opengl
 		else
 		{
 			glGetProgramiv(shader, GL_LINK_STATUS, &hasCompiled);
+			int sus12 = glGetError();
 			if (hasCompiled == GL_FALSE)
 			{
 				glGetProgramInfoLog(shader, 1024, NULL, infoLog);
