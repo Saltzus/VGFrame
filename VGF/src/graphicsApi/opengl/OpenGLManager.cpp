@@ -208,7 +208,7 @@ namespace VGF::Opengl
 
         glGenTextures(1, &textureColorbuffer);
         glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-        postImages.push_back((void*)textureColorbuffer);
+        postImages.push_back(&textureColorbuffer);
 
         int width, height;
         glfwGetWindowSize(Opengl::window, &width, &height);
@@ -263,7 +263,7 @@ namespace VGF::Opengl
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
         if (inProcess != nullptr && inProcess->postImages.size() >= 1)
-            glBindTexture(GL_TEXTURE_2D, *(GLuint*)inProcess->postImages[0]);
+            glBindTexture(GL_TEXTURE_2D, *((GLuint*)inProcess->postImages[0]));
         else
             glBindTexture(GL_TEXTURE_2D, opengl->textureColorbuffer);
 

@@ -68,7 +68,7 @@ int main(int argc, char** argv)
     VGF::Model triangle(vertices, indices, VGF::Material::getDefaultMaterial());
 
     VGF::Physics physics;
-    VGF::Camera camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.f, 29.f, -10.f)); // TODO : add camera shader / post processing shader
+    VGF::Camera camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.f, 29.f, -10.f));
 
     VGF::PhysicsObject physicsObject(&duckModel, &physics, { -0.5,5,0 }, { 2,2,2 }, 1.f);
 
@@ -76,7 +76,6 @@ int main(int argc, char** argv)
 
     VGF::PhysicsObject groundObject(&cubeModel, &physics, { 0,-56,0 }, { 50,50,50 }, 0.f);
     
-
     btAlignedObjectArray<btRigidBody*> bodies = physics.dynamicsWorld->getNonStaticRigidBodies();
 
     VGF::Audio audio;
