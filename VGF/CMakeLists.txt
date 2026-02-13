@@ -1,8 +1,8 @@
 
 # Recursively gather all .cpp and .h files in the src directory.
 file(GLOB_RECURSE CLIENT_FILES
-    "${CMAKE_SOURCE_DIR}/VGF/src/**.cpp"
-    "${CMAKE_SOURCE_DIR}/VGF/src/**.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/**.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/**.h"
 )
 
 # Create the executable.
@@ -16,7 +16,7 @@ target_link_libraries(VGF
     nlohmann_json
     stb_image_write
     stb_image
-    vulkan-1
+    vulkan
     glfw
     tinygltf
 )
@@ -25,8 +25,16 @@ target_link_libraries(VGF
   PUBLIC
     BulletDynamics BulletCollision LinearMath Bullet3Common 
 )
+set_target_properties(VGF PROPERTIES FOLDER "VGFrame")
+set_target_properties(VGF PROPERTIES PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/src/Core.h)
 
-target_include_directories(VGF PRIVATE ${CORE_LIB_DIR})
+target_include_directories(VGF PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(VGF PUBLIC 
+  ${CMAKE_CURRENT_SOURCE_DIR}/../
+  ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries
+  ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/glad/include
+  ${CORE_LIB_DIR}
+)
 
 # Function to automatically assign source groups based on folder structure.
 function(assign_source_groups)
@@ -34,7 +42,7 @@ function(assign_source_groups)
         # Ensure we have an absolute file path.
         get_filename_component(file_abs "${file}" ABSOLUTE)
         # Get the file path relative to the src directory.
-        file(RELATIVE_PATH rel_path "${CMAKE_SOURCE_DIR}/VGF/src" "${file_abs}")
+        file(RELATIVE_PATH rel_path "${CMAKE_CURRENT_SOURCE_DIR}/" "${file_abs}")
         # Get the directory part (if any) from the relative path.
         get_filename_component(dir_path "${rel_path}" DIRECTORY)
         # Replace forward slashes with backslashes for Visual Studio.
