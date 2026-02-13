@@ -4,10 +4,6 @@ project(VGFrame)
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-<<<<<<< HEAD
-=======
-
->>>>>>> 268751cdbf22b9c1ccaac10954f3181274549a8c
 
 # Libraries
 
