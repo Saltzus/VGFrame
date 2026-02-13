@@ -4,6 +4,10 @@ project(VGFrame)
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+<<<<<<< HEAD
+=======
+
+>>>>>>> 268751cdbf22b9c1ccaac10954f3181274549a8c
 
 # Libraries
 
@@ -108,4 +112,8 @@ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT H
 set_target_properties(HelloWorld PROPERTIES FOLDER "VGFrame/Examples")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+<<<<<<< HEAD
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMake")
+=======
+set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMake")
+>>>>>>> 268751cdbf22b9c1ccaac10954f3181274549a8c
