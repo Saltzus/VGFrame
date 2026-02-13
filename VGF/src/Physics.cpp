@@ -82,9 +82,11 @@ namespace VGF
 		{
 			delete lines;
 
-			matrixBuffer.data.model = glm::mat4(1.f);
-			matrixBuffer.data.proj = camera->projection;
-			matrixBuffer.data.view = camera->view;
+			MatrixData data;
+			data.model = glm::mat4(1.f);
+			data.proj = camera->projection;
+			data.view = camera->view;
+			matrixBuffer.SetData(data);
 
 			debug->indices.clear();
 			debug->vertices.clear();

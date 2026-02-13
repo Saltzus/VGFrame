@@ -3,15 +3,23 @@
 
 namespace VGF
 {
-    MatrixBufferObject MatrixBufferObject::defaultMatrixBuffer = {};
+    MatrixBufferObject MatrixBufferObject::_defaultMatrixBuffer = {};
+
+    void MatrixBufferObject::SetData(MatrixData data)
+    {
+        _data = data;
+
+        if (Renderer::GetGraphicsApi() == GraphicsApis::Vulkan)
+            this->_data.proj[1][1] *= -1;
+    }
 
     MatrixBufferObject* MatrixBufferObject::getDefault()
     {
-        defaultMatrixBuffer.data.model = glm::mat4(1.f);
-        defaultMatrixBuffer.data.view = glm::mat4(1.f);
-        defaultMatrixBuffer.data.proj = glm::mat4(1.f);
+        _defaultMatrixBuffer._data.model = glm::mat4(1.f);
+        _defaultMatrixBuffer._data.view = glm::mat4(1.f);
+        _defaultMatrixBuffer._data.proj = glm::mat4(1.f);
 
-        return &defaultMatrixBuffer;
+        return &_defaultMatrixBuffer;
     }
 
     ShaderStage MatrixBufferObject::getShaderStage()
@@ -19,16 +27,13 @@ namespace VGF
         return ShaderStage::VERTEX;
     }
 
-    size_t MatrixBufferObject::SizeOf()
+    size_t MatrixBufferObject::SizeOf() const
     {
         return sizeof(MatrixData);
     }
 
-    void* MatrixBufferObject::Data()
+    const void* MatrixBufferObject::Data() const
     {
-        if (Renderer::GetGraphicsApi() == GraphicsApis::Vulkan)
-            data.proj[1][1] *= -1;
-
-        return &data;
+        return &_data;
     }
 }

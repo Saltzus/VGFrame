@@ -2,22 +2,23 @@
 
 namespace VGF
 {
-    LightBufferObject LightBufferObject::defaultLightBuffer = {};
+    LightBufferObject LightBufferObject::_defaultLightBuffer = {};
 
     LightBufferObject* LightBufferObject::getDefault()
     {
-        defaultLightBuffer.data.directionalLights[0].direction = glm::vec3(0, 0.5f, 0.5f);
-        defaultLightBuffer.data.directionalLights[0].color = glm::vec3(5, 0, 0);
-        defaultLightBuffer.data.directionalLights[1].direction = glm::vec3(0, -0.5f, -0.5f);
-        defaultLightBuffer.data.directionalLights[1].color = glm::vec3(0, 0, 5);
-        defaultLightBuffer.data.directionLightAmount = 2;
-        defaultLightBuffer.data.ambientLightColor = glm::vec3(1.0, 1.0, 1.0);
-        defaultLightBuffer.data.ambientLightIntensity = 0.0;
-        defaultLightBuffer.data.pointLights[0].position = glm::vec3(0, 1, 0);
-        defaultLightBuffer.data.pointLights[0].color = glm::vec3(0, 0, 5);
-        defaultLightBuffer.data.pointLightAmount = 1;
+        _defaultLightBuffer._data.directionalLights[0].direction = glm::vec3(0, 0.5f, 0.5f);
+        _defaultLightBuffer._data.directionalLights[0].color = glm::vec3(5, 0, 0);
+        _defaultLightBuffer._data.directionalLights[1].direction = glm::vec3(0, -0.5f, -0.5f);
+        _defaultLightBuffer._data.directionalLights[1].color = glm::vec3(0, 0, 5);
+        _defaultLightBuffer._data.directionLightAmount = 2;
 
-        return &defaultLightBuffer;
+        _defaultLightBuffer._data.ambientLightColor = glm::vec3(1.0, 1.0, 1.0);
+        _defaultLightBuffer._data.ambientLightIntensity = 0.0;
+        _defaultLightBuffer._data.pointLights[0].position = glm::vec3(0, 1, 0);
+        _defaultLightBuffer._data.pointLights[0].color = glm::vec3(0, 0, 5);
+        _defaultLightBuffer._data.pointLightAmount = 1;
+
+        return &_defaultLightBuffer;
     }
 
     ShaderStage LightBufferObject::getShaderStage()
@@ -25,13 +26,13 @@ namespace VGF
         return ShaderStage::FRAGMENT;
     }
 
-    size_t LightBufferObject::SizeOf()
+    size_t LightBufferObject::SizeOf() const
     {
         return sizeof(LightData);
     }
 
-    void* LightBufferObject::Data()
+    const void* LightBufferObject::Data() const
     {
-        return &data;
+        return &_data;
     }
 }

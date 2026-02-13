@@ -7,40 +7,40 @@ namespace VGF
         switch (Renderer::GetGraphicsApi())
         {
         case GraphicsApis::OpenGL:
-            this->impl = new VGF::Opengl::OpenglTexture(filePath);
+            this->_impl = new VGF::Opengl::OpenglTexture(filePath);
             break;
         case GraphicsApis::Vulkan:
-            this->impl = new VGF::Vulkan::VulkanTexture(filePath);
+            this->_impl = new VGF::Vulkan::VulkanTexture(filePath);
             break;
         default:
-            this->impl = new VGF::Opengl::OpenglTexture(filePath);
+            this->_impl = new VGF::Opengl::OpenglTexture(filePath);
             break;
         }
     }
-    Texture::Texture(const unsigned char* data, int format, int width, int height)
+    Texture::Texture(const unsigned char* data, int format, unsigned int width, unsigned int height) : _width(width), _height(height)
     {
         switch (Renderer::GetGraphicsApi())
         {
         case GraphicsApis::OpenGL:
-            this->impl = new VGF::Opengl::OpenglTexture(data, format, width, height);
+            this->_impl = new VGF::Opengl::OpenglTexture(data, format, width, height);
             break;
         case GraphicsApis::Vulkan:
-            this->impl = new VGF::Vulkan::VulkanTexture(data, format, width, height);
+            this->_impl = new VGF::Vulkan::VulkanTexture(data, format, width, height);
             break;
         default:
-            this->impl = new VGF::Opengl::OpenglTexture(data, format, width, height);
+            this->_impl = new VGF::Opengl::OpenglTexture(data, format, width, height);
             break;
         }
     }
     
     Texture::~Texture()
     {
-        delete this->impl;
+        delete this->_impl;
     }
 
     void Texture::Bind(textureType type)
     {
-        impl->Bind(type);
+        _impl->Bind(type);
     }
 
     Texture* Texture::GetDefaultTexture()

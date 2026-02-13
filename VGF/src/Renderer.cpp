@@ -9,26 +9,26 @@ namespace VGF
         switch (this->graphicApi)
         {
         case GraphicsApis::OpenGL:
-            this->impl = new VGF::Opengl::OpenglRenderer(indices, vertices, uniformBuffers);
+            this->_impl = new VGF::Opengl::OpenglRenderer(indices, vertices, uniformBuffers);
             break;
         case GraphicsApis::Vulkan:
-            this->impl = new VGF::Vulkan::VulkanRenderer(indices, vertices, uniformBuffers);
+            this->_impl = new VGF::Vulkan::VulkanRenderer(indices, vertices, uniformBuffers);
             break;
         default:
-            this->impl = new VGF::Opengl::OpenglRenderer(indices, vertices, uniformBuffers);
+            this->_impl = new VGF::Opengl::OpenglRenderer(indices, vertices, uniformBuffers);
             break;
         }
     }
     
     Renderer::~Renderer()
     {
-        delete this->impl;
+        delete this->_impl;
     }
 
     void Renderer::Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
     {
         config.Activate();
-        this->impl->Render(config, uniformBuffers);
+        this->_impl->Render(config, uniformBuffers);
     }
 
     void Renderer::InitApi(GLFWwindow* window)

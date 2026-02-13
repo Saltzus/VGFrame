@@ -22,14 +22,6 @@ namespace VGF
     class Shader;
     class Camera;
 
-    class PostProcessImpl
-    {
-    public:
-        virtual ~PostProcessImpl() {}
-        virtual void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) = 0;
-        std::vector<void*> postImages;
-    };
-
     class RendererImpl 
     {
     public:
@@ -49,6 +41,7 @@ namespace VGF
     public:
         virtual ~TextureImpl() {}
         virtual void Bind(textureType type) = 0;
+        virtual void* GetNativeImage() = 0;
     };
 
 	class ShaderImpl
@@ -59,4 +52,13 @@ namespace VGF
         virtual void Delete() = 0;
         virtual unsigned int& Id() = 0;
 	};
+
+    class FrameBufferImpl
+    {
+    public:
+        virtual ~FrameBufferImpl() {}
+        virtual void Bind() = 0;
+        virtual void UnBind() = 0;
+        virtual void Delete() = 0;
+    };
 }

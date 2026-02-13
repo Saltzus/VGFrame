@@ -44,6 +44,8 @@ namespace VGF
 		LightBufferObject* lightBuffer = new LightBufferObject;
 
 
+		Material* _material = nullptr;
+
 		bool customModel = false;
 
 		struct VaoRange

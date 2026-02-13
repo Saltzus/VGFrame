@@ -2,18 +2,18 @@
 
 namespace VGF
 {
-    PBRbufferObject PBRbufferObject::defaultPbrBuffer = {};
+    PBRbufferObject PBRbufferObject::_defaultPbrBuffer = {};
 
     PBRbufferObject* PBRbufferObject::getDefault()
     {
-        defaultPbrBuffer.data.cameraPosition = { 0,0,0 };
-        defaultPbrBuffer.data.metallicFactor = 1.f;
-        defaultPbrBuffer.data.baseColorFactor = { 1, 1, 1, 1 };
-        defaultPbrBuffer.data.emissiveFactor = { 0,0,0 };
-        defaultPbrBuffer.data.roughnessFactor = 1.f;
-        defaultPbrBuffer.data.occlusionStrength = 0.f;
+        _defaultPbrBuffer._data.cameraPosition = { 0,0,0 };
+        _defaultPbrBuffer._data.metallicFactor = 1.f;
+        _defaultPbrBuffer._data.baseColorFactor = { 1, 1, 1, 1 };
+        _defaultPbrBuffer._data.emissiveFactor = { 0,0,0 };
+        _defaultPbrBuffer._data.roughnessFactor = 1.f;
+        _defaultPbrBuffer._data.occlusionStrength = 0.f;
 
-        return &defaultPbrBuffer;
+        return &_defaultPbrBuffer;
     }
 
     ShaderStage PBRbufferObject::getShaderStage()
@@ -21,13 +21,13 @@ namespace VGF
         return ShaderStage::FRAGMENT;
     }
 
-    size_t PBRbufferObject::SizeOf()
+    size_t PBRbufferObject::SizeOf() const
     {
         return sizeof(PBRData);
     }
 
-    void* PBRbufferObject::Data()
+    const void* PBRbufferObject::Data() const
     {
-        return &data;
+        return &_data;
     }
 }

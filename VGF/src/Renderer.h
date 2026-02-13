@@ -25,7 +25,7 @@ namespace VGF
     {
     private:
         inline static ApiImpl* Api = nullptr;
-        RendererImpl* impl = nullptr;
+        RendererImpl* _impl = nullptr;
         const static GraphicsApis graphicApi;
     public:
         Renderer(std::vector<unsigned int>& indices, std::vector<float>& vertices, std::vector<UniformBufferObject*> uniformBuffers);

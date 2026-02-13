@@ -17,13 +17,13 @@ namespace VGF
 		switch (Renderer::GetGraphicsApi())
 		{
 		case GraphicsApis::OpenGL:
-			this->impl = new VGF::Opengl::OpenglShader(vertShader, fragShader);
+			this->_impl = new VGF::Opengl::OpenglShader(vertShader, fragShader);
 			break;
 		case GraphicsApis::Vulkan:
-			this->impl = new VGF::Vulkan::VulkanShader(vertShader, fragShader);
+			this->_impl = new VGF::Vulkan::VulkanShader(vertShader, fragShader);
 			break;
 		default:
-			this->impl = new VGF::Opengl::OpenglShader(vertShader, fragShader);
+			this->_impl = new VGF::Opengl::OpenglShader(vertShader, fragShader);
 			break;
 		}
 
@@ -35,20 +35,20 @@ namespace VGF
 	PipelineConfig::~PipelineConfig()
 	{
 		if (configCreated)
-			this->impl->Delete();
+			this->_impl->Delete();
 	}
 
 	void PipelineConfig::Activate()
 	{
-		this->impl->Activate();
+		this->_impl->Activate();
 	}
 	void PipelineConfig::Delete()
 	{
-		this->impl->Delete();
+		this->_impl->Delete();
 	}
 	unsigned int& PipelineConfig::ID()
 	{
-		return this->impl->Id();
+		return this->_impl->Id();
 	}
 }
 

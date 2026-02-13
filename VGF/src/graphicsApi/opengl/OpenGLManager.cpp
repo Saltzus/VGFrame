@@ -118,6 +118,8 @@ namespace VGF::Opengl
         glBindTexture(GL_TEXTURE_2D, texture);
     }
 
+    void* OpenglTexture::GetNativeImage() { return (void*)texture; }
+
     Opengl::Opengl(GLFWwindow* window)
     {
         this->window = window;
@@ -142,135 +144,6 @@ namespace VGF::Opengl
         0, 1, 2,
         2, 3, 0
     };
-
-    OpenglPostProcess::OpenglPostProcess(bool renderToScreen, std::vector<UniformBufferObject*> uniformBuffers, PostProcessImpl* inProcess, std::vector<GLuint> inds, std::vector<GLfloat> verts) : opengl(Opengl::openglInstance)
-    {
-        this->renderToScreen = renderToScreen;
-        this->inProcess = inProcess;
-
-        postProcesses += 1;
-        id = postProcesses;
-
-        this->vertices = verts;
-        this->indices = inds;
-
-        if (indices.size() <= 0 || vertices.size() <= 0)
-        {
-            this->vertices = defaultVertices;
-            this->indices = defaultIndices;
-        }
-
-        for (size_t i = 0; i < uniformBuffers.size(); i++)
-        {
-            GLuint openglBuffer;
-            glGenBuffers(1, &openglBuffer);
-            glBindBuffer(GL_UNIFORM_BUFFER, openglBuffer);
-            glBufferData(GL_UNIFORM_BUFFER, uniformBuffers[i]->SizeOf(), NULL, GL_STATIC_DRAW);
-            glBindBufferRange(GL_UNIFORM_BUFFER, i, openglBuffer, 0, uniformBuffers[i]->SizeOf());
-
-            openglUniformBuffers.push_back(openglBuffer);
-        }
-
-        glGenVertexArrays(1, &VAO);
-
-        glGenBuffers(1, &VBO);
-        glGenBuffers(1, &EBO);
-
-        glBindVertexArray(VAO);
-
-        indicesSize = indices.size();
-
-        // adds vertices and indices inside buffers
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
-
-        // position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
-
-        // normals
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(3 * sizeof(float)));
-        glEnableVertexAttribArray(1);
-
-        // vertex color
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float)));
-        glEnableVertexAttribArray(2);
-
-        // Texture position attribute
-        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(9 * sizeof(float)));
-        glEnableVertexAttribArray(3);
-
-        glGenFramebuffers(1, &framebuffer);
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
-        glGenTextures(1, &textureColorbuffer);
-        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-        postImages.push_back(&textureColorbuffer);
-
-        int width, height;
-        glfwGetWindowSize(Opengl::window, &width, &height);
-
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
-    }
-    OpenglPostProcess::~OpenglPostProcess()
-    {
-        glDeleteFramebuffers(1, &framebuffer);
-        glDeleteTextures(1, &textureColorbuffer);
-        postProcesses -= 1;
-    }
-
-    void OpenglPostProcess::Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
-    {
-
-        int topology;
-
-        switch (config.topology)
-        {
-        case VGF::Topology::LINE_LIST:
-            topology = GL_LINES;
-            break;
-        case VGF::Topology::TRIANGLE_LIST:
-            topology = GL_TRIANGLES;
-            break;
-        default:
-            topology = GL_TRIANGLES;
-            break;
-        }
-
-        assert(uniformBuffers.size() == openglUniformBuffers.size() && "sent uniform buffers did not match initialized buffers!!");
-        for (size_t i = 0; i < uniformBuffers.size(); i++)
-        {
-            glBindBuffer(GL_UNIFORM_BUFFER, openglUniformBuffers[i]);
-            glBindBufferBase(GL_UNIFORM_BUFFER, i, openglUniformBuffers[i]);
-            glBufferSubData(GL_UNIFORM_BUFFER, 0, uniformBuffers[i]->SizeOf(), uniformBuffers[i]->Data());
-        }
-
-        GLint loc;
-        loc = glGetUniformLocation(config.ID(), "colorSampler");
-        glUniform1i(loc, 2);
-
-        glActiveTexture(GL_TEXTURE2);
-
-        if (!renderToScreen) 
-        {
-            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        }
-        if (inProcess != nullptr && inProcess->postImages.size() >= 1)
-            glBindTexture(GL_TEXTURE_2D, *((GLuint*)inProcess->postImages[0]));
-        else
-            glBindTexture(GL_TEXTURE_2D, opengl->textureColorbuffer);
-
-        glBindVertexArray(VAO);
-        glDrawElements(topology, indicesSize, GL_UNSIGNED_INT, 0);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
 
     OpenglRenderer::OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, std::vector<UniformBufferObject*> uniformBuffers) : opengl(Opengl::openglInstance)
     {
@@ -395,12 +268,12 @@ namespace VGF::Opengl
         glUniform1i(loc, 6);
 
         // Draws the pixel
-        glBindFramebuffer(GL_FRAMEBUFFER, opengl->framebuffer);
+        //glBindFramebuffer(GL_FRAMEBUFFER, opengl->framebuffer);
 
         glBindVertexArray(VAO);
         glDrawElements(topology, indicesSize, GL_UNSIGNED_INT, 0);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         int error = glGetError();
     }

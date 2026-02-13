@@ -35,7 +35,7 @@ namespace VGF
         unsigned int& ID();
 
     private:
-        ShaderImpl* impl = nullptr;
+        ShaderImpl* _impl = nullptr;
     };
 
     // Custom hash function

@@ -19,7 +19,7 @@ namespace VGF
     class Shader
     {
     private:
-        ShaderImpl* impl = nullptr;
+        ShaderImpl* _impl = nullptr;
     public:
 
         const char* vertShader = "Resources/Shaders/default.vert.spv";

@@ -26,17 +26,10 @@ int main(int argc, char** argv)
         VGF::Topology::TRIANGLE_LIST
     );
 
-    VGF::PipelineConfig defaultPostPipeline
+    VGF::PipelineConfig depthPipeline
     (
-        "../../../Examples/HelloWorld/Shaders/defaultPostProcess.vert",
-        "../../../Examples/HelloWorld/Shaders/defaultPostProcess.frag",
-        VGF::Topology::TRIANGLE_LIST
-    );
-
-    VGF::PipelineConfig inversePostPipeline
-    (
-        "../../../Examples/HelloWorld/Shaders/invertColorsPostProcess.vert",
-        "../../../Examples/HelloWorld/Shaders/invertColorsPostProcess.frag",
+        "../../../Examples/HelloWorld/Shaders/depth.vert",
+        "../../../Examples/HelloWorld/Shaders/depth.frag",
         VGF::Topology::TRIANGLE_LIST
     );
 
@@ -48,16 +41,18 @@ int main(int argc, char** argv)
 
     VGF::Model cubeModel("../../../Examples/HelloWorld/Models/Cube.gltf");
     VGF::Model planeModel("../../../Examples/HelloWorld/Models/Plane.gltf");
+
     VGF::Model duckModel("../../../Examples/HelloWorld/Models/Duck.gltf");
-    
-    VGF::PostProcess postProcess (false, {VGF::MatrixBufferObject::getDefault()});
-    VGF::PostProcess postProcess2(true,  {VGF::MatrixBufferObject::getDefault()}, &postProcess);
+
+    const unsigned char data[4 * 125 * 125] = { 120 };
+    VGF::Texture text(data, 0, 125,125);
+    VGF::FrameBuffer framebuffer(text);
 
     std::vector<float> vertices =
     {
-        0, 0.5, -0.1,     0.0f, 0.0995f, 0.9950f,    0,0,0, 2,4,
-        0.5, -0.5 ,0,     0.0f, 0.0995f, 0.9950f,    0,0,0, 4,0,
-        -0.5, -0.5, 0,    0.0f, 0.0995f, 0.9950f,    0,0,0, 0,0
+        0, 0.5, -0.1,     0.0f, 0.0995f, 0.9950f,    1,1,1, 0.5,0,
+        0.5, -0.5 ,0,     0.0f, 0.0995f, 0.9950f,    1,1,1, 1,1,
+        -0.5, -0.5, 0,    0.0f, 0.0995f, 0.9950f,    1,1,1, 0,1
     };
 
     std::vector<unsigned int> indices =
@@ -65,14 +60,19 @@ int main(int argc, char** argv)
         0,1,2
     };
 
-    VGF::Model triangle(vertices, indices, VGF::Material::getDefaultMaterial());
+    VGF::Material mat = *VGF::Material::getDefaultMaterial();
+    mat.color = &text;
+
+    VGF::Model triangle(vertices, indices, &mat);
 
     VGF::Physics physics;
     VGF::Camera camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.f, 29.f, -10.f));
+    VGF::Camera camera2(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0, 20, 0));
+    camera2.Orientation = glm::rotate(camera2.Orientation, glm::radians((float) - 90), glm::normalize(glm::cross(camera2.Orientation, camera2.Up)));
 
-    VGF::PhysicsObject physicsObject(&duckModel, &physics, { -0.5,5,0 }, { 2,2,2 }, 1.f);
+    VGF::PhysicsObject physicsObject(&duckModel, &physics, { 0.5,5,0 }, { 2,2,2 }, 1.f);
 
-    VGF::PhysicsObject physicsObject1(&planeModel, &physics, {0.5,5,0}, {2,2,2}, 1.f);
+    VGF::PhysicsObject physicsObject1(&triangle, &physics, {0.5,5,0}, {2,2,2}, 1.f);
 
     VGF::PhysicsObject groundObject(&cubeModel, &physics, { 0,-56,0 }, { 50,50,50 }, 0.f);
     
@@ -86,20 +86,24 @@ int main(int argc, char** argv)
 
     while (!glfwWindowShouldClose(window))
     {
-
         double current_frame = glfwGetTime();
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
 
         camera.updateMatrix(45.0f, 0.01f, 10000.0f);
         camera.Inputs(window, delta_time);
+        camera2.updateMatrix(45.0f, 0.01f, 100.0f);
 
-        groundObject.Render(defaultPipeline, &camera);
+
+        framebuffer.Bind();
+        //physicsObject1.Render(defaultPipeline, &camera2);
+        //physicsObject.Render(depthPipeline, &camera2);
+        //groundObject.Render(depthPipeline, &camera2);
+        framebuffer.UnBind();
+
         physicsObject.Render(defaultPipeline, &camera);
+        groundObject.Render(defaultPipeline, &camera);
         physicsObject1.Render(defaultPipeline, &camera);
-
-        postProcess.Render(defaultPostPipeline, { VGF::MatrixBufferObject::getDefault() });
-        postProcess2.Render(inversePostPipeline, { VGF::MatrixBufferObject::getDefault() });
 
         VGF::PhysicsObject* object = VGF::Input::pickObject(&window, physics.dynamicsWorld, &camera);
         if (object)

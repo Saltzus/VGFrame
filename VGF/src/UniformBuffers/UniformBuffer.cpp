@@ -7,12 +7,12 @@ namespace VGF
         return ShaderStage::VERTEX;
     }
 
-    size_t UniformBufferObject::SizeOf()
+    size_t UniformBufferObject::SizeOf() const
     {
         return 0;
     }
 
-    void* UniformBufferObject::Data()
+    const void* UniformBufferObject::Data() const
     {
         return nullptr;
     }

@@ -15,14 +15,16 @@ namespace VGF
     class MatrixBufferObject : public UniformBufferObject
     {
     public:
-        MatrixData data;
+        void SetData(MatrixData data);
+        MatrixData GetData() { return _data; }
+        virtual const void* Data() const override;
 
         static MatrixBufferObject* getDefault();
         virtual ShaderStage getShaderStage() override;
-        virtual size_t SizeOf() override;
-        virtual void* Data() override;
+        virtual size_t SizeOf() const override;
     private:
-        static MatrixBufferObject defaultMatrixBuffer;
+        MatrixData _data;
+        static MatrixBufferObject _defaultMatrixBuffer;
     };
 }
 

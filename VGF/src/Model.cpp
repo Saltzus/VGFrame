@@ -29,6 +29,7 @@ namespace VGF
 
 	Model::Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material)
 	{
+		_material = material;
 		customModel = true;
 
 		Mesh mesh;
@@ -230,9 +231,11 @@ namespace VGF
 		const glm::mat4 modelMatrix = getLocalToWorldMatrix(node, parentMatrix);
 		const auto& mesh = model.meshes[node.mesh];
 
-		matrixBuffer->data.model = parentMatrix;
-		matrixBuffer->data.proj = camera->projection;
-		matrixBuffer->data.view = camera->view;
+		MatrixData data;
+		data.model = parentMatrix;
+		data.proj = camera->projection;
+		data.view = camera->view;
+		matrixBuffer->SetData(data);
 
 		std::vector<UniformBufferObject*> uniformBuffers;
 		uniformBuffers.push_back(matrixBuffer);
@@ -254,9 +257,11 @@ namespace VGF
 		if (customModel)
 			for (size_t i = 0; i < meshes.size(); i++)
 			{
-				matrixBuffer->data.model = parentMatrix;
-				matrixBuffer->data.proj = camera->projection;
-				matrixBuffer->data.view = camera->view;
+				MatrixData data;
+				data.model = parentMatrix;
+				data.proj = camera->projection;
+				data.view = camera->view;
+				matrixBuffer->SetData(data);
 
 				std::vector<UniformBufferObject*> uniformBuffers;
 				uniformBuffers.push_back(matrixBuffer);
@@ -274,14 +279,16 @@ namespace VGF
 
 	PBRbufferObject* Model::bindMaterial(Camera* camera, const int materialIndex)
 	{
-		pbrBuffer->data.cameraPosition = camera->Position;
+		PBRData pbrBufferData = pbrBuffer->GetData();
+		pbrBufferData.cameraPosition = camera->Position;
 
-		if (materialIndex >= 0)
+		if (_material != nullptr) _material->Bind();
+		else if (materialIndex >= 0)
 		{
 			const auto& modelMaterial = model.materials[materialIndex];
 			const auto& pbrMetallicRoughness = modelMaterial.pbrMetallicRoughness;
 
-			pbrBuffer->data.baseColorFactor =
+			pbrBufferData.baseColorFactor =
 			{
 				(float)pbrMetallicRoughness.baseColorFactor[0],
 				(float)pbrMetallicRoughness.baseColorFactor[1],
@@ -302,9 +309,9 @@ namespace VGF
 			textureObject->Bind(textureType::color);
 
 
-			pbrBuffer->data.metallicFactor = (float)pbrMetallicRoughness.metallicFactor;
+			pbrBufferData.metallicFactor = (float)pbrMetallicRoughness.metallicFactor;
 
-			pbrBuffer->data.roughnessFactor = (float)pbrMetallicRoughness.roughnessFactor;
+			pbrBufferData.roughnessFactor = (float)pbrMetallicRoughness.roughnessFactor;
 
 
 			textureObject = Texture::GetWhiteTexture();
@@ -318,7 +325,7 @@ namespace VGF
 			}
 			textureObject->Bind(textureType::metallicRoughness);
 
-			pbrBuffer->data.emissiveFactor =
+			pbrBufferData.emissiveFactor =
 			{
 				(float)modelMaterial.emissiveFactor[0],
 				(float)modelMaterial.emissiveFactor[1],
@@ -338,7 +345,7 @@ namespace VGF
 			textureObject->Bind(textureType::emissive);
 
 
-			pbrBuffer->data.occlusionStrength = (float)modelMaterial.occlusionTexture.strength;
+			pbrBufferData.occlusionStrength = (float)modelMaterial.occlusionTexture.strength;
 
 
 			textureObject = Texture::GetWhiteTexture();
@@ -375,6 +382,7 @@ namespace VGF
 			text[4]->Bind(textureType::normal);
 		}
 
+		pbrBuffer->SetData(pbrBufferData);
 		return pbrBuffer;
 	};
 }

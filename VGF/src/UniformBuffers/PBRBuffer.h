@@ -17,14 +17,16 @@ namespace VGF
     class PBRbufferObject : public UniformBufferObject
     {
     public:
-        PBRData data;
+        void SetData(PBRData data) { _data = data; }
+        PBRData GetData() { return _data; }
+        virtual const void* Data() const override;
 
         static PBRbufferObject* getDefault();
         virtual ShaderStage getShaderStage() override;
-        virtual size_t SizeOf() override;
-        virtual void* Data() override;
+        virtual size_t SizeOf() const override;
     private:
-        static PBRbufferObject defaultPbrBuffer;
+        PBRData _data;
+        static PBRbufferObject _defaultPbrBuffer;
     };
 }
 

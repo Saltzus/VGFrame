@@ -8,13 +8,18 @@ namespace VGF
     class Texture
     {
     private:
-        TextureImpl* impl = nullptr;
+        TextureImpl* _impl = nullptr;
+        unsigned int _width, _height;
     public:
         Texture(const char* filePath);
-        Texture(const unsigned char* data, int format, int width, int height);
+        Texture(const unsigned char* data, int format, unsigned int width, unsigned int height);
         ~Texture();
 
         virtual void Bind(textureType type = textureType::color);
+        virtual void* GetNativeImage() { return _impl->GetNativeImage(); }
+
+        unsigned int GetWidth() { return _width; }
+        unsigned int GetHeight() { return _height; }
 
         static Texture* GetDefaultTexture();
         static Texture* GetWhiteTexture();

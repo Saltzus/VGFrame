@@ -33,13 +33,15 @@ namespace VGF
     class LightBufferObject : public UniformBufferObject
     {
     public:
-        LightData data;
+        void SetData(LightData data) { _data = data; }
+        LightData GetData() { return _data; }
+        virtual const void* Data() const override;
 
         static LightBufferObject* getDefault();
         virtual ShaderStage getShaderStage() override;
-        virtual size_t SizeOf() override;
-        virtual void* Data() override;
+        virtual size_t SizeOf() const override;
     private:
-        static LightBufferObject defaultLightBuffer;
+        LightData _data;
+        static LightBufferObject _defaultLightBuffer;
     };
 }

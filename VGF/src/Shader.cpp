@@ -13,31 +13,31 @@ namespace VGF
         switch (Renderer::GetGraphicsApi())
         {
         case GraphicsApis::OpenGL:
-            this->impl = new VGF::Opengl::OpenglShader(vertexFile, fragmentFile);
+            this->_impl = new VGF::Opengl::OpenglShader(vertexFile, fragmentFile);
             break;
         case GraphicsApis::Vulkan:
-            this->impl = new VGF::Vulkan::VulkanShader(vertexFile, fragmentFile);
+            this->_impl = new VGF::Vulkan::VulkanShader(vertexFile, fragmentFile);
             break;
         default:
-            this->impl = new VGF::Opengl::OpenglShader(vertexFile, fragmentFile);
+            this->_impl = new VGF::Opengl::OpenglShader(vertexFile, fragmentFile);
             break;
         }
     }
     Shader::~Shader()
     {
-        delete this->impl;
+        delete this->_impl;
     }
 
     void Shader::Activate()
     {
-        this->impl->Activate();
+        this->_impl->Activate();
     }
     void Shader::Delete()
     {
-        this->impl->Delete();
+        this->_impl->Delete();
     }
     unsigned int& Shader::ID()
     {
-        return this->impl->Id();
+        return this->_impl->Id();
     }
 }
