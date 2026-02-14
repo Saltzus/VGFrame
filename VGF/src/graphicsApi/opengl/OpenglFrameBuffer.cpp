@@ -4,7 +4,7 @@ namespace VGF::Opengl
 {
 	OpenglFrameBuffer::OpenglFrameBuffer(void* framebufferImage, unsigned int width, unsigned int height)
 	{
-		_framebufferImage = (int)framebufferImage;
+		_framebufferImage = (GLuint)framebufferImage;
 	}
 
 	OpenglFrameBuffer::~OpenglFrameBuffer()

@@ -1,5 +1,5 @@
 #include <iostream>
-#include <Core.h>
+#include <VGF/src/VGF.h>
 
 #include <tiny_gltf.h>
 
