@@ -1,8 +1,8 @@
 
 # Recursively gather all .cpp and .h files in the src directory.
 file(GLOB_RECURSE CLIENT_FILES
-    "${CMAKE_SOURCE_DIR}/Examples/HelloWorld/src/**.cpp"
-    "${CMAKE_SOURCE_DIR}/Examples/HelloWorld/src/**.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/**.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/**.h"
 )
 
 # Create the executable.
@@ -37,7 +37,7 @@ function(assign_source_groups)
         # Ensure we have an absolute file path.
         get_filename_component(file_abs "${file}" ABSOLUTE)
         # Get the file path relative to the src directory.
-        file(RELATIVE_PATH rel_path "${CMAKE_SOURCE_DIR}/Examples/HelloWorld/src" "${file_abs}")
+        file(RELATIVE_PATH rel_path "${CMAKE_CURRENT_SOURCE_DIR}/" "${file_abs}")
         # Get the directory part (if any) from the relative path.
         get_filename_component(dir_path "${rel_path}" DIRECTORY)
         # Replace forward slashes with backslashes for Visual Studio.

@@ -28,9 +28,14 @@ target_include_directories(stb_image_write INTERFACE Libraries/stb)
 add_library(tinygltf INTERFACE)
 target_include_directories(tinygltf INTERFACE Libraries/tinygltf)
 
-set(vulkan Libraries/vulkan)
-include_directories(${vulkan}/Include)
-link_directories(${vulkan}/Lib)
+add_library(vulkan INTERFACE)
+target_include_directories(vulkan INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/Libraries/vulkan/Include
+)
+target_link_directories(vulkan INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/Libraries/vulkan/Lib
+)
+target_link_libraries(vulkan INTERFACE vulkan-1)
 
 include(FetchContent)
 
@@ -82,31 +87,25 @@ if(TARGET BulletDynamics)
   endforeach()
 endif()
 
-set_target_properties(glad glfw PROPERTIES FOLDER "3rd-party")
+set_target_properties(glad glfw update_mappings PROPERTIES FOLDER "VGFrame/3rd-party")
 
 set_target_properties(LinearMath BulletCollision BulletDynamics BulletSoftBody Bullet2FileLoader 
-                      Bullet3Collision Bullet3Common Bullet3Dynamics Bullet3Geometry Bullet3OpenCL_clew BulletInverseDynamics PROPERTIES FOLDER "3rd-party/bullet3")
+                      Bullet3Collision Bullet3Common Bullet3Dynamics Bullet3Geometry Bullet3OpenCL_clew BulletInverseDynamics PROPERTIES FOLDER "VGFrame/3rd-party/bullet3")
 
 # Subdirectories
 add_subdirectory(VGF)
 
 add_library(VGFrame INTERFACE)
-target_link_libraries(VGF
+add_dependencies(VGFrame VGF)
+target_link_libraries(VGFrame
     INTERFACE
-    glad
-    glm
-    miniaudio
-    nlohmann_json
-    stb_image_write
-    stb_image
-    vulkan-1
-    glfw
-    tinygltf
+    VGF
 )
+
 
 add_subdirectory(Examples/HelloWorld)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT HelloWorld)
-set_target_properties(HelloWorld PROPERTIES FOLDER "Examples")
+set_target_properties(HelloWorld PROPERTIES FOLDER "VGFrame/Examples")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMake")
