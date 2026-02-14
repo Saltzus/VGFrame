@@ -17,17 +17,5 @@ namespace VGF
         virtual ShaderStage getShaderStage();
         virtual size_t SizeOf() const;
         virtual const void* Data() const;
-
-        bool operator==(const UniformBufferObject& other) const noexcept
-        {
-            const size_t s = SizeOf();
-            if (s != other.SizeOf()) return false;
-            return std::memcmp(Data(), other.Data(), s) == 0;
-        }
-
-        bool operator!=(const UniformBufferObject& other) const noexcept
-        {
-            return !(*this == other);
-        }
     };
 }

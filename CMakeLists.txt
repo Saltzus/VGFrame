@@ -5,7 +5,6 @@ project(VGFrame)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
 # Libraries
 
 add_library(glad STATIC Libraries/glad/src/glad.c)
@@ -90,6 +89,20 @@ set_target_properties(LinearMath BulletCollision BulletDynamics BulletSoftBody B
 
 # Subdirectories
 add_subdirectory(VGF)
+
+add_library(VGFrame INTERFACE)
+target_link_libraries(VGF
+    INTERFACE
+    glad
+    glm
+    miniaudio
+    nlohmann_json
+    stb_image_write
+    stb_image
+    vulkan-1
+    glfw
+    tinygltf
+)
 
 add_subdirectory(Examples/HelloWorld)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT HelloWorld)
