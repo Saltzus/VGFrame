@@ -26,38 +26,23 @@ namespace VGF
 
 		debug = new PhysicsDebugDraw();
 		dynamicsWorld->setDebugDrawer(debug);
-
-		linePipeline = new VGF::PipelineConfig
-		(
-			"../../../Examples/HelloWorld/Shaders/debug.vert",
-			"../../../Examples/HelloWorld/Shaders/debug.frag",
-			VGF::Topology::LINE_LIST
-		);
-
 	}
 
 	void Physics::Update(double delta_time)
 	{
-		for (i = 0; i < 150; i++)
+		dynamicsWorld->stepSimulation(delta_time, 10, 1.0f / 60.0f);
+
+		//print positions of all objects
+		for (int j = dynamicsWorld->getNumCollisionObjects() - 1; j >= 0; --j)
 		{
-			dynamicsWorld->stepSimulation(delta_time / 60.f, 10);
+			btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[j];
+			btRigidBody* body = btRigidBody::upcast(obj);
+			btTransform trans;
 
-			//print positions of all objects
-			for (int j = dynamicsWorld->getNumCollisionObjects() - 1; j >= 0; j--)
-			{
-				btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[j];
-				btRigidBody* body = btRigidBody::upcast(obj);
-				btTransform trans;
-
-				if (body && body->getMotionState())
-				{
-					body->getMotionState()->getWorldTransform(trans);
-				}
-				else
-				{
-					trans = obj->getWorldTransform();
-				}
-			}
+			if (body && body->getMotionState())
+				body->getMotionState()->getWorldTransform(trans);
+			else
+				trans = obj->getWorldTransform();
 		}
 	}
 
@@ -70,13 +55,12 @@ namespace VGF
 		delete dynamicsWorld;
 
 		delete debug;
-		delete linePipeline;
 	}
 
 	VGF::Renderer* lines;
 	MatrixBufferObject matrixBuffer;
 
-	void Physics::debugRender(Window* window, Camera* camera)
+	void Physics::debugRender(PipelineConfig config, Window* window, Camera* camera)
 	{
 		if (Input::getDebugDrawerOn())
 		{
@@ -86,7 +70,7 @@ namespace VGF
 			data.model = glm::mat4(1.f);
 			data.proj = camera->projection;
 			data.view = camera->view;
-			matrixBuffer.SetData(data);
+			matrixBuffer.SetData((void*)&data);
 
 			debug->indices.clear();
 			debug->vertices.clear();
@@ -94,7 +78,7 @@ namespace VGF
 			dynamicsWorld->debugDrawWorld();
 
 			lines = new VGF::Renderer(debug->indices, debug->vertices, {MatrixBufferObject::getDefault()});
-			lines->Render(*linePipeline, { &matrixBuffer });
+			lines->Render(config, { &matrixBuffer });
 		}
 	}
 }

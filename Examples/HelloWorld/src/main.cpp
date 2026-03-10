@@ -16,7 +16,7 @@ int main(int argc, char** argv)
     (
         "../../../Examples/HelloWorld/Shaders/debug.vert",
         "../../../Examples/HelloWorld/Shaders/debug.frag",
-        VGF::Topology::TRIANGLE_LIST
+        VGF::Topology::LINE_LIST
     );
 
     VGF::PipelineConfig defaultPipeline
@@ -135,7 +135,7 @@ int main(int argc, char** argv)
 
         VGF::Input::processInput(window);
 
-        physics.debugRender(&window, &camera);
+        physics.debugRender(debugPipeline,&window, &camera);
         VGF::Renderer::RenderGraphics();
         window.Display();
     }

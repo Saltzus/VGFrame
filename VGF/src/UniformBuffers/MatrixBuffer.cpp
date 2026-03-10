@@ -5,9 +5,9 @@ namespace VGF
 {
     MatrixBufferObject MatrixBufferObject::_defaultMatrixBuffer = {};
 
-    void MatrixBufferObject::SetData(MatrixData data)
+    void MatrixBufferObject::SetData(void* data)
     {
-        _data = data;
+        _data = *(static_cast<MatrixData*>(data));
 
         if (Renderer::GetGraphicsApi() == GraphicsApis::Vulkan)
             this->_data.proj[1][1] *= -1;

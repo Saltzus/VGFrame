@@ -17,6 +17,7 @@ namespace VGF
         virtual ShaderStage getShaderStage();
         virtual size_t SizeOf() const;
         virtual const void* Data() const;
+        virtual void SetData(void* data);
 
         bool operator==(const UniformBufferObject& other) const noexcept
         {

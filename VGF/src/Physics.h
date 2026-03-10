@@ -12,7 +12,7 @@ namespace VGF
 		~Physics();
 
 		void Update(double delta_time);
-		void debugRender(Window* window, Camera* camera);
+		void debugRender(PipelineConfig config, Window* window, Camera* camera);
 
 		PhysicsDebugDraw* debug;
 		btDiscreteDynamicsWorld* dynamicsWorld;
@@ -24,8 +24,6 @@ namespace VGF
 		btCollisionDispatcher* dispatcher;
 		btBroadphaseInterface* overlappingPairCache;
 		btSequentialImpulseConstraintSolver* solver;
-
-		VGF::PipelineConfig* linePipeline;
 	};
 }
 

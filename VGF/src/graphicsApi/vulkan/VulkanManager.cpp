@@ -1171,6 +1171,7 @@ namespace VGF::Vulkan
         }
 
         for (auto object : allObjects) object->ResetUses();
+        allObjects.clear();
 
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;

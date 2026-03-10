@@ -32,7 +32,7 @@ namespace VGF
         body->setUserPointer(this);
     }
 
-    void PhysicsObject::Render(PipelineConfig& config, Camera* camera, glm::mat4 model)
+    void PhysicsObject::Render(PipelineConfig& config, Camera* camera, std::vector<UniformBufferObject*> additionalUniformBuffers)
     {   
         btMatrix3x3 basis = body->getWorldTransform().getBasis();
         btVector3 origin = body->getWorldTransform().getOrigin();
@@ -40,11 +40,11 @@ namespace VGF
         btTransform transform(basis, origin);
         btScalar bulletMat[16];
         transform.getOpenGLMatrix(bulletMat);
-        model = glm::make_mat4(bulletMat);
+        glm::mat4 model = glm::make_mat4(bulletMat);
 
         model = glm::scale(model, scale);
 
-        this->model->renderModel(modelRenderers, model, config, camera);
+        this->model->renderModel(model, config, camera, additionalUniformBuffers);
     }
 
     PhysicsObject::~PhysicsObject()
@@ -56,5 +56,28 @@ namespace VGF
     }
 
     
+
+    void PhysicsObject::SetPosition(float x, float y, float z)
+    {
+        body->activate(true);
+
+        btTransform transform;
+        transform.setIdentity();
+        transform.setOrigin(btVector3(x,y,z));
+
+        btMotionState* motionState;
+        if ((motionState = body->getMotionState()) != nullptr)
+            motionState->setWorldTransform(transform);
+
+        body->setWorldTransform(transform);
+    }
+
+    btVector3 PhysicsObject::GetPositionBt()
+    {
+        btTransform transform;
+        body->getMotionState()->getWorldTransform(transform);
+
+        return transform.getOrigin();
+    }
 }
 

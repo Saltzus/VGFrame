@@ -25,25 +25,35 @@ namespace VGF
 	{
 	public:
 		Model(const char* modelPath);
-		Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material);
+		Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 		Model(Mesh& mesh, Material* material);
 
 		~Model();
 
-		void renderModel(std::vector<Renderer*> renderers, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera);
+		void renderModel(const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera, std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 		tinygltf::Model model;
 		std::vector <Mesh> meshes;
 
 		bool isCustomModel() { return customModel; }
 
 	private:
-		void drawNodes(std::vector<Renderer*> renderers, int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera, LightBufferObject lightBuffer);
+		void drawNodes(int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera, LightBufferObject lightBuffer);
 
-		MatrixBufferObject* matrixBuffer = new MatrixBufferObject;
-		PBRbufferObject* pbrBuffer = new PBRbufferObject;
-		LightBufferObject* lightBuffer = new LightBufferObject;
+		std::vector<UniformBufferObject*> uniformBuffers =
+		{
+			new MatrixBufferObject,
+			new PBRbufferObject,
+			new LightBufferObject
+		};
 
+		enum uniformBufferEnum
+		{
+			matrixBuffer,
+			pbrBuffer,
+			lightBuffer
+		};
 
+		std::vector<Renderer*> modelRenderers;
 		Material* _material = nullptr;
 
 		bool customModel = false;
@@ -95,6 +105,6 @@ namespace VGF
 
 		std::vector<Texture*> createTextureObjects(const tinygltf::Model& model) const;
 		glm::mat4 getLocalToWorldMatrix(const tinygltf::Node& node, const glm::mat4& parentMatrix);
-		PBRbufferObject* bindMaterial(Camera* camera, const int materialIndex);
+		UniformBufferObject* bindMaterial(Camera* camera, const int materialIndex);
 	};
 } 

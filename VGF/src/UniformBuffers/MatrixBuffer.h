@@ -15,7 +15,7 @@ namespace VGF
     class MatrixBufferObject : public UniformBufferObject
     {
     public:
-        void SetData(MatrixData data);
+        void SetData(void* data) override;
         MatrixData GetData() { return _data; }
         virtual const void* Data() const override;
 

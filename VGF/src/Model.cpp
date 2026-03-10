@@ -27,7 +27,7 @@ namespace VGF
 
 	}
 
-	Model::Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material)
+	Model::Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, std::vector<UniformBufferObject*> additionalUniformBuffers)
 	{
 		_material = material;
 		customModel = true;
@@ -37,13 +37,19 @@ namespace VGF
 		mesh.indices = indices;
 
 		meshes.push_back(mesh);
+		uniformBuffers.insert(uniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
+
+		for (auto mesh : meshes)
+			modelRenderers.emplace_back(new Renderer(mesh.indices, mesh.vertices, uniformBuffers));
 	}
 
 	Model::~Model()
 	{
-		delete matrixBuffer;
-		delete pbrBuffer;
-		delete lightBuffer;
+		for (auto& uniform : uniformBuffers)
+			delete uniform;
+
+		for (auto& renderer : modelRenderers)
+			delete renderer;
 	}
 
 	/// Read flat floats from an accessor
@@ -225,7 +231,7 @@ namespace VGF
 
 
 
-	void Model::drawNodes(std::vector<Renderer*> renderers, int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera, LightBufferObject lightBufffer)
+	void Model::drawNodes(int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera, LightBufferObject lightBufffer)
 	{
 		const auto& node = model.nodes[nodeIdx];
 		const glm::mat4 modelMatrix = getLocalToWorldMatrix(node, parentMatrix);
@@ -235,24 +241,24 @@ namespace VGF
 		data.model = parentMatrix;
 		data.proj = camera->projection;
 		data.view = camera->view;
-		matrixBuffer->SetData(data);
+		uniformBuffers[matrixBuffer]->SetData((void*)&data);
 
 		std::vector<UniformBufferObject*> uniformBuffers;
-		uniformBuffers.push_back(matrixBuffer);
+		uniformBuffers.push_back(uniformBuffers[matrixBuffer]);
 		uniformBuffers.push_back(bindMaterial(camera, mesh.primitives[0].material));
-		uniformBuffers.push_back(lightBuffer->getDefault());
+		uniformBuffers.push_back(LightBufferObject::getDefault());
 
 		if (node.mesh >= 0)
 		{
-			Renderer* renderer = renderers[node.mesh];
+			Renderer* renderer = modelRenderers[node.mesh];
 			renderer->Render(config, uniformBuffers);
 		}
 		
 		for (const auto childNodeIdx : node.children) 
-			drawNodes(renderers, childNodeIdx, modelMatrix, config, camera, *lightBuffer);
+			drawNodes(childNodeIdx, modelMatrix, config, camera, *LightBufferObject::getDefault());
 	};
 
-	void Model::renderModel(std::vector<Renderer*> renderers, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera)
+	void Model::renderModel(const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera, std::vector<UniformBufferObject*> additionalUniformBuffers)
 	{
 		if (customModel)
 			for (size_t i = 0; i < meshes.size(); i++)
@@ -261,25 +267,25 @@ namespace VGF
 				data.model = parentMatrix;
 				data.proj = camera->projection;
 				data.view = camera->view;
-				matrixBuffer->SetData(data);
+				uniformBuffers[matrixBuffer]->SetData((void*)&data);
 
-				std::vector<UniformBufferObject*> uniformBuffers;
-				uniformBuffers.push_back(matrixBuffer);
-				uniformBuffers.push_back(bindMaterial(camera, -1));
-				uniformBuffers.push_back(lightBuffer->getDefault());
+				std::vector<UniformBufferObject*> renderUniformBuffers;
+				renderUniformBuffers.push_back(uniformBuffers[matrixBuffer]);
+				renderUniformBuffers.push_back(bindMaterial(camera, -1));
+				renderUniformBuffers.push_back(LightBufferObject::getDefault());
+				renderUniformBuffers.insert(renderUniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
 
-
-				renderers[i]->Render(config, uniformBuffers);
+				modelRenderers[i]->Render(config, renderUniformBuffers);
 			}
 
 		else
 			for (const auto nodeIdx : model.scenes[model.defaultScene].nodes)
-				drawNodes(renderers, nodeIdx, parentMatrix, config, camera, *lightBuffer);
+				drawNodes(nodeIdx, parentMatrix, config, camera, *LightBufferObject::getDefault());
 	}
 
-	PBRbufferObject* Model::bindMaterial(Camera* camera, const int materialIndex)
+	UniformBufferObject* Model::bindMaterial(Camera* camera, const int materialIndex)
 	{
-		PBRData pbrBufferData = pbrBuffer->GetData();
+		PBRData pbrBufferData = *(static_cast<const PBRData*>(uniformBuffers[pbrBuffer]->Data()));
 		pbrBufferData.cameraPosition = camera->Position;
 
 		if (_material != nullptr) _material->Bind();
@@ -382,8 +388,8 @@ namespace VGF
 			text[4]->Bind(textureType::normal);
 		}
 
-		pbrBuffer->SetData(pbrBufferData);
-		return pbrBuffer;
+		uniformBuffers[pbrBuffer]->SetData((void*)&pbrBufferData);
+		return uniformBuffers[pbrBuffer];
 	};
 }
 

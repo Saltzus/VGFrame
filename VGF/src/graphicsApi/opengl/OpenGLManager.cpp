@@ -129,22 +129,6 @@ namespace VGF::Opengl
     {
     }
 
-    // default vertices for post processing quad
-    std::vector<GLfloat> defaultVertices =
-    {
-        -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f, 1.0f,   0.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,    0.0f, 0.0f, 1.0f,   1.0f, 1.0f, 1.0f,   1.0f, 0.0f,
-        1.0f,  1.0f, 0.0f,    0.0f, 0.0f, 1.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f,
-        -1.0f,  1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f
-    };
-
-    // default indices for post processing quad
-    std::vector<GLuint> defaultIndices =
-    {
-        0, 1, 2,
-        2, 3, 0
-    };
-
     OpenglRenderer::OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, std::vector<UniformBufferObject*> uniformBuffers) : opengl(Opengl::openglInstance)
     {
         if (opengl->framebuffer == 0)
@@ -267,13 +251,8 @@ namespace VGF::Opengl
         loc = glGetUniformLocation(config.ID(), "normalSampler");
         glUniform1i(loc, 6);
 
-        // Draws the pixel
-        //glBindFramebuffer(GL_FRAMEBUFFER, opengl->framebuffer);
-
         glBindVertexArray(VAO);
         glDrawElements(topology, indicesSize, GL_UNSIGNED_INT, 0);
-
-        //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         int error = glGetError();
     }

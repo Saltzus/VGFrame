@@ -16,4 +16,6 @@ namespace VGF
     {
         return nullptr;
     }
+
+    void UniformBufferObject::SetData(void* data) {}
 }
