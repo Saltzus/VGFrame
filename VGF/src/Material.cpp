@@ -2,8 +2,6 @@
 
 namespace VGF
 {
-	Material Material::defaultMaterial;
-
 	Material::Material()
 	{
 	}
@@ -35,12 +33,23 @@ namespace VGF
 
 	Material* Material::getDefaultMaterial()
 	{
-		defaultMaterial.color = Texture::GetDefaultTexture();
-		defaultMaterial.metallicRoughness = Texture::GetBlackTexture();
-		defaultMaterial.emissive = Texture::GetBlackTexture();
-		defaultMaterial.occulsion = Texture::GetWhiteTexture();
-		defaultMaterial.normal = Texture::GetBlueTexture();
-
+		static Material defaultMaterial = []()
+			{
+				Material material;
+				material.color = Texture::GetWhiteTexture();
+				material.metallicRoughness = Texture::GetBlackTexture();
+				material.emissive = Texture::GetBlackTexture();
+				material.occulsion = Texture::GetWhiteTexture();
+				material.normal = Texture::GetBlueTexture();
+				return material;
+			}();
+		
 		return &defaultMaterial;
 	}
+
+	void Material::setDefaultMaterial(Material material)
+	{
+		*getDefaultMaterial() = material;
+	}
+
 }

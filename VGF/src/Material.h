@@ -14,6 +14,7 @@ namespace VGF
 		std::vector<Texture*> getVector();
 
 		static Material* getDefaultMaterial();
+		static void setDefaultMaterial(Material material);
 
 		Texture* color;
 		Texture* metallicRoughness;
@@ -24,6 +25,5 @@ namespace VGF
 
 
 	private:
-		static Material defaultMaterial;
 	};
 } 

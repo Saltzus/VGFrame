@@ -18,6 +18,8 @@ namespace VGF::Vulkan
         VkDeviceSize imageSize = texWidth * texHeight * 4;
 
         if (!pixels) {
+            std::cout << "[Error] Failed to load texture : " << filePath << "\n";
+            system("dir");
             throw std::runtime_error("failed to load texture image!");
         }
 
