@@ -60,7 +60,7 @@ namespace VGF
 	VGF::Renderer* lines;
 	MatrixBufferObject matrixBuffer;
 
-	void Physics::debugRender(PipelineConfig config, Window* window, Camera* camera)
+	void Physics::debugRender(PipelineConfig& config, Camera* camera)
 	{
 		if (Input::getDebugDrawerOn())
 		{

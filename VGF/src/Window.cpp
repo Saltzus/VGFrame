@@ -57,6 +57,8 @@ namespace VGF
 			glEnable(GL_DEPTH_TEST);
 			glEnable(GL_FRAMEBUFFER_SRGB);
 		}
+
+		Renderer::InitApi(GLFW_Window);
 	}
 
 	void Window::framebuffer_size_callback(GLFWwindow* window, int width, int height)
