@@ -8,7 +8,7 @@
 namespace VGF::Input
 {
     void processInput(GLFWwindow* window);
-    PhysicsObject* pickObject(Window* window, btDiscreteDynamicsWorld* dynamicsWorld, Camera* camera);
+	PhysicsObject* pickObject(Window* window, btDiscreteDynamicsWorld* dynamicsWorld, Camera* camera);
 
 	void ScreenPosToWorldRay
 	(
