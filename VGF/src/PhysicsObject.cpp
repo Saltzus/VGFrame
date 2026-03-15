@@ -3,7 +3,7 @@
 namespace VGF
 {
     
-    PhysicsObject::PhysicsObject(Model* model, Physics* physics, btVector3 origin, btVector3 size, btScalar mass) : Object(model)
+    PhysicsObject::PhysicsObject(Model* model, Physics* physics, btVector3 origin, btVector3 size, btScalar mass) : Object(model), _physics(physics)
     {
         collisionShape = new btBoxShape(btVector3(size / 2));
 
@@ -55,8 +55,6 @@ namespace VGF
         delete collisionShape;
     }
 
-    
-
     void PhysicsObject::SetPosition(float x, float y, float z)
     {
         body->activate(true);
@@ -70,6 +68,15 @@ namespace VGF
             motionState->setWorldTransform(transform);
 
         body->setWorldTransform(transform);
+    }
+
+    void PhysicsObject::SetScale(float x, float y, float z)
+    {
+        body->activate(true);
+        collisionShape->setLocalScaling(btVector3(x, y, z));
+        _physics->dynamicsWorld->updateSingleAabb(body);
+
+        scale = glm::vec3(x, y, z);
     }
 
     btVector3 PhysicsObject::GetPositionBt()

@@ -9,6 +9,7 @@ namespace VGF
     {
     public:
         PhysicsObject(Model* model, Physics* physics, btVector3 origin = { 0,0,0 }, btVector3 size = { 2,2,2 }, btScalar mass = 0.f);
+
         ~PhysicsObject();
 
         virtual void Render(PipelineConfig& config, Camera* camera, std::vector<UniformBufferObject*> additionalUniformBuffers = {}) override;
@@ -17,14 +18,19 @@ namespace VGF
         void SetPosition(btVector3 position) { SetPosition(position.x(), position.y(), position.z()); }
         void SetPosition(glm::vec3 position) { SetPosition(position.x  , position.y  , position.z  ); }
 
+        void SetScale(float x, float y, float z);
+        void SetScale(btVector3 scale) { SetScale(scale.x(), scale.y(), scale.z()); }
+        void SetScale(glm::vec3 scale) { SetScale(scale.x, scale.y, scale.z); }
+
         btVector3 GetPositionBt();
         glm::vec3 GetPositionGlm() { btVector3 position = GetPositionBt(); return { position.x(), position.y(), position.z() }; }
 
         btRigidBody* body;
     private:
+        Physics* _physics;
+        
         btCollisionShape* collisionShape;
 
-        using Object::model;
         using Object::translation;
         using Object::rotation;
         using Object::scale;

@@ -23,8 +23,10 @@ namespace VGF
 			meshes.push_back(mesh);
 		}
 
-		std::cout << "Model Loaded Succesfully\n";
+		for (auto mesh : meshes)
+			modelRenderers.emplace_back(new Renderer(mesh.indices, mesh.vertices, uniformBuffers));
 
+		std::cout << "Model Loaded Succesfully\n";
 	}
 
 	Model::Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, std::vector<UniformBufferObject*> additionalUniformBuffers)
@@ -243,15 +245,15 @@ namespace VGF
 		data.view = camera->view;
 		uniformBuffers[matrixBuffer]->SetData((void*)&data);
 
-		std::vector<UniformBufferObject*> uniformBuffers;
-		uniformBuffers.push_back(uniformBuffers[matrixBuffer]);
-		uniformBuffers.push_back(bindMaterial(camera, mesh.primitives[0].material));
-		uniformBuffers.push_back(LightBufferObject::getDefault());
+		std::vector<UniformBufferObject*> renderUniformBuffers;
+		renderUniformBuffers.push_back(uniformBuffers[matrixBuffer]);
+		renderUniformBuffers.push_back(bindMaterial(camera, mesh.primitives[0].material));
+		renderUniformBuffers.push_back(LightBufferObject::getDefault());
 
 		if (node.mesh >= 0)
 		{
 			Renderer* renderer = modelRenderers[node.mesh];
-			renderer->Render(config, uniformBuffers);
+			renderer->Render(config, renderUniformBuffers);
 		}
 		
 		for (const auto childNodeIdx : node.children) 
@@ -303,7 +305,9 @@ namespace VGF
 			};
 
 
-			Texture* textureObject = Texture::GetDefaultTexture();
+			//Texture* textureObject = Texture::GetDefaultTexture();
+			Texture* textureObject = Texture::GetWhiteTexture();
+
 			if (pbrMetallicRoughness.baseColorTexture.index >= 0)
 			{
 				const auto& texture = model.textures[pbrMetallicRoughness.baseColorTexture.index];

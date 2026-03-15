@@ -21,10 +21,7 @@ namespace VGF
 	    glm::vec3 scale = glm::vec3(0.7f, 0.7f, 0.7f);
 
     protected:
-
         Model* model;
-        std::vector<Renderer*> modelRenderers;
-
     private:
        
 
