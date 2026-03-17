@@ -1,15 +1,14 @@
 #include "Camera.h"
+#include "Window.h"
 
 namespace VGF
 {
-	Camera::Camera(int width, int height, glm::vec3 position)
+	Camera::Camera(glm::vec3 position)
 	{
-		Camera::width = width;
-		Camera::height = height;
-		position = -position;
+		this->position = -position;
 	}
 
-	void Camera::updateMatrix(float FOVdeg, float nearPlane, float farPlane)
+	void Camera::updateMatrix(VGF::Window& window, float FOVdeg, float nearPlane, float farPlane)
 	{
 		// Initializes matrices since otherwise they will be the null matrix
 		view = glm::mat4(1.0f);
@@ -18,7 +17,7 @@ namespace VGF
 		// Makes camera look in the right direction from the right position
 		view = glm::lookAt(position, position + orientation, up);
 		// Adds perspective to the scene
-		projection = glm::perspective(glm::radians(FOVdeg), (float)width / height, nearPlane, farPlane);
+		projection = glm::perspective(glm::radians(FOVdeg), (float)window.width / window.height, nearPlane, farPlane);
 
 		// Sets new camera matrix
 		cameraMatrix = projection * view;
@@ -26,9 +25,9 @@ namespace VGF
 
 
 
-	void Camera::Inputs(GLFWwindow* window, double deltatime)
+	void Camera::Inputs(VGF::Window& window, double deltatime)
 	{
-		speed = speed * 100 * deltatime;
+		speed = speed * 100 * static_cast<float>(deltatime);
 
 		// Handles key inputs
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -74,7 +73,7 @@ namespace VGF
 			// Prevents camera from jumping on the first click
 			if (firstClick)
 			{
-				glfwSetCursorPos(window, (width / 2), (height / 2));
+				glfwSetCursorPos(window, ((double)window.width / 2), ((double)window.height / 2));
 				firstClick = false;
 			}
 
@@ -86,8 +85,8 @@ namespace VGF
 
 			// Normalizes and shifts the coordinates of the cursor such that they begin in the middle of the screen
 			// and then "transforms" them into degrees 
-			float rotX = sensitivity * (float)(mouseY - (height / 2)) / height;
-			float rotY = sensitivity * (float)(mouseX - (width / 2)) / width;
+			float rotX = sensitivity * (float)(mouseY - ((float)window.height / 2)) / window.height;
+			float rotY = sensitivity * (float)(mouseX - ((float)window.width / 2)) / window.width;
 
 			// Calculates upcoming vertical change in the Orientation
 			glm::vec3 newOrientation = glm::rotate(orientation, glm::radians(-rotX), glm::normalize(glm::cross(orientation, up)));
@@ -102,7 +101,7 @@ namespace VGF
 			orientation = glm::rotate(orientation, glm::radians(-rotY), up);
 
 			// Sets mouse cursor to the middle of the screen so that it doesn't end up roaming around
-			glfwSetCursorPos(window, (width / 2), (height / 2));
+			glfwSetCursorPos(window, ((double)window.width / 2), ((double)window.height / 2));
 		}
 		else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
 		{

@@ -231,8 +231,6 @@ namespace VGF::Vulkan
             vkDestroyFramebuffer(device, framebuffer, nullptr);
         for (auto imageView : swapChainImageViews)
             vkDestroyImageView(device, imageView, nullptr);
-        for (auto image : swapChainImages)
-            vkDestroyImage(device, image, nullptr);
 
         for (auto framebuffer : offscreenFramebuffers)
             vkDestroyFramebuffer(device, framebuffer, nullptr);
@@ -254,17 +252,11 @@ namespace VGF::Vulkan
         }
 
         vkDeviceWaitIdle(device);
-
         cleanupSwapChain();
-
         createSwapChain();
-
         createImageViews(swapChainImageViews, swapChainImages);
         createImageViews(offscreenImageViews, offscreenImages);
-
         createDepthResources();
-        //createFramebuffers();
-
         createFramebuffers(swapChainFramebuffers, swapChainImageViews, false);
         createFramebuffers(offscreenFramebuffers, offscreenImageViews, true);
     }
