@@ -8,7 +8,8 @@
 namespace VGF::Input
 {
     void processInput(GLFWwindow* window);
-	bool pressed(GLFWwindow* window, int key);
+	bool pressedKey(GLFWwindow* window, int key);
+	bool pressedMouseButton(GLFWwindow* window, int button);
 
 	void ScreenPosToWorldRay
 	(
@@ -28,7 +29,6 @@ namespace VGF::Input
 	{
 		double mouseX, mouseY;
 		glfwGetCursorPos(*window, &mouseX, &mouseY);
-
 
 		glm::vec3 out_origin = { 0,0,0 };
 		glm::vec3 out_direction = { 0,0,0 };

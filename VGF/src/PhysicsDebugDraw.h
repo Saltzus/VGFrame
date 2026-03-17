@@ -53,8 +53,8 @@ public:
 		vertices.push_back(0.0f);
 
 		// Indices for the vertex pair
-		indices.push_back(indices.size());
-		indices.push_back(indices.size());
+		indices.push_back(static_cast<GLuint>(indices.size()));
+		indices.push_back(static_cast<GLuint>(indices.size()));
 	}
 	virtual void drawContactPoint(const btVector3&, const btVector3&, btScalar, int, const btVector3&) {}
 	virtual void reportErrorWarning(const char*) {}

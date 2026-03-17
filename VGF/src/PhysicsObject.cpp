@@ -11,9 +11,9 @@ namespace VGF
         groundTransform.setIdentity();
         groundTransform.setOrigin(btVector3(origin));
 
-        scale.x = size.x();
-        scale.y = size.y();
-        scale.z = size.z();
+        _scale.x = size.x();
+        _scale.y = size.y();
+        _scale.z = size.z();
         
         bool isDynamic = (mass != 0.f);
 
@@ -42,9 +42,9 @@ namespace VGF
         transform.getOpenGLMatrix(bulletMat);
         glm::mat4 model = glm::make_mat4(bulletMat);
 
-        model = glm::scale(model, scale);
+        model = glm::scale(model, _scale);
 
-        this->model->renderModel(model, config, camera, additionalUniformBuffers);
+        this->_model->renderModel(model, config, camera, additionalUniformBuffers);
     }
 
     PhysicsObject::~PhysicsObject()
@@ -55,28 +55,52 @@ namespace VGF
         delete collisionShape;
     }
 
-    void PhysicsObject::SetPosition(float x, float y, float z)
+    void PhysicsObject::SetPosition(const float x, const float y, const float z)
     {
+        _position = { x,y,z };
+
         body->activate(true);
 
+        btMotionState* motionState;
         btTransform transform;
-        transform.setIdentity();
+
+        if ((motionState = body->getMotionState()) != nullptr)
+            motionState->getWorldTransform(transform);
+        else transform = body->getWorldTransform();
+
         transform.setOrigin(btVector3(x,y,z));
 
-        btMotionState* motionState;
         if ((motionState = body->getMotionState()) != nullptr)
             motionState->setWorldTransform(transform);
-
         body->setWorldTransform(transform);
     }
 
-    void PhysicsObject::SetScale(float x, float y, float z)
+    void PhysicsObject::SetRotation(const glm::quat rotation) {
+        _rotation = rotation;
+        body->activate(true);
+        
+        btQuaternion quat(rotation.x, rotation.y, rotation.z, rotation.w);
+        btTransform transform;
+        btMotionState* motionState;
+
+        if ((motionState = body->getMotionState()) != nullptr)
+            motionState->getWorldTransform(transform);
+        else transform = body->getWorldTransform();
+
+        transform.setRotation(quat);
+
+        if ((motionState = body->getMotionState()) != nullptr)
+            motionState->setWorldTransform(transform);
+        body->setWorldTransform(transform);
+    }
+
+    void PhysicsObject::SetScale(const float x, const float y, const float z)
     {
         body->activate(true);
         collisionShape->setLocalScaling(btVector3(x, y, z));
         _physics->dynamicsWorld->updateSingleAabb(body);
 
-        scale = glm::vec3(x, y, z);
+        _scale = glm::vec3(x, y, z);
     }
 
     btVector3 PhysicsObject::GetPositionBt()

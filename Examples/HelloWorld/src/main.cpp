@@ -68,7 +68,7 @@ int main(int argc, char** argv)
     VGF::Physics physics;
     VGF::Camera camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.f, 29.f, -10.f));
     VGF::Camera camera2(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0, 20, 0));
-    camera2.Orientation = glm::rotate(camera2.Orientation, glm::radians((float) - 90), glm::normalize(glm::cross(camera2.Orientation, camera2.Up)));
+    camera2.orientation = glm::rotate(camera2.orientation, glm::radians((float) - 90), glm::normalize(glm::cross(camera2.orientation, camera2.up)));
 
     VGF::PhysicsObject physicsObject(&duckModel, &physics, { 0.5,5,0 }, { 2,2,2 }, 1.f);
 

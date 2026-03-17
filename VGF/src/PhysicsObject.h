@@ -14,13 +14,18 @@ namespace VGF
 
         virtual void Render(PipelineConfig& config, Camera* camera, std::vector<UniformBufferObject*> additionalUniformBuffers = {}) override;
 
-        void SetPosition(float x, float y, float z);
-        void SetPosition(btVector3 position) { SetPosition(position.x(), position.y(), position.z()); }
-        void SetPosition(glm::vec3 position) { SetPosition(position.x  , position.y  , position.z  ); }
+        using Object::SetPosition;
+        using Object::SetRotation;
+        using Object::SetScale;
 
-        void SetScale(float x, float y, float z);
-        void SetScale(btVector3 scale) { SetScale(scale.x(), scale.y(), scale.z()); }
-        void SetScale(glm::vec3 scale) { SetScale(scale.x, scale.y, scale.z); }
+        void SetPosition(const float x, const float y, const float z) override;
+        void SetPosition(const btVector3 position) { SetPosition(position.x(), position.y(), position.z()); }
+
+        void SetRotation(const glm::quat rotation) override;
+        void SetRotation(const btVector3 rotation) { SetRotation(rotation.x(), rotation.y(), rotation.z()); }
+
+        void SetScale(const float x, const float y, const float z) override;
+        void SetScale(const btVector3 scale) { SetScale(scale.x(), scale.y(), scale.z()); }
 
         btVector3 GetPositionBt();
         glm::vec3 GetPositionGlm() { btVector3 position = GetPositionBt(); return { position.x(), position.y(), position.z() }; }
@@ -28,12 +33,7 @@ namespace VGF
         btRigidBody* body;
     private:
         Physics* _physics;
-        
         btCollisionShape* collisionShape;
-
-        using Object::translation;
-        using Object::rotation;
-        using Object::scale;
     };
 
 }

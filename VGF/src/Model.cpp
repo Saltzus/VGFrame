@@ -288,7 +288,7 @@ namespace VGF
 	UniformBufferObject* Model::bindMaterial(Camera* camera, const int materialIndex)
 	{
 		PBRData pbrBufferData = *(static_cast<const PBRData*>(uniformBuffers[pbrBuffer]->Data()));
-		pbrBufferData.cameraPosition = camera->Position;
+		pbrBufferData.cameraPosition = camera->position;
 
 		if (_material != nullptr) _material->Bind();
 		else if (materialIndex >= 0)

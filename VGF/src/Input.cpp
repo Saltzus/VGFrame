@@ -83,7 +83,7 @@ namespace VGF::Input
     }
 
 	std::map<int,bool> isPressed;
-	bool pressed(GLFWwindow* window, int key)
+	bool pressedKey(GLFWwindow* window, int key)
 	{
 		if (glfwGetKey(window, key) == GLFW_PRESS)
 		{
@@ -101,6 +101,27 @@ namespace VGF::Input
 
 		return false;
 	}
+
+	std::map<int, bool> isPressedMouse;
+	bool pressedMouseButton(GLFWwindow* window, int button)
+	{
+		if (glfwGetMouseButton(window, button) == GLFW_PRESS)
+		{
+			if (!isPressedMouse[button])
+			{
+				isPressedMouse[button] = true;
+				return true;
+			}
+		}
+		else if (glfwGetMouseButton(window, button) == GLFW_RELEASE)
+		{
+			isPressedMouse[button] = false;
+			return false;
+		}
+
+		return false;
+	}
+
 
 	bool getDebugDrawerOn()
 	{

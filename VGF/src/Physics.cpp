@@ -30,9 +30,8 @@ namespace VGF
 
 	void Physics::Update(double delta_time)
 	{
-		dynamicsWorld->stepSimulation(delta_time, 10, 1.0f / 60.0f);
+		dynamicsWorld->stepSimulation(static_cast<btScalar>(delta_time), 10, 1.0f / 60.0f);
 
-		//print positions of all objects
 		for (int j = dynamicsWorld->getNumCollisionObjects() - 1; j >= 0; --j)
 		{
 			btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[j];
