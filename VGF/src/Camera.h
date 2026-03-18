@@ -12,10 +12,10 @@
 
 #include "Shader.h"
 
-class Window;
 
 namespace VGF
 {
+	class Window;
     class Camera
     {
     public:
