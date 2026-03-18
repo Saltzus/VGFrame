@@ -66,8 +66,8 @@ int main(int argc, char** argv)
     VGF::Model triangle(vertices, indices, &mat);
 
     VGF::Physics physics;
-    VGF::Camera camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.f, 29.f, -10.f));
-    VGF::Camera camera2(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0, 20, 0));
+    VGF::Camera camera(glm::vec3(0.f, 29.f, -10.f));
+    VGF::Camera camera2(glm::vec3(0, 20, 0));
     camera2.orientation = glm::rotate(camera2.orientation, glm::radians((float) - 90), glm::normalize(glm::cross(camera2.orientation, camera2.up)));
 
     VGF::PhysicsObject physicsObject(&duckModel, &physics, { 0.5,5,0 }, { 2,2,2 }, 1.f);
@@ -90,9 +90,9 @@ int main(int argc, char** argv)
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
 
-        camera.updateMatrix(45.0f, 0.01f, 10000.0f);
+        camera.updateMatrix(window,45.0f, 0.01f, 10000.0f);
         camera.Inputs(window, delta_time);
-        camera2.updateMatrix(45.0f, 0.01f, 100.0f);
+        camera2.updateMatrix(window, 45.0f, 0.01f, 100.0f);
 
 
         framebuffer.Bind();
@@ -105,7 +105,7 @@ int main(int argc, char** argv)
         groundObject.Render(defaultPipeline, &camera);
         physicsObject1.Render(defaultPipeline, &camera);
 
-        VGF::PhysicsObject* object = VGF::Input::pickObject(&window, physics.dynamicsWorld, &camera);
+        VGF::PhysicsObject* object = VGF::Input::pickObject<VGF::PhysicsObject>(&window, physics.dynamicsWorld, &camera);
         if (object)
         {
             object->body->activate(true);
@@ -135,7 +135,7 @@ int main(int argc, char** argv)
 
         VGF::Input::processInput(window);
 
-        physics.debugRender(debugPipeline,&window, &camera);
+        physics.debugRender(debugPipeline, &camera);
         VGF::Renderer::RenderGraphics();
         window.Display();
     }
