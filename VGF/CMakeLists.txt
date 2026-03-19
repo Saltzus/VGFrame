@@ -19,6 +19,7 @@ target_link_libraries(VGF
     vulkan
     glfw
     tinygltf
+    freetype
 )
 
 target_link_libraries(VGF

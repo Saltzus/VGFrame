@@ -73,8 +73,6 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(bullet)
 
-
-
 if(TARGET BulletDynamics)
   foreach(_t IN ITEMS BulletDynamics BulletCollision BulletSoftBody LinearMath)
     target_include_directories(${_t} INTERFACE
@@ -87,9 +85,25 @@ if(TARGET BulletDynamics)
   endforeach()
 endif()
 
-set_target_properties(glad glfw update_mappings PROPERTIES FOLDER "VGFrame/3rd-party")
+# FreeType
+set(FT_DISABLE_ZLIB        ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_BZIP2       ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_PNG         ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_HARFBUZZ    ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_BROTLI      ON CACHE BOOL "" FORCE)
+set(SKIP_INSTALL_ALL       ON CACHE BOOL "" FORCE)
 
-set_target_properties(LinearMath BulletCollision BulletDynamics BulletSoftBody Bullet2FileLoader 
+FetchContent_Declare(
+        freetype
+        GIT_REPOSITORY https://gitlab.freedesktop.org/freetype/freetype.git
+        GIT_TAG        VER-2-13-3
+)
+
+FetchContent_MakeAvailable(freetype)
+
+set_target_properties(glad glfw freetype update_mappings PROPERTIES FOLDER "VGFrame/3rd-party")
+
+set_target_properties(LinearMath BulletCollision BulletDynamics BulletSoftBody Bullet2FileLoader
                       Bullet3Collision Bullet3Common Bullet3Dynamics Bullet3Geometry Bullet3OpenCL_clew BulletInverseDynamics PROPERTIES FOLDER "VGFrame/3rd-party/bullet3")
 
 # Subdirectories
