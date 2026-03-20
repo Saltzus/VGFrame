@@ -50,6 +50,22 @@ namespace VGF::Vulkan
         Vulkan* vulkan = Vulkan::vulkan;
 
         VkDeviceSize imageSize = width * height * 4;
+        std::vector<unsigned char> rgbaData(imageSize);
+
+        if (format == 1)
+        {
+            for (unsigned int i = 0; i < width * height; i++)
+            {
+                rgbaData[i * 4 + 0] = datat[i];
+                rgbaData[i * 4 + 1] = datat[i];
+                rgbaData[i * 4 + 2] = datat[i];
+                rgbaData[i * 4 + 3] = datat[i];
+            }
+        }
+        else
+        {
+            memcpy(rgbaData.data(), datat, imageSize);
+        }
 
         if (!datat) {
             throw std::runtime_error("failed to load texture image!");
@@ -61,7 +77,7 @@ namespace VGF::Vulkan
 
         void* data;
         vkMapMemory(vulkan->device, stagingBufferMemory, 0, imageSize, 0, &data);
-        memcpy(data, datat, static_cast<size_t>(imageSize));
+        memcpy(data, rgbaData.data(), static_cast<size_t>(imageSize));
         vkUnmapMemory(vulkan->device, stagingBufferMemory);
 
         vulkan->createImage(width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
@@ -1061,13 +1077,13 @@ namespace VGF::Vulkan
     }
     void Vulkan::updateUniformBuffer(uint32_t currentImage, idObject object) 
     {
-        for (auto buffer : object.object->usedVulkanUniformBuffers[object.usedId])
+        for (auto& buffer : object.object->vulkanUniformBuffers[object.usedId])
         {
             if (!buffer.uniformBufferObject) {
                 throw std::runtime_error("UniformBufferObject pointer not set!");
             }
 
-            memcpy(buffer.uniformBuffersMapped[currentImage], buffer.uniformBufferObject->Data(), buffer.uniformBufferObject->SizeOf());
+            memcpy(buffer.uniformBuffersMapped[currentImage], buffer.data.data(), buffer.data.size());
         }
     }
 
@@ -1850,6 +1866,15 @@ namespace VGF::Vulkan
         vertexBuffer_vertexBufferMemory = vulkan->createVertexBuffer(vertices);
         indexBuffer_indexBufferMemory = vulkan->createIndexBuffer(convertIndices(indices));
 
+        std::vector<VulkanUniformBuffer> vulkanBufferTemplate;
+        for (UniformBufferObject* buffer : uniformBuffers)
+        {
+            VulkanUniformBuffer vulkanBuffer;
+            vulkanBuffer.uniformBufferObject = buffer;
+            vulkan->createUniformBuffers(vulkanBuffer, buffer->SizeOf());
+            vulkanBufferTemplate.push_back(vulkanBuffer);
+        }
+
         std::vector<VulkanImageSampler> samplers =
         {
             {{vulkan->colorTextureImageView}, vulkan->textureSampler},
@@ -1859,9 +1884,9 @@ namespace VGF::Vulkan
             {{vulkan->normalTextureImageView}, vulkan->textureSampler},
         };
 
-        //vulkan->createDescriptorSetLayout(descriptorSetLayout, vulkanUniformBuffers, samplers);
-       // descriptorPool = vulkan->createDescriptorPool(vulkanUniformBuffers.size(), samplers.size());
-        //descriptorSets = vulkan->createDescriptorSets(descriptorSetLayout, vulkanUniformBuffers, samplers);
+        vulkan->createDescriptorSetLayout(descriptorSetLayout, vulkanBufferTemplate, samplers);
+        //descriptorPool = vulkan->createDescriptorPool(vulkanBufferTemplate.size(), samplers.size());
+        //descriptorSets = vulkan->createDescriptorSets(descriptorSetLayout, vulkanBufferTemplate, samplers);
 
         indicesSize = indices.size();
     }
@@ -1871,7 +1896,9 @@ namespace VGF::Vulkan
         vkDeviceWaitIdle(vulkan->device);
 
         vkDestroyDescriptorSetLayout(vulkan->device, descriptorSetLayout, nullptr);
-        vkDestroyDescriptorPool(vulkan->device, descriptorPool, nullptr);
+        
+        for (auto& pool : descriptorPools)
+            vkDestroyDescriptorPool(vulkan->device, pool, nullptr);
 
         vkDestroyBuffer(vulkan->device, vertexBuffer_vertexBufferMemory.first, nullptr);
         vkFreeMemory(vulkan->device, vertexBuffer_vertexBufferMemory.second, nullptr);
@@ -1892,22 +1919,18 @@ namespace VGF::Vulkan
         if (_timesUsed == 0) allObjects.push_back(this);
         _timesUsed++;
 
-        if (descriptorSets.size() < _timesUsed || usedUniformBuffers.size() < _timesUsed || usedVulkanUniformBuffers.size() < _timesUsed)
+        if (descriptorSets.size() < _timesUsed)
         {
-            descriptorSets.resize(descriptorSets.size() + 1);
-            usedUniformBuffers.resize(usedUniformBuffers.size() + 1);
-            usedVulkanUniformBuffers.resize(usedVulkanUniformBuffers.size() + 1);
-        }
+            descriptorSets.resize(_timesUsed);
+            vulkanUniformBuffers.resize(_timesUsed);
+            descriptorPools.resize(_timesUsed);
 
-        if (usedUniformBuffers[_timesUsed - 1] != uniformBuffers)
-        {
-            usedUniformBuffers[_timesUsed-1] = uniformBuffers;
-            for (UniformBufferObject* buffer : usedUniformBuffers[_timesUsed - 1])
+            for (UniformBufferObject* buffer : uniformBuffers)
             {
                 VulkanUniformBuffer vulkanBuffer;
                 vulkanBuffer.uniformBufferObject = buffer;
                 vulkan->createUniformBuffers(vulkanBuffer, buffer->SizeOf());
-                usedVulkanUniformBuffers[_timesUsed-1].push_back(vulkanBuffer);
+                vulkanUniformBuffers[_timesUsed-1].push_back(vulkanBuffer);
             }
 
             std::vector<VulkanImageSampler> samplers =
@@ -1919,9 +1942,17 @@ namespace VGF::Vulkan
                 {{vulkan->normalTextureImageView}, vulkan->textureSampler},
             };
 
-            vulkan->createDescriptorSetLayout(descriptorSetLayout, usedVulkanUniformBuffers[_timesUsed - 1], samplers);
-            descriptorPool = vulkan->createDescriptorPool(usedVulkanUniformBuffers[_timesUsed - 1].size(), samplers.size());
-            descriptorSets[_timesUsed-1] = vulkan->createDescriptorSets(descriptorSetLayout, usedVulkanUniformBuffers[_timesUsed - 1], samplers);
+            descriptorPools[_timesUsed - 1] = vulkan->createDescriptorPool(vulkanUniformBuffers[_timesUsed - 1].size(), samplers.size());
+            descriptorSets[_timesUsed - 1] = vulkan->createDescriptorSets(descriptorSetLayout, vulkanUniformBuffers[_timesUsed - 1], samplers);
+        }
+
+        for (size_t i = 0; i < uniformBuffers.size(); i++)
+        {
+            VulkanUniformBuffer& vulkanBuffer = vulkanUniformBuffers[_timesUsed - 1][i];
+
+            size_t size = uniformBuffers[i]->SizeOf();
+            vulkanBuffer.data.resize(size);
+            memcpy(vulkanBuffer.data.data(), uniformBuffers[i]->Data(), size);
         }
 
         this->config = config;
@@ -1939,10 +1970,10 @@ namespace VGF::Vulkan
 
     void VulkanRenderer::CheckTextureChange(unsigned int timesUsed)
     {
-        vulkan->UpdateTexture(descriptorSets[timesUsed], lastTextureColor, vulkan->colorTextureImageView, usedVulkanUniformBuffers[timesUsed].size());
-        vulkan->UpdateTexture(descriptorSets[timesUsed], lastTextureMetallicRoughness, vulkan->metallicRoughnessTextureImageView, usedVulkanUniformBuffers[timesUsed].size() + 1);
-        vulkan->UpdateTexture(descriptorSets[timesUsed], lastTextureEmission, vulkan->emissiveTextureImageView, usedVulkanUniformBuffers[timesUsed].size() + 2);
-        vulkan->UpdateTexture(descriptorSets[timesUsed], lastTextureOcculsion, vulkan->occulsionTextureImageView, usedVulkanUniformBuffers[timesUsed].size() + 3);
-        vulkan->UpdateTexture(descriptorSets[timesUsed], lastTextureNormal, vulkan->normalTextureImageView, usedVulkanUniformBuffers[timesUsed].size() + 4);
+        vulkan->UpdateTexture(descriptorSets[timesUsed], lastTextureColor, vulkan->colorTextureImageView, vulkanUniformBuffers[timesUsed].size());
+        vulkan->UpdateTexture(descriptorSets[timesUsed], lastTextureMetallicRoughness, vulkan->metallicRoughnessTextureImageView, vulkanUniformBuffers[timesUsed].size() + 1);
+        vulkan->UpdateTexture(descriptorSets[timesUsed], lastTextureEmission, vulkan->emissiveTextureImageView, vulkanUniformBuffers[timesUsed].size() + 2);
+        vulkan->UpdateTexture(descriptorSets[timesUsed], lastTextureOcculsion, vulkan->occulsionTextureImageView, vulkanUniformBuffers[timesUsed].size() + 3);
+        vulkan->UpdateTexture(descriptorSets[timesUsed], lastTextureNormal, vulkan->normalTextureImageView, vulkanUniformBuffers[timesUsed].size() + 4);
     }
 }

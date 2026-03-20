@@ -45,6 +45,7 @@ namespace VGF::Vulkan
     struct VulkanUniformBuffer
     {
         UniformBufferObject* uniformBufferObject;
+        std::vector<unsigned int> data;
         std::vector<VkBuffer> uniformBuffers;
         std::vector<void*> uniformBuffersMapped;
         std::vector<VkDeviceMemory> uniformBuffersMemory;
@@ -278,17 +279,17 @@ namespace VGF::Vulkan
         std::pair<VkBuffer, VkDeviceMemory> vertexBuffer_vertexBufferMemory;
         std::pair<VkBuffer, VkDeviceMemory> indexBuffer_indexBufferMemory;
 
-        std::vector<std::vector<VulkanUniformBuffer>> usedVulkanUniformBuffers;
+        std::vector<std::vector<VulkanUniformBuffer>> vulkanUniformBuffers;
 
         VkDescriptorSetLayout descriptorSetLayout;
-        VkDescriptorPool descriptorPool;
+        std::vector <VkDescriptorPool>descriptorPools;
+
         std::vector<std::vector<VkDescriptorSet>> descriptorSets;
-        std::vector<std::vector<UniformBufferObject*>> usedUniformBuffers;
         
         virtual void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override;
     private:
         void CheckTextureChange(unsigned int timesUsed);
-        
+
         VkImageView lastTextureColor = nullptr;
         VkImageView lastTextureMetallicRoughness = nullptr;
         VkImageView lastTextureEmission = nullptr;

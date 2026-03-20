@@ -10,16 +10,12 @@ namespace VGF
         }
 
         FT_Face face;
-        if (FT_New_Face(ft, "Game/Resources/Fonts/Testi.ttf", 0, &face))
+        if (FT_New_Face(ft, "../../CubeCube/Fonts/OpenSans.ttf", 0, &face))
         {
             std::cout << "[ERROR] Failed to load font" << std::endl;
         }
 
-        FT_Set_Pixel_Sizes(face, 0, 48);
-        if (FT_Load_Char(face, 'X', FT_LOAD_RENDER))
-        {
-            std::cout << "[ERROR] Failed to load Glyph" << std::endl;
-        }
+        FT_Set_Pixel_Sizes(face, 0, 248);
 
         for (unsigned char c = 0; c < 128; c++)
         {
@@ -30,23 +26,23 @@ namespace VGF
                 continue;
             }
 
-            // generate texture
-            texture = new Texture(face->glyph->bitmap.buffer, 1, face->glyph->bitmap.width, face->glyph->bitmap.rows);
-            renderer = new Renderer(quadIndices,quadVertices, {MatrixBufferObject::getDefault()});
+            if (face->glyph->bitmap.buffer == nullptr ||
+                face->glyph->bitmap.width == 0 ||
+                face->glyph->bitmap.rows == 0)
+            {
+                continue;
+            }
 
-            MatrixData data;
-            data.model = glm::mat4(1.f);
-            data.proj = camera->projection;
-            data.view = camera->view;
-            Model::matrixBuffer.SetData((void*)&data);
+            _characters.try_emplace
+            (
+                c,
+                new Texture(face->glyph->bitmap.buffer, 1, face->glyph->bitmap.width, face->glyph->bitmap.rows),
+                glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
+                glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
+                face->glyph->advance.x
+            );
 
-            debug->indices.clear();
-            debug->vertices.clear();
-
-            dynamicsWorld->debugDrawWorld();
-
-            lines = new VGF::Renderer(debug->indices, debug->vertices, );
-            lines->Render(config, { &matrixBuffer });
+            _renderer = new Renderer(_quadIndices, _quadVertices, {MatrixBufferObject::getDefault()});
         }
 
         FT_Done_Face(face);
@@ -55,6 +51,32 @@ namespace VGF
     
     Text::~Text()
     {
-        delete texture;
+        delete _texture;
     }
+
+    void Text::Render(PipelineConfig& config, Camera* camera)
+    {
+        glm::mat4 model = glm::scale(glm::mat4(1.f), { 0.5,0.5,0.5 });
+
+        MatrixData data;
+        data.model = model;
+        data.proj = camera->projection;
+        data.view = camera->view;
+        _matrixBuffer.SetData((void*)&data);
+
+        _characters['u'].texture->Bind();
+        //Texture::GetWhiteTexture()->Bind();
+        _renderer->Render(config, { &_matrixBuffer });
+
+        data.model = glm::translate(model, { 1,0,0 });
+        _matrixBuffer.SetData((void*)&data);
+        _characters['m'].texture->Bind();
+        _renderer->Render(config, { &_matrixBuffer });
+
+        data.model = glm::translate(model, { -1,0,0 });
+        _matrixBuffer.SetData((void*)&data);
+        _characters['c'].texture->Bind();
+        _renderer->Render(config, { &_matrixBuffer });
+    }
+
 }

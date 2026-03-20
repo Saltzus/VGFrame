@@ -61,8 +61,24 @@ namespace VGF::Opengl
     }
     OpenglTexture::OpenglTexture(const unsigned char* data, int format, int width, int height)
     {
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        if (!data) {
+            throw std::runtime_error("failed to load texture image!");
+        }
+
+        std::vector<unsigned char> rgbaData(width * height * 4);
+
+        if (format == 1)
+        {
+            for (int i = 0; i < width * height; i++)
+            {
+                rgbaData[i * 4 + 0] = data[i];
+                rgbaData[i * 4 + 1] = data[i];
+                rgbaData[i * 4 + 2] = data[i];
+                rgbaData[i * 4 + 3] = data[i];
+            }
+        }
+        else
+            memcpy(rgbaData.data(), data, width * height * 4);
 
         glGenTextures(1, &texture);
         glBindTexture(GL_TEXTURE_2D, texture);
@@ -74,16 +90,15 @@ namespace VGF::Opengl
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        GLint internalFmt = (format == 4 ? GL_SRGB8_ALPHA8 : format == 3 ? GL_SRGB8 : format);
         glTexImage2D(GL_TEXTURE_2D,
             0,
             GL_SRGB8_ALPHA8,
             width,
             height,
             0,
-            format,
+            GL_RGBA,
             GL_UNSIGNED_BYTE,
-            data);
+            rgbaData.data());
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     OpenglTexture::~OpenglTexture()
