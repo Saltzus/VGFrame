@@ -4,16 +4,29 @@ namespace VGF
 {
 	void TextManager::Init()
 	{
-		defaultTextConfig = new PipelineConfig
+		if (FT_Init_FreeType(&FTLib))
+			VGF::Log::Error("Could not init FreeType Library");
+
+		_fonts.try_emplace
+		(
+			"default",
+			"../../Fonts/OpenSans.ttf"
+		);
+
+		_defaultTextConfig = new PipelineConfig
 		(
 			"../../CubeCube/Shaders/default_text.vert",
 			"../../CubeCube/Shaders/default_text.frag",
 			VGF::Topology::TRIANGLE_LIST
 		);
+
+		_initialized = true;
 	}
 
 	void TextManager::Destroy()
 	{
-		delete defaultTextConfig;
+		delete _defaultTextConfig;
+		FT_Done_FreeType(FTLib);
 	}
+
 }

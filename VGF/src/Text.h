@@ -14,29 +14,15 @@ namespace VGF
         Text();
         ~Text();
 
-        void Render(Camera* camera, std::string text) { Render(*TextManager::defaultTextConfig, camera, text); };
+        void Render(Camera* camera, std::string text) { Render(*TextManager::GetDefaultConfig(), camera, text); };
         void Render(PipelineConfig& config, Camera* camera, std::string& text);
 
         float size = 0.1f;
+        Font* font;
 
     private:
 
-        struct Character 
-        {
-            Character(Texture* tex = nullptr, glm::ivec2 s = {0,0}, glm::ivec2 b = { 0,0 }, unsigned int adv = 0)
-                : texture(tex), size(s), bearing(b), advance(adv) {}
-            ~Character() { delete texture; }
-
-            Texture* texture;
-            glm::ivec2 size;
-            glm::ivec2 bearing;
-            unsigned int advance;
-        };
-
-        std::map<char, Character> _characters;
-
         PipelineConfig _config;
-        Texture* _texture;
         Renderer* _renderer;
 
         MatrixBufferObject _matrixBuffer;

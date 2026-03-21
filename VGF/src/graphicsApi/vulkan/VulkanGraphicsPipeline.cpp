@@ -4,11 +4,12 @@
 namespace VGF::Vulkan
 {
 
-    static std::vector<char> readFile(const std::string& filename) {
+    static std::vector<char> readFile(const std::string& filename) 
+    {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
         if (!file.is_open()) {
-            throw std::runtime_error("failed to open file!");
+            VGF::Log::Error("Failed to open file!");
         }
 
         size_t fileSize = (size_t)file.tellg();
@@ -21,7 +22,8 @@ namespace VGF::Vulkan
 
         return buffer;
     }
-    VkShaderModule createShaderModule(VkDevice device, const std::vector<char>& code) {
+    VkShaderModule createShaderModule(VkDevice device, const std::vector<char>& code) 
+    {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = code.size();
@@ -29,7 +31,7 @@ namespace VGF::Vulkan
 
         VkShaderModule shaderModule;
         if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create shader module!");
+            VGF::Log::Error("Failed to create shader module!");
         }
 
         return shaderModule;
@@ -146,7 +148,7 @@ namespace VGF::Vulkan
         pipelineLayoutInfo.pushConstantRangeCount = 0;
 
         if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create pipeline layout!");
+            VGF::Log::Error("Failed to create pipeline layout!");
         }
 
         VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -168,7 +170,7 @@ namespace VGF::Vulkan
         
 
         if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create graphics pipeline!");
+            VGF::Log::Error("Failed to create graphics pipeline!");
         }
 
         vkDestroyShaderModule(device, fragShaderModule, nullptr);

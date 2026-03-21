@@ -62,7 +62,7 @@ namespace VGF::Opengl
     OpenglTexture::OpenglTexture(const unsigned char* data, int format, int width, int height)
     {
         if (!data) {
-            throw std::runtime_error("failed to load texture image!");
+            VGF::Log::Error("Failed to load texture image!");
         }
 
         std::vector<unsigned char> rgbaData(width * height * 4);
@@ -77,8 +77,9 @@ namespace VGF::Opengl
                 rgbaData[i * 4 + 3] = data[i];
             }
         }
-        else
+        else {
             memcpy(rgbaData.data(), data, width * height * 4);
+        }
 
         glGenTextures(1, &texture);
         glBindTexture(GL_TEXTURE_2D, texture);

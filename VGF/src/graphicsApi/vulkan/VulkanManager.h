@@ -29,6 +29,8 @@
 #include "../../RenderImpl.h"
 #include "../../Window.h"
 
+#include "../../Log.h"
+
 #include "VulkanGraphicsPipeline.h"
 #include "VulkanFrameBuffer.h"
 
