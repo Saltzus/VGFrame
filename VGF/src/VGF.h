@@ -10,6 +10,8 @@
 #include "Audio.h"
 #include "PipelineConfig.h"
 #include "FrameBuffer.h"
+#include "Text.h"
+#include "VGFTime.h"
 
 #include "Physics.h"
 
