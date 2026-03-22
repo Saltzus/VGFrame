@@ -10,7 +10,7 @@ namespace VGF
 		_fonts.try_emplace
 		(
 			"default",
-			"../../Fonts/OpenSans.ttf"
+			"../../CubeCube/Fonts/Gabarito.ttf"
 		);
 
 		_defaultTextConfig = new PipelineConfig

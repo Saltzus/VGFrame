@@ -8,8 +8,9 @@ namespace VGF
         FT_Library& ft = TextManager::FTLib;
 
         FT_Face face;
-        if (FT_New_Face(ft, "../../CubeCube/Fonts/OpenSans.ttf", 0, &face))
-            VGF::Log::Error("Failed to load font : ../../CubeCube/Fonts/OpenSans.ttf");
+        if (FT_New_Face(ft, path.c_str(), 0, &face)) {
+            VGF::Log::Error("Failed to load font : " + path);
+        }
 
         FT_Set_Pixel_Sizes(face, 0, 248);
 
@@ -25,6 +26,13 @@ namespace VGF
                 face->glyph->bitmap.width == 0 ||
                 face->glyph->bitmap.rows == 0)
             {
+                _characters.try_emplace(
+                    chr,
+                    nullptr,               // no texture
+                    glm::ivec2(0, 0),
+                    glm::ivec2(0, 0),
+                    face->glyph->advance.x // advance is still valid — space needs this
+                );
                 continue;
             }
 
