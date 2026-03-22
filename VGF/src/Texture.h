@@ -15,11 +15,11 @@ namespace VGF
         Texture(const unsigned char* data, int format, unsigned int width, unsigned int height);
         ~Texture();
 
-        virtual void Bind(textureType type = textureType::color);
+        virtual void Bind(textureType type = textureType::color) const;
         virtual void* GetNativeImage() { return _impl->GetNativeImage(); }
 
-        unsigned int GetWidth() { return _width; }
-        unsigned int GetHeight() { return _height; }
+        const unsigned int GetWidth() const { return _width; }
+        const unsigned int GetHeight() const { return _height; }
 
         static Texture* GetDefaultTexture();
         static Texture* GetWhiteTexture();

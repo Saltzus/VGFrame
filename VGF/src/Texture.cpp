@@ -38,7 +38,7 @@ namespace VGF
         delete this->_impl;
     }
 
-    void Texture::Bind(textureType type)
+    void Texture::Bind(textureType type) const
     {
         _impl->Bind(type);
     }

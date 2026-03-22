@@ -4,6 +4,7 @@
 
 #include "TextManager.h"
 #include "Texture.h"
+#include "TextEffect.h"
 
 #include "UniformBuffers/TextBuffer.h"
 
@@ -14,20 +15,28 @@ namespace VGF
 
     public:
         Text();
+        Text(TextEffect effect) : Text() { _effect = effect; }
         ~Text();
 
-        void Render(const Window& window, std::string text) { Render(*TextManager::GetDefaultConfig(), window, text); };
-        void Render(PipelineConfig& config, const Window& window, std::string& text);
+        void Render(const Window& window, const std::string text) { Render(*TextManager::GetDefaultConfig(), window, text); };
+        void Render(PipelineConfig& config, const Window& window, const std::string text);
+
+        void SetEffect(TextEffect effect) { _effect = effect; }
 
         float size = 0.1f;
+        glm::vec3 position = { 10,15,0 };
+
+
         Font* font;
 
     private:
 
-        glm::vec3 _position = {10,15,0};
 
         PipelineConfig _config;
         Renderer* _renderer;
+
+        TextEffect _effect;
+        bool _ownEffect = true;
 
         TextBufferObject _textBuffer;
 
@@ -48,5 +57,4 @@ namespace VGF
             2, 3, 0
         };
     };
-
-} 
+}

@@ -17,24 +17,31 @@ namespace VGF
         delete _renderer;
     }
 
-    void Text::Render(PipelineConfig& config, const Window& window, std::string& text)
+    void Text::Render(PipelineConfig& config, const Window& window, const std::string tex)
     {
-        float xCursor = _position.x;
-        float yCursor = _position.y;
+        std::string text = _effect.runEffect(tex);
 
-        for (rsize_t ch = 0; ch < text.size(); ch++)
+        float xCursor = position.x;
+        float yCursor = position.y;
+
+        for (size_t ch = 0; ch < text.size(); ch++)
         {
-            if (!font->HasCharacter(text[ch])){
+            if (!font->HasCharacter(text[ch])) continue;
+
+            if (text[ch] == '\n')
+            {
+                xCursor = position.x;
+                yCursor -= (font->GetLineHeight() >> 6) * size;
                 continue;
             }
 
-            const Character* chr = font->GetCharacter(text[ch]);
+            const Character chr = _effect.runPerCharacter(font->GetCharacter(text[ch]));;
 
-            float xPos = xCursor + chr->bearing.x * size;
-            float yPos = yCursor - (chr->size.y - chr->bearing.y) * size;
+            float xPos = xCursor + chr.bearing.x * size;
+            float yPos = yCursor - (chr.size.y - chr.bearing.y) * size;
 
-            float width = chr->size.x * size;
-            float height = chr->size.y * size;
+            float width = chr.size.x * size;
+            float height = chr.size.y * size;
 
             glm::mat4 model = glm::translate(glm::mat4(1.f), { xPos, yPos,0 });
             model = glm::scale(model, { width, height, 1.f });
@@ -44,7 +51,7 @@ namespace VGF
                 TextData data;
                 data.model = model;
                 data.proj = glm::ortho(0.f, (float)window.width, 0.f, (float)window.height, -1.f, 1.f);
-                data.uvScale = glm::vec2(chr->size.x / chr->texture->GetWidth(), chr->size.y / chr->texture->GetHeight());
+                data.uvScale = glm::vec2(chr.size.x / chr.texture->GetWidth(), chr.size.y / chr.texture->GetHeight());
 
                 _textBuffer.SetData((void*)&data);
 
@@ -52,7 +59,7 @@ namespace VGF
                 _renderer->Render(config, { &_textBuffer });
             }
 
-            xCursor += (chr->advance >> 6) * size;
+            xCursor += (chr.advance >> 6) * size;
         }
     }
 

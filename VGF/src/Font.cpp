@@ -46,6 +46,8 @@ namespace VGF
             );
         }
 
+        _lineHeight = face->size->metrics.height;
+
         FT_Done_Face(face);
 	}
 
