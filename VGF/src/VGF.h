@@ -12,6 +12,7 @@
 #include "FrameBuffer.h"
 #include "Text.h"
 #include "VGFTime.h"
+#include "Resource.h"
 
 #include "Physics.h"
 

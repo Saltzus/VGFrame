@@ -1,4 +1,5 @@
 #include "TextManager.h"
+#include "Resource.h"
 
 namespace VGF
 {
@@ -10,13 +11,13 @@ namespace VGF
 		_fonts.try_emplace
 		(
 			"default",
-			"../../CubeCube/Fonts/Gabarito.ttf"
+			Resource::Get("Fonts/Gabarito.ttf")
 		);
 
 		_defaultTextConfig = new PipelineConfig
 		(
-			"../../CubeCube/Shaders/default_text.vert",
-			"../../CubeCube/Shaders/default_text.frag",
+			Resource::Get("Shaders/default_text.vert"),
+			Resource::Get("Shaders/default_text.frag"),
 			VGF::Topology::TRIANGLE_LIST
 		);
 

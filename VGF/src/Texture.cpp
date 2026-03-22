@@ -1,4 +1,5 @@
 #include "Texture.h"
+#include "Resource.h"
 
 namespace VGF
 {
@@ -45,7 +46,7 @@ namespace VGF
 
     Texture* Texture::GetDefaultTexture()
     {
-        static Texture* DEFAULT_TEXTURE = new Texture("../../CubeCube/Textures/default.png");
+        static Texture* DEFAULT_TEXTURE = new Texture(Resource::Get("Textures/default.png").c_str());
         return DEFAULT_TEXTURE;
     }
     Texture* Texture::GetWhiteTexture()
