@@ -51,6 +51,7 @@ namespace VGF
                 TextData data;
                 data.model = model;
                 data.proj = glm::ortho(0.f, (float)window.width, 0.f, (float)window.height, -1.f, 1.f);
+                data.color = color;
                 data.uvScale = glm::vec2(chr.size.x / chr.texture->GetWidth(), chr.size.y / chr.texture->GetHeight());
 
                 _textBuffer.SetData((void*)&data);

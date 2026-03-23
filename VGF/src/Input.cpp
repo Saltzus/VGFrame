@@ -122,9 +122,27 @@ namespace VGF::Input
 		return false;
 	}
 
-
-	bool getDebugDrawerOn()
+	std::pair<double, double> GetMousePosition(GLFWwindow* window)
 	{
+		double posX, posY;
+		int width, height;
+
+		GetMousePosition(window, posX, posY);
+		glfwGetWindowSize(window, &width, &height);
+
+		//posX += width;
+		posY += height;
+
+		return std::make_pair(posX, posY);
+	}
+
+	void GetMousePosition(GLFWwindow* window, double& posX, double& posY)
+	{
+		glfwGetCursorPos(window, &posX, &posY);
+		posY = -posY;
+	}
+
+	bool getDebugDrawerOn(){
 		return debugDrawerOn;
 	}
 }

@@ -25,6 +25,7 @@ namespace VGF
 
         float size = 0.1f;
         glm::vec3 position = { 10,15,0 };
+        glm::vec3 color = { 1,1,1 };
 
 
         Font* font;

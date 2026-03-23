@@ -9,6 +9,7 @@ namespace VGF
     {
         alignas(16) glm::mat4 model = glm::mat4(1.f);
         alignas(16) glm::mat4 proj = glm::mat4(1.f);
+        alignas(16) glm::vec3 color = glm::vec3(1.f);
         alignas(16) glm::vec2 uvScale = glm::vec2(1.f);
     };
 

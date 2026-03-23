@@ -11,6 +11,9 @@ namespace VGF::Input
 	bool pressedKey(GLFWwindow* window, int key);
 	bool pressedMouseButton(GLFWwindow* window, int button);
 
+	std::pair<double,double> GetMousePosition(GLFWwindow* window);
+	void GetMousePosition(GLFWwindow* window, double& posX, double& posY);
+
 	void ScreenPosToWorldRay
 	(
 		int mouseX, int mouseY,
@@ -25,7 +28,7 @@ namespace VGF::Input
 
 
 	template<typename T>
-	T* pickObject(Window* window, btDiscreteDynamicsWorld* dynamicsWorld, Camera* camera)
+	T* pickObject(const Window* window, btDiscreteDynamicsWorld* dynamicsWorld, Camera* camera)
 	{
 		double mouseX, mouseY;
 		glfwGetCursorPos(*window, &mouseX, &mouseY);
