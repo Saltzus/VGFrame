@@ -3,7 +3,7 @@
 
 namespace VGF
 {
-    Texture::Texture(const char* filePath)
+    Texture::Texture(std::string filePath)
     {
         switch (Renderer::GetGraphicsApi())
         {
@@ -44,28 +44,28 @@ namespace VGF
         _impl->Bind(type);
     }
 
-    Texture* Texture::GetDefaultTexture()
+    const Texture* Texture::GetDefaultTexture()
     {
-        static Texture* DEFAULT_TEXTURE = new Texture(Resource::Get("Textures/default.png").c_str());
+        const static Texture* DEFAULT_TEXTURE = new Texture(Resource::Get("Textures/default.png").c_str());
         return DEFAULT_TEXTURE;
     }
-    Texture* Texture::GetWhiteTexture()
+    const Texture* Texture::GetWhiteTexture()
     {
         const unsigned char whitePixel[4] = { 255, 255, 255, 255 };
-        static Texture* WHITE_TEXTURE = new Texture(whitePixel, 4, 1, 1);
+        const static Texture* WHITE_TEXTURE = new Texture(whitePixel, 4, 1, 1);
         return WHITE_TEXTURE;
     }
-    Texture* Texture::GetBlackTexture()
+    const Texture* Texture::GetBlackTexture()
     {
         const unsigned char blackPixel[4] = { 0, 0, 0, 0 };
-        static Texture* BLACK_TEXTURE = new Texture(blackPixel, 4, 1, 1);
+        const static Texture* BLACK_TEXTURE = new Texture(blackPixel, 4, 1, 1);
         return BLACK_TEXTURE;
     }
 
-    Texture* Texture::GetBlueTexture()
+    const Texture* Texture::GetBlueTexture()
     {
         const unsigned char bluePixel[4] = { 128, 128, 255, 255 };
-        static Texture* BLUE_TEXTURE = new Texture(bluePixel, 4, 1, 1);
+        const static Texture* BLUE_TEXTURE = new Texture(bluePixel, 4, 1, 1);
         return BLUE_TEXTURE;
     }
 }

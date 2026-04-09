@@ -5,9 +5,9 @@ namespace VGF
 	bool Timer::Tick(double deltaTime)
 	{
 		accumulated += deltaTime;
-		if (accumulated >= _interval)
+		if (accumulated >= interval)
 		{
-			accumulated -= _interval;
+			accumulated -= interval;
 			return true;
 		}
 

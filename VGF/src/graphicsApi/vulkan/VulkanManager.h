@@ -67,7 +67,7 @@ namespace VGF::Vulkan
     class VulkanTexture : public TextureImpl
     {
     public:
-        VulkanTexture(const char* filePath);
+        VulkanTexture(std::string filePath);
         VulkanTexture(const unsigned char* data, int format, unsigned int width, unsigned int height);
         ~VulkanTexture();
         virtual void Bind(textureType type) override;

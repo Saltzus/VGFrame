@@ -19,9 +19,9 @@ namespace VGF
 		normal->Bind(textureType::normal);
 	}
 
-	std::vector<Texture*> Material::getVector()
+	std::vector<const Texture*> Material::getVector()
 	{
-		std::vector<Texture*> textures;
+		std::vector<const Texture*> textures;
 		textures.push_back(color);
 		textures.push_back(metallicRoughness);
 		textures.push_back(emissive);

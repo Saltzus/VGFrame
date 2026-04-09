@@ -1,4 +1,5 @@
 #include "Text.h"
+#include <VGF/src/Shapes.h>
 
 namespace VGF
 {
@@ -9,7 +10,7 @@ namespace VGF
         }
 
         font = TextManager::GetDefaultFont();
-        _renderer = new Renderer(_quadIndices, _quadVertices, {TextBufferObject::getDefault()});
+        _renderer = new Renderer(VGF::Spapes::Quad::quadIndices, VGF::Spapes::Quad::quadVertices, {TextBufferObject::getDefault()});
     }
     
     Text::~Text()
@@ -43,7 +44,7 @@ namespace VGF
             float width = chr.size.x * size;
             float height = chr.size.y * size;
 
-            glm::mat4 model = glm::translate(glm::mat4(1.f), { xPos, yPos,0 });
+            glm::mat4 model = glm::translate(glm::mat4(1.f), { xPos, yPos, position.z });
             model = glm::scale(model, { width, height, 1.f });
   
             if (font->GetCharacter(text[ch])->texture != nullptr)

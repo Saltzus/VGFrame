@@ -8,13 +8,14 @@ namespace VGF
 	class Timer
 	{
 	public:
-		Timer(double interval) : _interval(interval) {};
+		Timer(double interval) : interval(interval) {};
+		Timer() {};
 		~Timer() {}
 
 		bool Tick(double deltaTime);
+		double interval = 1.0f;
 
 	private:
-		double _interval = 0;
 		double accumulated = 0.0f;
 	};
 

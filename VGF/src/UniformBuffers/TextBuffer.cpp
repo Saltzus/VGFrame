@@ -20,7 +20,7 @@ namespace VGF
     {
         _defaultTextBuffer._data.model = glm::mat4(1.f);
         _defaultTextBuffer._data.proj = glm::mat4(1.f);
-        _defaultTextBuffer._data.color = glm::vec3(1.f);
+        _defaultTextBuffer._data.color = glm::vec4(1.f);
         _defaultTextBuffer._data.uvScale = glm::vec2(1.f);
 
         return &_defaultTextBuffer;

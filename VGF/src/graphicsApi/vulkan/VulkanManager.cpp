@@ -6,7 +6,7 @@ namespace VGF::Vulkan
     std::vector<VulkanRenderer*> allObjects;
     std::vector<idObject> swapchainObjects;
     
-    VulkanTexture::VulkanTexture(const char* filePath)
+    VulkanTexture::VulkanTexture(std::string filePath)
     {
         Vulkan* vulkan = Vulkan::vulkan;
 
@@ -14,11 +14,12 @@ namespace VGF::Vulkan
 
         stbi_set_flip_vertically_on_load(true);
 
-        stbi_uc* pixels = stbi_load(filePath, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        stbi_uc* pixels = stbi_load(filePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         VkDeviceSize imageSize = texWidth * texHeight * 4;
 
-        if (!pixels)
-            Log::Error("Failed to load texture : " + std::string(filePath));
+        if (!pixels) {
+            Log::Error("Failed to load texture : " + filePath);
+        }
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;

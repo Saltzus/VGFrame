@@ -3,7 +3,7 @@
 
 namespace VGF::Opengl
 {
-    OpenglTexture::OpenglTexture(const char* filePath)
+    OpenglTexture::OpenglTexture(std::string filePath)
     {
         int sus1 = glGetError();
         // generate textures
@@ -20,7 +20,7 @@ namespace VGF::Opengl
         int width, height, nrChannels;
         stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
 
-        unsigned char* data = stbi_load(filePath, &width, &height, &nrChannels, 0);
+        unsigned char* data = stbi_load(filePath.c_str(), &width, &height, &nrChannels, 0);
 
         int format;
         switch (nrChannels)

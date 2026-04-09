@@ -4,7 +4,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <vector>
+#include <string>
 #include <stb_image.h>
 
 #include <glm/glm.hpp>
@@ -26,7 +26,7 @@ namespace VGF::Opengl
     class OpenglTexture : public TextureImpl
     {
     public:
-        OpenglTexture(const char* filePath);
+        OpenglTexture(std::string filePath);
         OpenglTexture(const unsigned char* data, int format, int width, int height);
         ~OpenglTexture();  
         virtual void Bind(textureType type) override;

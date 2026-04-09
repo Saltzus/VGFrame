@@ -304,9 +304,7 @@ namespace VGF
 				(float)pbrMetallicRoughness.baseColorFactor[3]
 			};
 
-
-			//Texture* textureObject = Texture::GetDefaultTexture();
-			Texture* textureObject = Texture::GetWhiteTexture();
+			const Texture* textureObject = Texture::GetWhiteTexture();
 
 			if (pbrMetallicRoughness.baseColorTexture.index >= 0)
 			{
@@ -384,7 +382,7 @@ namespace VGF
 		}
 		else
 		{
-			std::vector<Texture*> text = Material::getDefaultMaterial()->getVector();
+			std::vector<const Texture*> text = Material::getDefaultMaterial()->getVector();
 			text[0]->Bind(textureType::color);
 			text[1]->Bind(textureType::metallicRoughness);
 			text[2]->Bind(textureType::emissive);
