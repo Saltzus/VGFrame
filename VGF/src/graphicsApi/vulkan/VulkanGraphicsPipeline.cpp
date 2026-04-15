@@ -38,12 +38,12 @@ namespace VGF::Vulkan
     }
 
 	// Constructor that build the Shader Program from 2 different shaders
-	VulkanGraphicsPipeline::VulkanGraphicsPipeline(std::string_view vertexFile, std::string_view fragmentFile, VkPrimitiveTopology topology, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline)
+	VulkanGraphicsPipeline::VulkanGraphicsPipeline(const PipelineConfig& config, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline)
 	{
-        std::string vulkanVertexFile = vertexFile.data();
+        std::string vulkanVertexFile = config.vertShader.data();
         vulkanVertexFile += ".spv";
 
-        std::string vulkanFragmentFile = fragmentFile.data();
+        std::string vulkanFragmentFile = config.fragShader.data();
         vulkanFragmentFile += ".spv";
 
         vertShaderCode = readFile(vulkanVertexFile);
@@ -79,7 +79,7 @@ namespace VGF::Vulkan
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssembly.topology = topology;
+        inputAssembly.topology = config.GetVulkanTopology();
         inputAssembly.primitiveRestartEnable = VK_FALSE;
 
         VkPipelineViewportStateCreateInfo viewportState{};
@@ -105,14 +105,14 @@ namespace VGF::Vulkan
         VkPipelineDepthStencilStateCreateInfo depthStencil{};
         depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
         depthStencil.depthTestEnable = VK_TRUE;
-        depthStencil.depthWriteEnable = VK_TRUE;
+        depthStencil.depthWriteEnable = config.translucent ? VK_FALSE : VK_TRUE;
         depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = VK_FALSE;
 
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        colorBlendAttachment.blendEnable = VK_TRUE;
+        colorBlendAttachment.blendEnable = config.translucent ? VK_TRUE : VK_FALSE;
         colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;

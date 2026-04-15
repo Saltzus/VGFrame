@@ -13,6 +13,10 @@ namespace VGF
     public:
         Texture(std::string filePath);
         Texture(const unsigned char* data, int format, unsigned int width, unsigned int height);
+
+        Texture(const Texture&) = delete;
+        Texture& operator=(const Texture&) = delete;
+
         ~Texture();
 
         virtual void Bind(textureType type = textureType::color) const;

@@ -8,8 +8,9 @@ namespace VGF
 {
 	bool configCreated = false;
 
-	PipelineConfig::PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology)
+	PipelineConfig::PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent)
 	{
+		this->translucent = translucent;
 		this->topology = topology;
 		this->vertShader = vertShader;
 		this->fragShader = fragShader;
@@ -37,6 +38,23 @@ namespace VGF
 		if (configCreated)
 			this->_impl->Delete();
 	}
+
+	const VkPrimitiveTopology PipelineConfig::GetVulkanTopology() const
+	{
+		switch (topology)
+		{
+		case VGF::Topology::LINE_LIST:
+			return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+			break;
+		case VGF::Topology::TRIANGLE_LIST:
+			return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+			break;
+		default:
+			return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+			break;
+		}
+	}
+
 
 	void PipelineConfig::Activate()
 	{

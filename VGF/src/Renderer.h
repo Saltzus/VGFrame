@@ -29,6 +29,10 @@ namespace VGF
         const static GraphicsApis graphicApi;
     public:
         Renderer(std::vector<unsigned int>& indices, std::vector<float>& vertices, std::vector<UniformBufferObject*> uniformBuffers);
+       
+        Renderer(const Renderer&) = delete;
+        Renderer& operator=(const Renderer&) = delete;
+        
         ~Renderer();
 
         void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers);

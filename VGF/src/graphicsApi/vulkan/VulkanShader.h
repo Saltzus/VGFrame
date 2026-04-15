@@ -9,8 +9,6 @@
 
 #include "../../RenderImpl.h"
 
-std::string get_file_contents(std::string_view filename);
-
 namespace VGF::Vulkan
 {
     class VulkanShader : public ShaderImpl

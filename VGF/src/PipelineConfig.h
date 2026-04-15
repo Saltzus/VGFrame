@@ -14,20 +14,35 @@ namespace VGF
     class PipelineConfig 
     {
     public:
-        PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology = Topology::TRIANGLE_LIST);
-        PipelineConfig();
+        PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent = false);
+        PipelineConfig(std::string_view vertShader, std::string_view fragShader, bool translucent, Topology topology = Topology::TRIANGLE_LIST)
+            : PipelineConfig(vertShader, fragShader, topology, translucent) {}
 
+        PipelineConfig(std::string_view vertShader, std::string_view fragShader)
+            : PipelineConfig(vertShader, fragShader, topology, translucent) {
+        }
+        
+        PipelineConfig();
         ~PipelineConfig();
 
+        const VkPrimitiveTopology GetVulkanTopology() const;
+
+        bool translucent = false;
         Topology topology = Topology::TRIANGLE_LIST;
+
         std::string vertShader;
         std::string fragShader;
 
         bool operator==(const PipelineConfig& other) const 
         {
-            return topology    == other.topology &&
-                   vertShader   == other.vertShader &&
-                   fragShader   == other.fragShader;
+            return
+            { 
+                translucent == other.translucent &&
+                topology    == other.topology    &&
+                vertShader  == other.vertShader  &&
+                fragShader  == other.fragShader
+            };
+
         }
 
         void Activate();
@@ -43,12 +58,12 @@ namespace VGF
     {
         std::size_t operator()(const PipelineConfig& config) const noexcept 
         {
-            // note: std::hash<std::string> is well-defined
-            size_t h1 = std::hash<int>()(static_cast<int>(config.topology));
-            size_t h2 = std::hash<std::string>()(config.vertShader);
-            size_t h3 = std::hash<std::string>()(config.fragShader);
-            // simple combinator—feel free to replace with boost::hash_combine
-            return h1 ^ (h2 << 1) ^ (h3 << 2);
+            size_t h1 = std::hash<bool>()(config.translucent);
+            size_t h2 = std::hash<int>()(static_cast<int>(config.topology));
+            size_t h3 = std::hash<std::string>()(config.vertShader);
+            size_t h4 = std::hash<std::string>()(config.fragShader);
+
+            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3);
         }
     };
 }

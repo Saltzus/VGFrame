@@ -19,7 +19,7 @@ namespace VGF
 
 	private:
 		FrameBufferImpl* _impl = nullptr;
-		Texture _framebufferTexture;
+		Texture& _framebufferTexture;
 	};
 
 }

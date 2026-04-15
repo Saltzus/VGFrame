@@ -766,14 +766,16 @@ namespace VGF::Vulkan
             pass = offscreenRenderPass;
 
             auto it = offscreenPipelineCache.find(config);
-            if (it != offscreenPipelineCache.end())
+            if (it != offscreenPipelineCache.end()) {
                 return it->second;
+            }
         }
         else
         {
             auto it = pipelineCache.find(config);
-            if (it != pipelineCache.end())
+            if (it != pipelineCache.end()) {
                 return it->second;
+            }
         }
 
         std::pair<VkPipeline, VkPipelineLayout> pipeline_pipelineLayout = createGraphicsPipeline(object, config, pass);
@@ -788,29 +790,12 @@ namespace VGF::Vulkan
 
     std::pair<VkPipeline, VkPipelineLayout> Vulkan::createGraphicsPipeline(VulkanRenderer* object, const PipelineConfig& config, VkRenderPass& renderPass)
     {
-        VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-
-        switch (config.topology)
-        {
-        case VGF::Topology::LINE_LIST:
-            topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-            break;
-        case VGF::Topology::TRIANGLE_LIST:
-            topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-            break;
-        default:
-            topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-            break;
-        }
-
         VkPipeline pipeline;
         VkPipelineLayout pipelineLayout;
 
         VulkanGraphicsPipeline graphicsPipeline
         (
-            config.vertShader,
-            config.fragShader,
-            topology,
+            config,
             device,
             object->descriptorSetLayout,
             renderPass,
