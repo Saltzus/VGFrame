@@ -4,7 +4,9 @@
 namespace VGF::Vulkan
 {
     std::vector<VulkanRenderer*> allObjects;
-    std::vector<idObject> swapchainObjects;
+
+    std::vector<idObject> opaqueSwapchainObjects;
+    std::vector<idObject> translucentSwapchainObjects;
     
     VulkanTexture::VulkanTexture(std::string filePath)
     {
@@ -854,7 +856,7 @@ namespace VGF::Vulkan
 
             vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            for (auto object : framebuffers[i]->objects)
+            for (auto object : framebuffers[i]->opaqueObjects)
             {
                 vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object.object->config).first);
 
@@ -867,7 +869,21 @@ namespace VGF::Vulkan
                 vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.object->indicesSize), 1, 0, 0, 0);
             }
 
-            framebuffers[i]->objects.clear();
+            for (auto object : framebuffers[i]->translucentObjects)
+            {
+                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object.object->config).first);
+
+                vkCmdBindVertexBuffers(commandBuffer, 0, 1, &object.object->vertexBuffer_vertexBufferMemory.first, offsets);
+                vkCmdBindIndexBuffer(commandBuffer, object.object->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
+
+                updateUniformBuffer(currentFrame, object);
+
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object.object->config).second, 0, 1, &object.object->descriptorSets[object.usedId][currentFrame], 0, nullptr);
+                vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.object->indicesSize), 1, 0, 0, 0);
+            }
+
+            framebuffers[i]->opaqueObjects.clear();
+            framebuffers[i]->translucentObjects.clear();
 
             vkCmdEndRenderPass(commandBuffer);
         }
@@ -885,7 +901,7 @@ namespace VGF::Vulkan
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        for (auto object : swapchainObjects)
+        for (auto object : opaqueSwapchainObjects)
         {
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object.object->config).first);
 
@@ -898,7 +914,21 @@ namespace VGF::Vulkan
             vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.object->indicesSize), 1, 0, 0, 0);
         }
 
-        swapchainObjects.clear();
+        for (auto object : translucentSwapchainObjects)
+        {
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object.object->config).first);
+
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &object.object->vertexBuffer_vertexBufferMemory.first, offsets);
+            vkCmdBindIndexBuffer(commandBuffer, object.object->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
+
+            updateUniformBuffer(currentFrame, object);
+
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object.object->config).second, 0, 1, &object.object->descriptorSets[object.usedId][currentFrame], 0, nullptr);
+            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.object->indicesSize), 1, 0, 0, 0);
+        }
+
+        opaqueSwapchainObjects.clear();
+        translucentSwapchainObjects.clear();
 
         vkCmdEndRenderPass(commandBuffer);
 
@@ -1876,11 +1906,15 @@ namespace VGF::Vulkan
 
         CheckTextureChange(_timesUsed - 1);
 
-        if (vulkan->currentFramebuffer == nullptr)
-            swapchainObjects.push_back({ _timesUsed - 1, this });
-        else
-        {   
-            vulkan->currentFramebuffer->objects.push_back({ _timesUsed - 1, this });
+        std::vector<idObject>& objectVector = config.translucent ? translucentSwapchainObjects : opaqueSwapchainObjects;
+        std::vector<idObject>& framebufferObjectVector = 
+            config.translucent ? vulkan->currentFramebuffer->translucentObjects : vulkan->currentFramebuffer->opaqueObjects;
+
+        if (vulkan->currentFramebuffer == nullptr) {
+            objectVector.push_back({ _timesUsed - 1, this });
+        }
+        else {   
+            framebufferObjectVector.push_back({ _timesUsed - 1, this });
         }
     }
 
