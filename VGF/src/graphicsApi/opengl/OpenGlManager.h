@@ -57,7 +57,7 @@ namespace VGF::Opengl
         OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, std::vector<UniformBufferObject*> uniformBuffers);
         ~OpenglRenderer();    
 
-        virtual void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override; // Declare draw
+        virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override; // Declare draw
     private:
 
         Opengl* opengl;

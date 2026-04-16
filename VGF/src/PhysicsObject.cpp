@@ -32,8 +32,8 @@ namespace VGF
         body->setUserPointer(this);
     }
 
-    void PhysicsObject::Render(PipelineConfig& config, Camera* camera, std::vector<UniformBufferObject*> additionalUniformBuffers)
-    {   
+    glm::mat4 PhysicsObject::CreateModelMatrix() const
+    {
         btMatrix3x3 basis = body->getWorldTransform().getBasis();
         btVector3 origin = body->getWorldTransform().getOrigin();
 
@@ -42,9 +42,7 @@ namespace VGF
         transform.getOpenGLMatrix(bulletMat);
         glm::mat4 model = glm::make_mat4(bulletMat);
 
-        model = glm::scale(model, _scale);
-
-        this->_model->renderModel(model, config, camera, additionalUniformBuffers);
+        return glm::scale(model, _scale);
     }
 
     PhysicsObject::~PhysicsObject()

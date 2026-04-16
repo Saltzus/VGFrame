@@ -24,21 +24,26 @@ namespace VGF
 	class Model
 	{
 	public:
-		Model(const char* modelPath);
-		Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, std::vector<UniformBufferObject*> additionalUniformBuffers = {});
-		Model(Mesh& mesh, Material* material);
+		Model(const char* modelPath, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+		Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 
 		~Model();
 
-		void renderModel(const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera, std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+		PipelineConfig config;
+
+		void Render(const glm::mat4& parentMatrix, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {}) { Render(parentMatrix, config, camera, additionalUniformBuffers); }
+		void Render(const glm::mat4& parentMatrix, const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+		
 		tinygltf::Model model;
 		std::vector <Mesh> meshes;
 
 		bool isCustomModel() { return customModel; }
 
 	private:
-		void drawNodes(int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera, LightBufferObject lightBuffer);
+		void Draw(const glm::mat4& parentMatrix, const Renderer* renderer,const int bindMaterial, const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+		void drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const PipelineConfig& config, const Camera& camera, LightBufferObject lightBuffer);
 
+		std::vector<UniformBufferObject*> _additionalUniformBuffers;
 		std::vector<UniformBufferObject*> uniformBuffers =
 		{
 			new MatrixBufferObject,
@@ -105,6 +110,6 @@ namespace VGF
 
 		std::vector<Texture*> createTextureObjects(const tinygltf::Model& model) const;
 		glm::mat4 getLocalToWorldMatrix(const tinygltf::Node& node, const glm::mat4& parentMatrix);
-		UniformBufferObject* bindMaterial(Camera* camera, const int materialIndex);
+		UniformBufferObject* bindMaterial(const Camera& camera, const int materialIndex);
 	};
 } 

@@ -1,7 +1,11 @@
 #pragma once
 
 #include "RenderImpl.h"
-#include "vulkan/vulkan.hpp"
+#include "Resource.h"
+
+#include <vulkan/vulkan.hpp>
+
+
 
 namespace VGF
 {
@@ -25,14 +29,6 @@ namespace VGF
         PipelineConfig();
         ~PipelineConfig();
 
-        const VkPrimitiveTopology GetVulkanTopology() const;
-
-        bool translucent = false;
-        Topology topology = Topology::TRIANGLE_LIST;
-
-        std::string vertShader;
-        std::string fragShader;
-
         bool operator==(const PipelineConfig& other) const 
         {
             return
@@ -45,9 +41,27 @@ namespace VGF
 
         }
 
-        void Activate();
+        bool translucent = false;
+        Topology topology = Topology::TRIANGLE_LIST;
+
+        std::string vertShader;
+        std::string fragShader;
+
+        static const VGF::PipelineConfig& GetDefault()
+        {
+            static const VGF::PipelineConfig config
+            (
+                VGF::Resource::Get("Shaders/default.vert"),
+                VGF::Resource::Get("Shaders/default.frag"),
+                VGF::Topology::TRIANGLE_LIST
+            );
+            return config;
+        }
+
+        const VkPrimitiveTopology GetVulkanTopology() const;
+        void Activate() const;
         void Delete();
-        unsigned int& ID();
+        const unsigned int& ID() const;
 
     private:
         ShaderImpl* _impl = nullptr;

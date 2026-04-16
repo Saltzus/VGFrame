@@ -26,7 +26,7 @@ namespace VGF
     {
     public:
         virtual ~RendererImpl() {}
-        virtual void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) = 0;
+        virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) = 0;
     };
 
     class ApiImpl

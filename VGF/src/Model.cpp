@@ -2,7 +2,8 @@
 
 namespace VGF
 {
-	Model::Model(const char* modelPath)
+	Model::Model(const char* modelPath, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers) 
+		: config(config)
 	{
 		bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, modelPath);
 		if (!warn.empty())
@@ -23,13 +24,16 @@ namespace VGF
 			meshes.push_back(mesh);
 		}
 
+		uniformBuffers.insert(uniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
+
 		for (auto mesh : meshes)
 			modelRenderers.emplace_back(new Renderer(mesh.indices, mesh.vertices, uniformBuffers));
 
 		std::cout << "Model Loaded Succesfully\n";
 	}
 
-	Model::Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, std::vector<UniformBufferObject*> additionalUniformBuffers)
+	Model::Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers) 
+		: config(config)
 	{
 		_material = material;
 		customModel = true;
@@ -231,64 +235,59 @@ namespace VGF
 		return node.scale.empty() ? TR : glm::scale(TR, glm::vec3(node.scale[0], node.scale[1], node.scale[2]));
 	};
 
+	void Model::Draw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindId, const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+	{
+		MatrixData data;
+		data.model = parentMatrix;
+		data.proj = camera.projection;
+		data.view = camera.view;
+		uniformBuffers[matrixBuffer]->SetData((void*)&data);
 
+		std::vector<UniformBufferObject*> renderUniformBuffers;
+		renderUniformBuffers.push_back(uniformBuffers[matrixBuffer]);
+		renderUniformBuffers.push_back(bindMaterial(camera, bindId));
+		renderUniformBuffers.push_back(LightBufferObject::getDefault());
+		renderUniformBuffers.insert(renderUniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
 
-	void Model::drawNodes(int nodeIdx, const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera, LightBufferObject lightBufffer)
+		renderer->Render(config, renderUniformBuffers);
+	}
+
+	void Model::drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const PipelineConfig& config, const Camera& camera, LightBufferObject lightBufffer)
 	{
 		const auto& node = model.nodes[nodeIdx];
 		const glm::mat4 modelMatrix = getLocalToWorldMatrix(node, parentMatrix);
 		const auto& mesh = model.meshes[node.mesh];
 
-		MatrixData data;
-		data.model = parentMatrix;
-		data.proj = camera->projection;
-		data.view = camera->view;
-		uniformBuffers[matrixBuffer]->SetData((void*)&data);
-
-		std::vector<UniformBufferObject*> renderUniformBuffers;
-		renderUniformBuffers.push_back(uniformBuffers[matrixBuffer]);
-		renderUniformBuffers.push_back(bindMaterial(camera, mesh.primitives[0].material));
-		renderUniformBuffers.push_back(LightBufferObject::getDefault());
-
 		if (node.mesh >= 0)
 		{
 			Renderer* renderer = modelRenderers[node.mesh];
-			renderer->Render(config, renderUniformBuffers);
+			Draw(parentMatrix, renderer, mesh.primitives[0].material, config, camera);
 		}
 		
 		for (const auto childNodeIdx : node.children) 
 			drawNodes(childNodeIdx, modelMatrix, config, camera, *LightBufferObject::getDefault());
 	};
 
-	void Model::renderModel(const glm::mat4& parentMatrix, PipelineConfig& config, Camera* camera, std::vector<UniformBufferObject*> additionalUniformBuffers)
+
+
+	void Model::Render(const glm::mat4& parentMatrix, const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers)
 	{
-		if (customModel)
-			for (size_t i = 0; i < meshes.size(); i++)
-			{
-				MatrixData data;
-				data.model = parentMatrix;
-				data.proj = camera->projection;
-				data.view = camera->view;
-				uniformBuffers[matrixBuffer]->SetData((void*)&data);
-
-				std::vector<UniformBufferObject*> renderUniformBuffers;
-				renderUniformBuffers.push_back(uniformBuffers[matrixBuffer]);
-				renderUniformBuffers.push_back(bindMaterial(camera, -1));
-				renderUniformBuffers.push_back(LightBufferObject::getDefault());
-				renderUniformBuffers.insert(renderUniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
-
-				modelRenderers[i]->Render(config, renderUniformBuffers);
+		if (customModel) {
+			for (size_t i = 0; i < meshes.size(); i++){
+				Draw(parentMatrix, modelRenderers[i], -1, config, camera, additionalUniformBuffers);
 			}
-
-		else
-			for (const auto nodeIdx : model.scenes[model.defaultScene].nodes)
+		}
+		else {
+			for (const auto nodeIdx : model.scenes[model.defaultScene].nodes) {
 				drawNodes(nodeIdx, parentMatrix, config, camera, *LightBufferObject::getDefault());
+			}
+		}
 	}
 
-	UniformBufferObject* Model::bindMaterial(Camera* camera, const int materialIndex)
+	UniformBufferObject* Model::bindMaterial(const Camera& camera, const int materialIndex)
 	{
 		PBRData pbrBufferData = *(static_cast<const PBRData*>(uniformBuffers[pbrBuffer]->Data()));
-		pbrBufferData.cameraPosition = camera->position;
+		pbrBufferData.cameraPosition = camera.position;
 
 		if (_material != nullptr) _material->Bind();
 		else if (materialIndex >= 0)

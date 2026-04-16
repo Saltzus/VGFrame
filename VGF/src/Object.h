@@ -10,11 +10,15 @@ namespace VGF
     class Object
     {
     public:
-        Object(Model* model);
-        ~Object();
+        Object(Model* model) : _model(model) {}
+        ~Object() = default;
 
-        virtual void Render(PipelineConfig& config, Camera* camera, std::vector<UniformBufferObject*> additionalUniformBuffers = {});
-        void SetModel(Model* model);
+        std::vector<UniformBufferObject*> additionalUniformBuffers;
+
+        virtual void Render(const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+        void Render(const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+        void SetModel(Model* model) { _model = model; }
+        void SetConfig(const PipelineConfig& config) { _model->config = config; }
 
         virtual void SetPosition(const float x, const float y, const float z) { _position = glm::vec3(x, y, z); }
         void SetPosition(const glm::vec3 position) { SetPosition(position.x, position.y, position.z); }
@@ -35,7 +39,7 @@ namespace VGF
         glm::quat _rotation = glm::quat(0.f, 0.f, 0.f, 1.f);
         glm::vec3 _scale = glm::vec3(0.7f, 0.7f, 0.7f);
 
-        glm::mat4 CreateModelMatrix() const;
+        virtual glm::mat4 CreateModelMatrix() const;
     private:
     };
     

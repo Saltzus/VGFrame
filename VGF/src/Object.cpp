@@ -3,26 +3,20 @@
 
 namespace VGF
 {
-    
+    void Object::Render(const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+    {
+        if (!additionalUniformBuffers.empty()) {
+            this->additionalUniformBuffers = additionalUniformBuffers;
+        }
 
-    Object::Object(Model* model)
-    {
-        this->_model = model;
-    }
-
-    void Object::SetModel(Model* model)
-    {
-        this->_model = model;
-    }
-    
-    Object::~Object()
-    {
-    }
-
-    void Object::Render(PipelineConfig& config, Camera* camera, std::vector<UniformBufferObject*> additionalUniformBuffers)
-    {
         glm::mat4 model = CreateModelMatrix();
-        this->_model->renderModel(model, config, camera, additionalUniformBuffers);
+        _model->Render(model, camera, this->additionalUniformBuffers);
+    }
+
+    void Object::Render(const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+    {
+        _model->config = config;
+        Render(camera, additionalUniformBuffers);
     }
 
     void Object::LookAt(glm::vec3 lookingPosition, float xOffset, float yOffset)

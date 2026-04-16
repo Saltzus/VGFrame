@@ -35,7 +35,7 @@ namespace VGF
         
         ~Renderer();
 
-        void Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers);
+        void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) const;
         static GraphicsApis GetGraphicsApi() {return graphicApi;};
         static void InitApi(GLFWwindow* window); 
         static void RenderGraphics();

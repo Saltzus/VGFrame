@@ -4,8 +4,6 @@
 
 namespace VGF
 {
-
-
 	Physics::Physics()
 	{
 		///collision configuration contains default setup for memory, collision setup. Advanced users can create their own configuration.
@@ -59,7 +57,7 @@ namespace VGF
 	VGF::Renderer* lines;
 	MatrixBufferObject matrixBuffer;
 
-	void Physics::debugRender(PipelineConfig& config, Camera* camera)
+	void Physics::debugRender(const Camera& camera)
 	{
 		if (Input::getDebugDrawerOn())
 		{
@@ -67,8 +65,8 @@ namespace VGF
 
 			MatrixData data;
 			data.model = glm::mat4(1.f);
-			data.proj = camera->projection;
-			data.view = camera->view;
+			data.proj = camera.projection;
+			data.view = camera.view;
 			matrixBuffer.SetData((void*)&data);
 
 			debug->indices.clear();
@@ -77,7 +75,7 @@ namespace VGF
 			dynamicsWorld->debugDrawWorld();
 
 			lines = new VGF::Renderer(debug->indices, debug->vertices, {MatrixBufferObject::getDefault()});
-			lines->Render(config, { &matrixBuffer });
+			lines->Render(GetDefaultConfig(), {&matrixBuffer});
 		}
 	}
 }

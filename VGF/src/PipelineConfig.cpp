@@ -56,7 +56,7 @@ namespace VGF
 	}
 
 
-	void PipelineConfig::Activate()
+	void PipelineConfig::Activate() const
 	{
 		this->_impl->Activate();
 	}
@@ -64,7 +64,7 @@ namespace VGF
 	{
 		this->_impl->Delete();
 	}
-	unsigned int& PipelineConfig::ID()
+	const unsigned int& PipelineConfig::ID() const
 	{
 		return this->_impl->Id();
 	}

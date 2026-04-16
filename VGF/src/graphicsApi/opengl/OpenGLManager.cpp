@@ -230,10 +230,10 @@ namespace VGF::Opengl
         glDeleteBuffers(1, &EBO);
     }
 
-    void OpenglRenderer::Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
+    void OpenglRenderer::Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
     {
         int topology;
-
+         
         switch (config.topology)
         {
         case VGF::Topology::LINE_LIST:

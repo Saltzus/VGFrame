@@ -197,13 +197,13 @@ namespace VGF::Vulkan
         vkDestroyImage(device, textureImage, nullptr);
         vkFreeMemory(device, textureImageMemory, nullptr);
 
-        for (auto pipeline_pipelineLayout : pipelineCache)
+        for (auto& pipeline_pipelineLayout : pipelineCache)
         {
             vkDestroyPipeline(device, pipeline_pipelineLayout.second.first, nullptr);
             vkDestroyPipelineLayout(vulkan->device, pipeline_pipelineLayout.second.second, nullptr);
         }
 
-        for (auto pipeline_pipelineLayout : offscreenPipelineCache)
+        for (auto& pipeline_pipelineLayout : offscreenPipelineCache)
         {
             vkDestroyPipeline(device, pipeline_pipelineLayout.second.first, nullptr);
             vkDestroyPipelineLayout(vulkan->device, pipeline_pipelineLayout.second.second, nullptr);
@@ -1860,7 +1860,7 @@ namespace VGF::Vulkan
         //    }
         //}
     }
-    void VulkanRenderer::Render(PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
+    void VulkanRenderer::Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
     {
         if (_timesUsed == 0) allObjects.push_back(this);
         _timesUsed++;

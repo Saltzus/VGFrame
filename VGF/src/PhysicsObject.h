@@ -12,8 +12,6 @@ namespace VGF
 
         ~PhysicsObject();
 
-        virtual void Render(PipelineConfig& config, Camera* camera, std::vector<UniformBufferObject*> additionalUniformBuffers = {}) override;
-
         using Object::SetPosition;
         using Object::SetRotation;
         using Object::SetScale;
@@ -34,6 +32,8 @@ namespace VGF
     private:
         Physics* _physics;
         btCollisionShape* collisionShape;
+
+        glm::mat4 CreateModelMatrix() const override;
     };
 
 }
