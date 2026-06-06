@@ -1,4 +1,7 @@
 #include "Window.h"
+#include "Renderer.h"
+
+#include "graphicsApi/opengl/OpenGlManager.h"
 
 namespace VGF
 {

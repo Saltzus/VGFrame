@@ -5,8 +5,38 @@ file(GLOB_RECURSE CLIENT_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/**.h"
 )
 
+set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/imgui")
+
+set(3rdPartyImGui
+    "${IMGUI_DIR}/imgui.cpp"
+    "${IMGUI_DIR}/imgui.h"
+    "${IMGUI_DIR}/imgui_demo.cpp"
+    "${IMGUI_DIR}/imgui_draw.cpp"
+    "${IMGUI_DIR}/imgui_tables.cpp"
+    "${IMGUI_DIR}/imgui_widgets.cpp"
+    "${IMGUI_DIR}/imgui_internal.h"
+    "${IMGUI_DIR}/imstb_rectpack.h"
+    "${IMGUI_DIR}/imstb_textedit.h"
+    "${IMGUI_DIR}/imstb_truetype.h"
+    
+    "${IMGUI_DIR}/backends/imgui_impl_glfw.cpp"
+    "${IMGUI_DIR}/backends/imgui_impl_glfw.h"
+    "${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp"
+    "${IMGUI_DIR}/backends/imgui_impl_vulkan.h"
+)
+
+add_library(ImGuiTarget OBJECT ${3rdPartyImGui})
+target_link_libraries(ImGuiTarget PRIVATE glfw vulkan glad)
+target_include_directories(ImGuiTarget PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/glad/include
+    ${IMGUI_DIR}
+    ${IMGUI_DIR}/backends
+)
+
+
 # Create the executable.
-add_library(VGF STATIC ${CLIENT_FILES})
+add_library(VGF STATIC ${CLIENT_FILES} $<TARGET_OBJECTS:ImGuiTarget>)
 
 target_link_libraries(VGF
     PUBLIC
@@ -35,7 +65,11 @@ target_include_directories(VGF PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries
   ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/glad/include
   ${CORE_LIB_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/imgui
+  ${CMAKE_CURRENT_SOURCE_DIR}/../Libraries/imgui/backends
 )
+
+source_group(VGFrame/3rd-party/imgui FILES ${3rdPartyImGui})
 
 # Function to automatically assign source groups based on folder structure.
 function(assign_source_groups)

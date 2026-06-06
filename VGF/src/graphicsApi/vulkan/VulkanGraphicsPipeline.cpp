@@ -1,5 +1,6 @@
 ﻿#include "VulkanGraphicsPipeline.h"
 #include "../../Model.h"
+#include "../../Log.h"
 
 namespace VGF::Vulkan
 {

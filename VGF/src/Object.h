@@ -16,7 +16,7 @@ namespace VGF
         std::vector<UniformBufferObject*> additionalUniformBuffers;
 
         virtual void Render(const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
-        void Render(const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+        void Render(const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
         void SetModel(Model* model) { _model = model; }
         void SetConfig(const PipelineConfig& config) { _model->config = config; }
 

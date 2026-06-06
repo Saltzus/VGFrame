@@ -1,5 +1,6 @@
 #include "TextManager.h"
 #include "Resource.h"
+#include "Log.h"
 
 namespace VGF
 {

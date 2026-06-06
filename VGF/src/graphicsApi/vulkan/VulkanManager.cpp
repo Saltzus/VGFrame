@@ -930,6 +930,9 @@ namespace VGF::Vulkan
         opaqueSwapchainObjects.clear();
         translucentSwapchainObjects.clear();
 
+        // Imgui Render
+        if (vulkanGui) vulkanGui->Render(commandBuffer);
+
         vkCmdEndRenderPass(commandBuffer);
 
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
@@ -956,7 +959,7 @@ namespace VGF::Vulkan
         createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
         depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
     }
-    VkFormat Vulkan::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) 
+    VkFormat Vulkan::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const
     {
         for (VkFormat format : candidates) 
         {
@@ -973,7 +976,7 @@ namespace VGF::Vulkan
 
         VGF::Log::Error("Failed to find supported format!");
     }
-    VkFormat Vulkan::findDepthFormat() 
+    VkFormat Vulkan::findDepthFormat() const
     {
         return findSupportedFormat(
             { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
@@ -1529,7 +1532,7 @@ namespace VGF::Vulkan
         }
     }
 
-    VkCommandBuffer Vulkan::beginSingleTimeCommands() 
+    VkCommandBuffer Vulkan::beginSingleTimeCommands() const
     {
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1548,7 +1551,7 @@ namespace VGF::Vulkan
 
         return commandBuffer;
     }
-    void Vulkan::endSingleTimeCommands(VkCommandBuffer commandBuffer) 
+    void Vulkan::endSingleTimeCommands(VkCommandBuffer commandBuffer) const
     {
         vkEndCommandBuffer(commandBuffer);
 

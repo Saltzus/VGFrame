@@ -1,6 +1,9 @@
 #include "Texture.h"
 #include "Resource.h"
 
+#include "graphicsApi/opengl/OpenGlManager.h"
+#include "graphicsApi/vulkan/VulkanManager.h"
+
 namespace VGF
 {
     Texture::Texture(std::string filePath)

@@ -25,6 +25,6 @@ namespace VGF::Opengl
 
     private:
         unsigned int ID;
-        void compileErrors(unsigned int shader, const char* type);
+        void compileErrors(unsigned int shader, std::string type);
     };
 }

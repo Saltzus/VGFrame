@@ -1,5 +1,10 @@
 #include "OpenGlManager.h"
 #include "../../Camera.h"
+#include "../../Log.h"
+
+#include "../../PipelineConfig.h"
+
+#include <array>
 
 namespace VGF::Opengl
 {
@@ -255,18 +260,20 @@ namespace VGF::Opengl
             glBufferSubData(GL_UNIFORM_BUFFER, 0, uniformBuffers[i]->SizeOf(), uniformBuffers[i]->Data());
         }
 
-        GLint loc;
-        loc = glGetUniformLocation(config.ID(), "colorSampler");
-        glUniform1i(loc, 2);
-        loc = glGetUniformLocation(config.ID(), "metallicRoughnessSampler");
-        glUniform1i(loc, 3);
-        loc = glGetUniformLocation(config.ID(), "emissiveSampler");
-        glUniform1i(loc, 4);
-        loc = glGetUniformLocation(config.ID(), "occulsionSampler");
-        glUniform1i(loc, 5);
-        loc = glGetUniformLocation(config.ID(), "normalSampler");
-        glUniform1i(loc, 6);
+        std::array<const char*, 5> samplers =
+        {
+            "colorSampler",
+            "metallicRoughnessSampler",
+            "emissiveSampler",
+            "occulsionSampler",
+            "normalSampler"
+        };
 
+        for (size_t binding = 0; binding < samplers.size(); binding++)
+        {
+            GLint location = glGetUniformLocation(config.ID(), samplers[binding]);
+            glUniform1i(location, binding + 2);
+        }
         glBindVertexArray(VAO);
         glDrawElements(topology, indicesSize, GL_UNSIGNED_INT, 0);
 

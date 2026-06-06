@@ -13,7 +13,7 @@ namespace VGF
         _model->Render(model, camera, this->additionalUniformBuffers);
     }
 
-    void Object::Render(const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+    void Object::Render(const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
     {
         _model->config = config;
         Render(camera, additionalUniformBuffers);

@@ -1,5 +1,8 @@
 #include "Renderer.h"
 
+#include "graphicsApi/opengl/OpenGlManager.h"
+#include "graphicsApi/vulkan/VulkanManager.h"
+
 namespace VGF
 {
     const GraphicsApis Renderer::graphicApi = GraphicsApis::Vulkan;// TODO: add to a config file using YAML or something like that.
@@ -54,4 +57,6 @@ namespace VGF
         if (graphicApi == GraphicsApis::Vulkan)
             Api->render();
     }
+
+    const ::VGF::Vulkan::Vulkan* Renderer::GetVulkanData() { return ::VGF::Vulkan::Vulkan::vulkan; }
 }

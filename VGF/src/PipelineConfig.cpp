@@ -35,8 +35,7 @@ namespace VGF
 
 	PipelineConfig::~PipelineConfig()
 	{
-		if (configCreated)
-			this->_impl->Delete();
+
 	}
 
 	const VkPrimitiveTopology PipelineConfig::GetVulkanTopology() const
@@ -62,7 +61,8 @@ namespace VGF
 	}
 	void PipelineConfig::Delete()
 	{
-		this->_impl->Delete();
+		if (configCreated)
+			this->_impl->Delete();
 	}
 	const unsigned int& PipelineConfig::ID() const
 	{

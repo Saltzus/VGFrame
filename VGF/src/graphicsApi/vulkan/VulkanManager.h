@@ -33,6 +33,7 @@
 
 #include "VulkanGraphicsPipeline.h"
 #include "VulkanFrameBuffer.h"
+#include "VulkanGui.h"
 
 namespace VGF::Vulkan
 {
@@ -89,7 +90,15 @@ namespace VGF::Vulkan
 
         static Vulkan* vulkan;
 
+        VulkanGui* vulkanGui = nullptr;
+
+        VkInstance instance;
+        
         VkDevice device;
+        VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+        VkFormat swapChainImageFormat;
+
+        VkQueue graphicsQueue;
 
         std::vector<VulkanFrameBuffer*> framebuffers;
 
@@ -98,6 +107,9 @@ namespace VGF::Vulkan
         VkImageView emissiveTextureImageView;
         VkImageView occulsionTextureImageView;
         VkImageView normalTextureImageView;
+
+        std::vector<VkCommandBuffer> commandBuffers;
+
 
         VkImageView depthImageView;
 
@@ -110,6 +122,8 @@ namespace VGF::Vulkan
 
         std::pair<VkPipeline, VkPipelineLayout> getOrCreatePipeline(VulkanRenderer* object, const PipelineConfig& config, const bool offscreen);
         std::pair<VkPipeline, VkPipelineLayout> createGraphicsPipeline(VulkanRenderer* object, const PipelineConfig& config, VkRenderPass& renderPass);
+        VkFormat findDepthFormat() const;
+
 
         VkDescriptorPool descriptorPool;
         std::vector<VkDescriptorSet> descriptorSets;
@@ -130,6 +144,8 @@ namespace VGF::Vulkan
         void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
         void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
+        VkCommandBuffer beginSingleTimeCommands() const;
+        void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
 
         std::pair<VkBuffer, VkDeviceMemory> createVertexBuffer(std::vector<GLfloat>& vertices);
         std::pair<VkBuffer, VkDeviceMemory> createIndexBuffer(std::vector<uint16_t> indices);
@@ -154,18 +170,13 @@ namespace VGF::Vulkan
     private:
         GLFWwindow* window;
 
-        VkInstance instance;
         VkDebugUtilsMessengerEXT debugMessenger;
         VkSurfaceKHR surface;
 
-        VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-
-        VkQueue graphicsQueue;
         VkQueue presentQueue;
 
         VkSwapchainKHR swapChain;
         std::vector<VkImage> swapChainImages;
-        VkFormat swapChainImageFormat;
         VkExtent2D swapChainExtent;
         std::vector<VkImageView> swapChainImageViews;
         std::vector<VkFramebuffer> swapChainFramebuffers;
@@ -194,7 +205,6 @@ namespace VGF::Vulkan
 
 
 
-        std::vector<VkCommandBuffer> commandBuffers;
         std::vector<VkCommandBuffer> offscreenCommandBuffers;
 
         std::vector<VkSemaphore> imageAvailableSemaphores;
@@ -232,9 +242,6 @@ namespace VGF::Vulkan
         void createTextureSampler();
 
 
-        VkCommandBuffer beginSingleTimeCommands();
-        void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-
         void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
@@ -246,8 +253,7 @@ namespace VGF::Vulkan
         void createCommandBuffers();
 
         void createDepthResources();
-        VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-        VkFormat findDepthFormat();
+        VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
         bool hasStencilComponent(VkFormat format);
 
         void drawFrame();

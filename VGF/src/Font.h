@@ -2,6 +2,8 @@
 
 #include "Texture.h"
 
+#include <map>
+
 namespace VGF
 {
 	struct Character

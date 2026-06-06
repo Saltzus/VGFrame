@@ -270,7 +270,7 @@ namespace VGF
 
 
 
-	void Model::Render(const glm::mat4& parentMatrix, const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+	void Model::Render(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
 	{
 		if (customModel) {
 			for (size_t i = 0; i < meshes.size(); i++){
