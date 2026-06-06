@@ -21,44 +21,46 @@ namespace VGF
     class PipelineConfig;
     class Shader;
     class Camera;
+    class Window;
 
-    class RendererImpl 
+    struct RendererImpl
     {
-    public:
         virtual ~RendererImpl() {}
         virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) = 0;
     };
 
-    class ApiImpl
+    struct ApiImpl
     {
-    public:
         virtual ~ApiImpl() {}
         virtual void render() {}
     };
 
-    class TextureImpl
+    struct TextureImpl
     {
-    public:
         virtual ~TextureImpl() {}
         virtual void Bind(textureType type) = 0;
         virtual void* GetNativeImage() = 0;
     };
 
-	class ShaderImpl
+	struct ShaderImpl
 	{
-    public:
         virtual ~ShaderImpl() {}
         virtual void Activate() = 0;
         virtual void Delete() = 0;
         virtual unsigned int& Id() = 0;
 	};
 
-    class FrameBufferImpl
+    struct FrameBufferImpl
     {
-    public:
         virtual ~FrameBufferImpl() {}
         virtual void Bind() = 0;
         virtual void UnBind() = 0;
         virtual void Delete() = 0;
+    };
+
+    struct GuiImpl 
+    {
+        virtual void NewFrame() = 0;
+        virtual void Render() = 0;
     };
 }

@@ -2,6 +2,7 @@
 
 #include "Window.h"
 #include "Renderer.h"
+#include "RenderImpl.h"
 
 #include <imgui/imgui.h>
 #include <iostream>
@@ -19,5 +20,6 @@ namespace VGF
 		void Render(const Window& window);
 
 	private:
+		GuiImpl* impl;
 	};
 }

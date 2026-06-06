@@ -2,25 +2,27 @@
 
 #include "Renderer.h"
 #include "Texture.h"
-#include "graphicsApi/vulkan/VulkanManager.h"
+
 #include "graphicsApi/vulkan/VulkanGui.h"
+#include "graphicsApi/opengl/OpenglGui.h"
 
 namespace VGF
 {
-	Vulkan::VulkanGui* vulkanGui;
-
 	Gui::Gui(const Window& window)
 	{
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGui::StyleColorsDark();
-		
-		vulkanGui = new Vulkan::VulkanGui(window);
+
+		if (Renderer::GetGraphicsApi() == GraphicsApis::Vulkan)
+			impl = new Vulkan::VulkanGui(window);
+		else
+			impl = new Opengl::OpenglGui(window);
 	}
 
 	Gui::~Gui()
 	{
-		delete vulkanGui;
+		if (impl) delete impl;
 		ImGui::DestroyContext();
 	}
 
@@ -28,14 +30,14 @@ namespace VGF
 
 	void Gui::NewFrame()
 	{
-		vulkanGui->NewFrame();
+		impl->NewFrame();
 		ImGui::NewFrame();
-
 		ImGui::ShowDemoWindow(&show_demo_window);
 	}
 
     void Gui::Render(const Window& window) {
 		ImGui::Render();
+		impl->Render();
     }
 
 }

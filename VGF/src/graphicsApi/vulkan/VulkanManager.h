@@ -90,7 +90,7 @@ namespace VGF::Vulkan
 
         static Vulkan* vulkan;
 
-        VulkanGui* vulkanGui = nullptr;
+        bool vulkanGui = false;
 
         VkInstance instance;
         

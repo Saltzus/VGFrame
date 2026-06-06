@@ -931,7 +931,7 @@ namespace VGF::Vulkan
         translucentSwapchainObjects.clear();
 
         // Imgui Render
-        if (vulkanGui) vulkanGui->Render(commandBuffer);
+        if (vulkanGui) VulkanGui::Render(commandBuffer);
 
         vkCmdEndRenderPass(commandBuffer);
 

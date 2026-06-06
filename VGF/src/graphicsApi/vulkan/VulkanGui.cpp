@@ -11,25 +11,13 @@ namespace VGF::Vulkan
 {
 	VulkanGui::VulkanGui(const Window& window)
 	{
-        Vulkan* vulkan = Vulkan::vulkan;
-
-
         VkDescriptorPoolSize pool_sizes[] =
         {
-            { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
-            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
-            { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
-            { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
-            { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+            { VK_DESCRIPTOR_TYPE_SAMPLER,                IMGUI_IMPL_VULKAN_MINIMUM_SAMPLER_POOL_SIZE },
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_SAMPLED_IMAGE_POOL_SIZE },
+            { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,          IMGUI_IMPL_VULKAN_MINIMUM_SAMPLED_IMAGE_POOL_SIZE },
         };
 
-        VkDescriptorPool descriptorPool;
 
         VkDescriptorPoolCreateInfo pool_info = {};
         pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -39,10 +27,10 @@ namespace VGF::Vulkan
             pool_info.maxSets += pool_size.descriptorCount;
         pool_info.poolSizeCount = (uint32_t)IM_COUNTOF(pool_sizes);
         pool_info.pPoolSizes = pool_sizes;
-        vkCreateDescriptorPool(vulkan->device, &pool_info, nullptr, &descriptorPool);
+        vkCreateDescriptorPool(Vulkan::vulkan->device, &pool_info, nullptr, &descriptorPool);
 
         VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = vulkan->swapChainImageFormat;
+        colorAttachment.format = Vulkan::vulkan->swapChainImageFormat;
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -52,7 +40,7 @@ namespace VGF::Vulkan
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
         VkAttachmentDescription depthAttachment{};
-        depthAttachment.format = vulkan->findDepthFormat();
+        depthAttachment.format = Vulkan::vulkan->findDepthFormat();
         depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -102,9 +90,7 @@ namespace VGF::Vulkan
         renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
         renderPassInfo.pDependencies = dependencies.data();
 
-        VkRenderPass renderPass;
-
-        if (vkCreateRenderPass(vulkan->device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
+        if (vkCreateRenderPass(Vulkan::vulkan->device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
             VGF::Log::Error("Failed to create render pass!");
         }
 
@@ -112,11 +98,11 @@ namespace VGF::Vulkan
 
         ImGui_ImplGlfw_InitForVulkan(window, true);
         ImGui_ImplVulkan_InitInfo init_info = {};
-        init_info.Instance = vulkan->instance;
-        init_info.PhysicalDevice = vulkan->physicalDevice;
-        init_info.Device = vulkan->device;
+        init_info.Instance = Vulkan::vulkan->instance;
+        init_info.PhysicalDevice = Vulkan::vulkan->physicalDevice;
+        init_info.Device = Vulkan::vulkan->device;
         //init_info.QueueFamily = ;
-        init_info.Queue = vulkan->graphicsQueue;
+        init_info.Queue = Vulkan::vulkan->graphicsQueue;
         init_info.PipelineCache = VK_NULL_HANDLE;
         init_info.DescriptorPool = descriptorPool;
         init_info.Allocator = nullptr;
@@ -127,21 +113,30 @@ namespace VGF::Vulkan
         init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
         //init_info.CheckVkResultFn = check_vk_result;
         ImGui_ImplVulkan_Init(&init_info);
-
-        vulkan->vulkanGui = this;
 	}
 
 	VulkanGui::~VulkanGui()
 	{
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
+
+        vkDestroyDescriptorPool(Vulkan::vulkan->device, descriptorPool, nullptr);
+        vkDestroyRenderPass(Vulkan::vulkan->device, renderPass, nullptr);
+        Vulkan::vulkan->vulkanGui = false;
 	}
 
     void VulkanGui::NewFrame()
     {
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
+        Vulkan::vulkan->vulkanGui = false;
     }
+
+    void VulkanGui::Render() 
+    {
+        Vulkan::vulkan->vulkanGui = true;
+    }
+
     void VulkanGui::Render(VkCommandBuffer commandBuffer)
     {
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);

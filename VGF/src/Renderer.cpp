@@ -5,7 +5,7 @@
 
 namespace VGF
 {
-    const GraphicsApis Renderer::graphicApi = GraphicsApis::Vulkan;// TODO: add to a config file using YAML or something like that.
+    const GraphicsApis Renderer::graphicApi = GraphicsApis::OpenGL;// TODO: add to a config file using YAML or something like that.
 
     Renderer::Renderer(std::vector<unsigned int>& indices, std::vector<float>& vertices, std::vector<UniformBufferObject*> uniformBuffers)
     {
