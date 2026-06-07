@@ -18,6 +18,8 @@ namespace VGF
 			impl = new Vulkan::VulkanGui(window);
 		else
 			impl = new Opengl::OpenglGui(window);
+
+		io = &ImGui::GetIO();
 	}
 
 	Gui::~Gui()
@@ -26,16 +28,13 @@ namespace VGF
 		ImGui::DestroyContext();
 	}
 
-	bool show_demo_window = true;
-
-	void Gui::NewFrame()
+	void Gui::NewFrame(const Window& window)
 	{
 		impl->NewFrame();
 		ImGui::NewFrame();
-		ImGui::ShowDemoWindow(&show_demo_window);
 	}
 
-    void Gui::Render(const Window& window) {
+    void Gui::Render() {
 		ImGui::Render();
 		impl->Render();
     }

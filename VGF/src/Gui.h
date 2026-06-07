@@ -16,8 +16,10 @@ namespace VGF
 		Gui(const Window& window);
 		~Gui();
 
-        void NewFrame();
-		void Render(const Window& window);
+        void NewFrame(const Window& window);
+		void Render();
+
+		inline static ImGuiIO* io;
 
 	private:
 		GuiImpl* impl;
