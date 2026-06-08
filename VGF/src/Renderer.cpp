@@ -3,6 +3,8 @@
 #include "graphicsApi/opengl/OpenGlManager.h"
 #include "graphicsApi/vulkan/VulkanManager.h"
 
+#include "Physics.h"
+
 namespace VGF
 {
     const GraphicsApis Renderer::graphicApi = GraphicsApis::Vulkan;// TODO: add to a config file using YAML or something like that.

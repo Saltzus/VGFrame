@@ -2,6 +2,10 @@
 #include <glm/glm.hpp>
 
 #include <VGF/src/Gui.h>
+#include <VGF/src/Physics.h>
+
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/CastResult.h>
 
 namespace VGF::Input
 {
@@ -45,7 +49,6 @@ namespace VGF::Input
 	}
 
 	bool f1Pressed = false;
-	bool debugDrawerOn = false;
     void processInput(GLFWwindow* window)
     {
 		if (Gui::io->WantCaptureKeyboard) return;
@@ -58,7 +61,7 @@ namespace VGF::Input
 		{
 			if (!f1Pressed)
 			{
-				debugDrawerOn = !debugDrawerOn;
+				Physics::GetInstance()->debugRenderOn = !Physics::GetInstance()->debugRenderOn;
 				f1Pressed = true;
 			}
 		}
@@ -130,7 +133,34 @@ namespace VGF::Input
 		posY = -posY;
 	}
 
-	bool getDebugDrawerOn(){
-		return debugDrawerOn;
+	bool pickObject(const Window* window, Physics& physics, Camera* camera)
+	{
+		glm::vec3 origin;
+		glm::vec3 direction;
+
+		auto [mouseX, mouseY] = GetMousePosition(window->GLFW_Window);
+		ScreenPosToWorldRay((int)mouseX, (int)mouseY, window->width, window->height, camera->view, camera->projection, origin, direction);
+
+		float rayDistance = 1000.0f;
+		JPH::Vec3 rayOrigin = { origin.x, origin.y , origin.z };
+		JPH::Vec3 rayDirection = { direction.x, direction.y , direction.z };
+		JPH::Vec3 rayEnd = rayOrigin + rayDirection * rayDistance;
+
+
+		JPH::RRayCast raycast{ rayOrigin, rayDirection * rayDistance };
+
+		JPH::RayCastResult result;
+		bool had_hit = physics.physicsSystem.GetNarrowPhaseQuery().CastRay(raycast, result);
+
+		JPH::Vec3 outPosition = raycast.GetPointOnRay(result.mFraction);
+		float outFraction = result.mFraction;
+		JPH::BodyID outID = result.mBodyID;
+
+		if (had_hit)
+			physics.debugRenderer->DrawMarker(outPosition, JPH::Color::sRed, 0.1f);
+		else
+			physics.debugRenderer->DrawMarker(rayOrigin + 0.1f * rayDirection, JPH::Color::sYellow, 0.001f);
+
+		return false;
 	}
 }

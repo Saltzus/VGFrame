@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.5)
 project(VGFrame)
 
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Distribution")
+
+
+cmake_policy(SET CMP0069 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
+
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -53,37 +59,53 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(glfw)
 
-# Disable GLFW extras before fetching the content
-set(BUILD_SHARED_LIBS           OFF CACHE BOOL "" FORCE)
-set(BUILD_UNIT_TESTS            OFF CACHE BOOL "" FORCE)
-set(BUILD_EXTRAS                OFF CACHE BOOL "" FORCE)
-set(BUILD_BULLET2_DEMOS         OFF CACHE BOOL "" FORCE)
-set(BUILD_CPU_DEMOS             OFF CACHE BOOL "" FORCE)
-set(BUILD_OPENGL3_DEMOS         OFF CACHE BOOL "" FORCE)
-set(BUILD_COLLISION_EXAMPLES    OFF CACHE BOOL "" FORCE)
-set(BUILD_CLSOCKET_EXAMPLE      OFF CACHE BOOL "" FORCE)      # if present in this tag
-set(BUILD_PYBULLET              OFF CACHE BOOL "" FORCE)      # if you don’t need Python bindings
-set(INSTALL_EXTRA_LIBS          OFF CACHE BOOL "" FORCE)      # skip installing helper libs
 
+# When turning this option on, the library will be compiled using doubles for positions. This allows for much bigger worlds.
+set(DOUBLE_PRECISION OFF)
+# When turning this option on, the library will be compiled with debug symbols
+set(GENERATE_DEBUG_SYMBOLS ON)
+# When turning this option on, the library will override the default CMAKE_CXX_FLAGS_DEBUG/RELEASE values, otherwise they will use the platform defaults
+set(OVERRIDE_CXX_FLAGS OFF)
+# When turning this option on, the library will be compiled in such a way to attempt to keep the simulation deterministic across platforms
+set(CROSS_PLATFORM_DETERMINISTIC OFF)
+# When turning this option on, the library will be compiled with interprocedural optimizations enabled, also known as link-time optimizations or link-time code generation.
+# Note that if you turn this on you need to use SET_INTERPROCEDURAL_OPTIMIZATION() or set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON) to enable LTO specifically for your own project as well.
+# If you don't do this you may get an error: /usr/bin/ld: libJolt.a: error adding symbols: file format not recognized
+set(INTERPROCEDURAL_OPTIMIZATION ON)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+# When turning this on, in Debug and Release mode, the library will emit extra code to ensure that the 4th component of a 3-vector is kept the same as the 3rd component 
+# and will enable floating point exceptions during simulation to detect divisions by zero. 
+# Note that this currently only works using MSVC. Clang turns Float2 into a SIMD vector sometimes causing floating point exceptions (the option is ignored).
+set(FLOATING_POINT_EXCEPTIONS_ENABLED OFF)
+# When turning this on, the library will be compiled with C++ exceptions enabled.
+# This adds some overhead and Jolt doesn't use exceptions so by default it is off.
+set(CPP_EXCEPTIONS_ENABLED OFF)
+# When turning this on, the library will be compiled with C++ RTTI enabled.
+# This adds some overhead and Jolt doesn't use RTTI so by default it is off.
+set(CPP_RTTI_ENABLED OFF)
+# Number of bits to use in ObjectLayer. Can be 16 or 32.
+set(OBJECT_LAYER_BITS 16)
+# Select X86 processor features to use, by default the library compiles with AVX2, if everything is off it will be SSE2 compatible.
+set(USE_SSE4_1 ON)
+set(USE_SSE4_2 ON)
+set(USE_AVX ON)
+set(USE_AVX2 ON)
+set(USE_AVX512 OFF)
+set(USE_LZCNT ON)
+set(USE_TZCNT ON)
+set(USE_F16C ON)
+set(USE_FMADD ON)
+
+# Include Jolt
 FetchContent_Declare(
-  bullet
-  GIT_REPOSITORY https://github.com/bulletphysics/bullet3.git
-  GIT_COMMIT        d1a4256b3a019117f2bb6cb8c63d6367aaf512e2 // commit where cmake updated to 3.5
+        JoltPhysics
+        GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"
+        GIT_TAG "v5.5.0"
+		SOURCE_SUBDIR "Build"
 )
 
-FetchContent_MakeAvailable(bullet)
-
-if(TARGET BulletDynamics)
-  foreach(_t IN ITEMS BulletDynamics BulletCollision BulletSoftBody LinearMath)
-    target_include_directories(${_t} INTERFACE
-      "${bullet_SOURCE_DIR}/src"
-      "${bullet_SOURCE_DIR}/src/BulletCollision"
-      "${bullet_SOURCE_DIR}/src/BulletDynamics"
-      "${bullet_SOURCE_DIR}/src/BulletSoftBody"
-      "${bullet_SOURCE_DIR}/src/LinearMath"
-    )
-  endforeach()
-endif()
+set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(JoltPhysics)
 
 # FreeType
 set(FT_DISABLE_ZLIB        ON CACHE BOOL "" FORCE)
@@ -101,10 +123,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(freetype)
 
-set_target_properties(glad glfw freetype update_mappings PROPERTIES FOLDER "VGFrame/3rd-party")
-
-set_target_properties(LinearMath BulletCollision BulletDynamics BulletSoftBody Bullet2FileLoader
-                      Bullet3Collision Bullet3Common Bullet3Dynamics Bullet3Geometry Bullet3OpenCL_clew BulletInverseDynamics PROPERTIES FOLDER "VGFrame/3rd-party/bullet3")
+set_target_properties(glad glfw freetype update_mappings Jolt PROPERTIES FOLDER "VGFrame/3rd-party")
 
 # Subdirectories
 add_subdirectory(VGF)

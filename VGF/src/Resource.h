@@ -10,11 +10,8 @@ namespace VGF
 	{
 	public:
 		static std::string Get(const std::string path);
-		static void AddResourcePath(const std::string path) { _resourcePaths.push_back(path); }
+		static void AddResourcePath(const std::string path) { GetResourcePaths().push_back(path); }
 	private:
-		static inline std::vector<std::string> _resourcePaths =
-		{
-			"../../CubeCube/"
-		};
+		static std::vector<std::string>& GetResourcePaths();
 	};
 }

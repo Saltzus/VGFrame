@@ -101,41 +101,41 @@ int main(int argc, char** argv)
         //groundObject.Render(depthPipeline, &camera2);
         framebuffer.UnBind();
 
-        physicsObject.Render(defaultPipeline, &camera);
-        groundObject.Render(defaultPipeline, &camera);
-        physicsObject1.Render(defaultPipeline, &camera);
+        //physicsObject.Render(defaultPipeline, &camera);
+        //groundObject.Render(defaultPipeline, &camera);
+        //physicsObject1.Render(defaultPipeline, &camera);
 
-        VGF::PhysicsObject* object = VGF::Input::pickObject<VGF::PhysicsObject>(&window, physics.dynamicsWorld, &camera);
-        if (object)
-        {
-            object->body->activate(true);
-
-            if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-            {
-                btVector3 impulse = btVector3(0, 50, 0) * delta_time;
-                object->body->applyCentralImpulse(impulse);
-            }
-
-            if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-            {
-                btVector3 angVel = object->body->getAngularVelocity();
-                angVel += btVector3(0, -50, 0) * delta_time;
-                object->body->setAngularVelocity(angVel);
-            }
-
-            if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-            {
-                btVector3 angVel = object->body->getAngularVelocity();
-                angVel += btVector3(0, 50, 0) * delta_time;
-                object->body->setAngularVelocity(angVel);
-            }
-        }
+        //VGF::PhysicsObject* object = VGF::Input::pickObject<VGF::PhysicsObject>(&window, physics.dynamicsWorld, &camera);
+        //if (object)
+        //{
+        //    object->body->activate(true);
+        //
+        //    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+        //    {
+        //        btVector3 impulse = btVector3(0, 50, 0) * delta_time;
+        //        object->body->applyCentralImpulse(impulse);
+        //    }
+        //
+        //    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        //    {
+        //        btVector3 angVel = object->body->getAngularVelocity();
+        //        angVel += btVector3(0, -50, 0) * delta_time;
+        //        object->body->setAngularVelocity(angVel);
+        //    }
+        //
+        //    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        //    {
+        //        btVector3 angVel = object->body->getAngularVelocity();
+        //        angVel += btVector3(0, 50, 0) * delta_time;
+        //        object->body->setAngularVelocity(angVel);
+        //    }
+        //}
 
         physics.Update(delta_time);
 
         VGF::Input::processInput(window);
 
-        physics.debugRender(debugPipeline, &camera);
+        physics.DebugRender(debugPipeline, &camera);
         VGF::Renderer::RenderGraphics();
         window.Display();
     }

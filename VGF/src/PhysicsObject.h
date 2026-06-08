@@ -8,7 +8,7 @@ namespace VGF
     class PhysicsObject : public Object
     {
     public:
-        PhysicsObject(Model* model, Physics* physics, btVector3 origin = { 0,0,0 }, btVector3 size = { 2,2,2 }, btScalar mass = 0.f);
+        PhysicsObject(Model* model, Physics* physics, JPH::Vec3 origin = { 0,0,0 }, JPH::Vec3 size = { 1,1,1 }, float mass = 0.f);
 
         ~PhysicsObject();
 
@@ -16,23 +16,24 @@ namespace VGF
         using Object::SetRotation;
         using Object::SetScale;
 
-        void SetPosition(const float x, const float y, const float z) override;
-        void SetPosition(const btVector3 position) { SetPosition(position.x(), position.y(), position.z()); }
+        void SetPosition(const float x, const float y, const float z) override { SetPosition(JPH::Vec3(x, y, z)); }
+        void SetPosition(const glm::vec3 position) { SetPosition(JPH::Vec3(position.x, position.y, position.z)); }
+        void SetPosition(const JPH::Vec3 position);
 
-        void SetRotation(const glm::quat rotation) override;
-        void SetRotation(const btVector3 rotation) { SetRotation(rotation.x(), rotation.y(), rotation.z()); }
+        void SetRotation(const glm::quat rotation) override { SetRotation(JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w)); }
+        void SetRotation(const JPH::Quat rotation);
 
         void SetScale(const float x, const float y, const float z) override;
-        void SetScale(const btVector3 scale) { SetScale(scale.x(), scale.y(), scale.z()); }
+        void SetScale(const JPH::Vec3 scale) { SetScale(scale.GetX(), scale.GetY(), scale.GetZ()); }
 
-        btVector3 GetPositionBt();
-        glm::vec3 GetPositionGlm() { btVector3 position = GetPositionBt(); return { position.x(), position.y(), position.z() }; }
+        JPH::Vec3 GetPositionJPH() { return _physics->bodyInterface->GetPosition(body->GetID()); }
+        glm::vec3 GetPositionGlm() { JPH::Vec3 position = GetPositionJPH(); return { position.GetX(), position.GetY(), position.GetZ() }; }
 
-        btRigidBody* body;
+        
+        JPH::Body* body;
+
     private:
         Physics* _physics;
-        btCollisionShape* collisionShape;
-
         glm::mat4 CreateModelMatrix() const override;
     };
 

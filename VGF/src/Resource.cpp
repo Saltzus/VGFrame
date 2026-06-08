@@ -3,9 +3,16 @@
 
 namespace VGF
 {
+	std::vector<std::string>& Resource::GetResourcePaths()
+	{
+		static std::vector<std::string> paths = { "../../CubeCube/" };
+		return paths;
+	}
+
+
 	std::string Resource::Get(const std::string path)
 	{
-		for (auto location : _resourcePaths)
+		for (auto location : GetResourcePaths())
 		{
 			std::filesystem::path filePath(location + path);
 

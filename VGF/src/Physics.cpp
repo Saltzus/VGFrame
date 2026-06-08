@@ -1,67 +1,59 @@
 #include "Physics.h"
 
 #include "Input.h"
+#include "Camera.h"
 
 namespace VGF
 {
+	using namespace JPH::literals;
+
 	Physics::Physics()
 	{
-		///collision configuration contains default setup for memory, collision setup. Advanced users can create their own configuration.
-		collisionConfiguration = new btDefaultCollisionConfiguration();
+		physics = this;
 
-		///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
-		dispatcher = new btCollisionDispatcher(collisionConfiguration);
+		JPH::RegisterDefaultAllocator();	
+		JPH::Factory::sInstance = new JPH::Factory();
+		JPH::RegisterTypes();
 
-		///btDbvtBroadphase is a good general purpose broadphase. You can also try out btAxis3Sweep.
-		overlappingPairCache = new btDbvtBroadphase();
+		tempAllocator = new JPH::TempAllocatorImpl(10 * 1024 * 1024);
 
-		///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
-		solver = new btSequentialImpulseConstraintSolver;
+		jobSystem.Init(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, std::thread::hardware_concurrency() - 1);
+		physicsSystem.Init(maxBodies, numBodyMutexes, maxBodyPairs, maxContactConstraints, broadPhaseLayerInterface, objectVsBroadphaseLayerFilter, objectVsObjectLayerFilter);
 
-		dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+		bodyInterface = &physicsSystem.GetBodyInterface();
 
-		dynamicsWorld->setGravity(btVector3(0, -9.81f, 0));
+		const float deltaTime = 1.0f / 60.0f;
+		physicsSystem.OptimizeBroadPhase();
 
-		debug = new PhysicsDebugDraw();
-		dynamicsWorld->setDebugDrawer(debug);
+		debugRenderer = new PhysicsDebugRenderer();
 	}
 
 	void Physics::Update(double delta_time)
 	{
-		dynamicsWorld->stepSimulation(static_cast<btScalar>(delta_time), 10, 1.0f / 60.0f);
-
-		for (int j = dynamicsWorld->getNumCollisionObjects() - 1; j >= 0; --j)
-		{
-			btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[j];
-			btRigidBody* body = btRigidBody::upcast(obj);
-			btTransform trans;
-
-			if (body && body->getMotionState())
-				body->getMotionState()->getWorldTransform(trans);
-			else
-				trans = obj->getWorldTransform();
-		}
+		physicsSystem.Update(1.0f / 60.0f, 1, tempAllocator, &jobSystem);
 	}
 
 	Physics::~Physics()
 	{
-		delete collisionConfiguration;
-		delete dispatcher;
-		delete overlappingPairCache;
-		delete solver;
-		delete dynamicsWorld;
+		JPH::UnregisterTypes();
 
-		delete debug;
+		delete JPH::Factory::sInstance;
+		JPH::Factory::sInstance = nullptr;
+
+		delete tempAllocator;
+		delete debugRenderer;
 	}
 
-	VGF::Renderer* lines;
+	VGF::Renderer* wireframeTriangles;
+	VGF::Renderer* Triangles;
 	MatrixBufferObject matrixBuffer;
 
-	void Physics::debugRender(const Camera& camera)
+	void Physics::DebugRender(const Camera& camera)
 	{
-		if (Input::getDebugDrawerOn())
+		if (debugRenderOn)
 		{
-			delete lines;
+			if (wireframeTriangles) delete wireframeTriangles; wireframeTriangles = nullptr;
+			if (Triangles) delete Triangles; Triangles = nullptr;
 
 			MatrixData data;
 			data.model = glm::mat4(1.f);
@@ -69,13 +61,25 @@ namespace VGF
 			data.view = camera.view;
 			matrixBuffer.SetData((void*)&data);
 
-			debug->indices.clear();
-			debug->vertices.clear();
+			physicsSystem.DrawBodies(drawSettings, debugRenderer);
 
-			dynamicsWorld->debugDrawWorld();
+			if (!debugRenderer->indices.empty() && !debugRenderer->vertices.empty())
+			{
+				Triangles = new VGF::Renderer(debugRenderer->indices, debugRenderer->vertices, { MatrixBufferObject::getDefault() });
+				Triangles->Render(GetDefaultConfig(false), { &matrixBuffer });
+			}
 
-			lines = new VGF::Renderer(debug->indices, debug->vertices, {MatrixBufferObject::getDefault()});
-			lines->Render(GetDefaultConfig(), {&matrixBuffer});
+			if (!debugRenderer->wireframeIndices.empty() && !debugRenderer->wireframeVertices.empty())
+			{
+				wireframeTriangles = new VGF::Renderer(debugRenderer->wireframeIndices, debugRenderer->wireframeVertices, { MatrixBufferObject::getDefault() });
+				wireframeTriangles->Render(GetDefaultConfig(true), { &matrixBuffer });
+			}
 		}
+
+		debugRenderer->wireframeIndices.clear();
+		debugRenderer->wireframeVertices.clear();
+		debugRenderer->indices.clear();
+		debugRenderer->vertices.clear();
+
 	}
 }

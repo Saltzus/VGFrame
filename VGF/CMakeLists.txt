@@ -53,12 +53,9 @@ target_link_libraries(VGF
     glfw
     tinygltf
     freetype
+    Jolt
 )
 
-target_link_libraries(VGF
-  PUBLIC
-    BulletDynamics BulletCollision LinearMath Bullet3Common 
-)
 set_target_properties(VGF PROPERTIES FOLDER "VGFrame")
 set_target_properties(VGF PROPERTIES PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/src/Core.h)
 

@@ -2,111 +2,83 @@
 
 namespace VGF
 {
-    
-    PhysicsObject::PhysicsObject(Model* model, Physics* physics, btVector3 origin, btVector3 size, btScalar mass) : Object(model), _physics(physics)
+    using namespace JPH::literals;
+
+    PhysicsObject::PhysicsObject(Model* model, Physics* physics, JPH::Vec3 origin, JPH::Vec3 size, float mass) : Object(model), _physics(physics)
     {
-        collisionShape = new btBoxShape(btVector3(size / 2));
+        JPH::ObjectLayer layer = PhysicsLayers::NON_MOVING;
+        JPH::EMotionType motionType = JPH::EMotionType::Static;
 
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(origin));
+        if (mass > 0)
+        {
+            layer = PhysicsLayers::MOVING;
+            motionType = JPH::EMotionType::Dynamic;
+        }
 
-        _scale.x = size.x();
-        _scale.y = size.y();
-        _scale.z = size.z();
-        
-        bool isDynamic = (mass != 0.f);
+        JPH::BoxShapeSettings bodyShapeSettings(size / 2);
+        bodyShapeSettings.SetEmbedded();
 
-        btVector3 localInertia(0, 0, 0);
-        if (isDynamic)
-            collisionShape->calculateLocalInertia(mass, localInertia);
+        JPH::ShapeSettings::ShapeResult bodyShapeResult = bodyShapeSettings.Create();
+        JPH::ShapeRefC bodyShape = bodyShapeResult.Get();
 
-        //using motionstate is optional, it provides interpolation capabilities, and only synchronizes 'active' objects
-        btMotionState* motionState = new btDefaultMotionState(groundTransform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motionState, collisionShape, localInertia);
-        body = new btRigidBody(rbInfo);
+        JPH::BodyCreationSettings bodySettings(bodyShape, origin, JPH::Quat::sIdentity(), motionType, layer);
 
-        //add the body to the dynamics world
-        physics->dynamicsWorld->addRigidBody(body);
+        JPH::MassProperties msp;
+        msp.ScaleToMass(mass);
 
-        body->setUserPointer(this);
-    }
+        bodySettings.mMassPropertiesOverride = msp;
+        bodySettings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
 
-    glm::mat4 PhysicsObject::CreateModelMatrix() const
-    {
-        btMatrix3x3 basis = body->getWorldTransform().getBasis();
-        btVector3 origin = body->getWorldTransform().getOrigin();
-
-        btTransform transform(basis, origin);
-        btScalar bulletMat[16];
-        transform.getOpenGLMatrix(bulletMat);
-        glm::mat4 model = glm::make_mat4(bulletMat);
-
-        return glm::scale(model, _scale);
+        body = physics->bodyInterface->CreateBody(bodySettings);
+        physics->bodyInterface->AddBody(body->GetID(), JPH::EActivation::DontActivate);
     }
 
     PhysicsObject::~PhysicsObject()
     {
-        delete body->getMotionState();
-        delete body;
-
-        delete collisionShape;
+        _physics->bodyInterface->RemoveBody(body->GetID());
+        _physics->bodyInterface->DestroyBody(body->GetID());
     }
 
-    void PhysicsObject::SetPosition(const float x, const float y, const float z)
+    glm::mat4 PhysicsObject::CreateModelMatrix() const
     {
-        _position = { x,y,z };
+        JPH::RMat44 joltMat = _physics->bodyInterface->GetWorldTransform(body->GetID());
 
-        body->activate(true);
+        glm::mat4 model
+        (
+            joltMat.GetColumn4(0).GetX(), joltMat.GetColumn4(0).GetY(), joltMat.GetColumn4(0).GetZ(), joltMat.GetColumn4(0).GetW(),
+            joltMat.GetColumn4(1).GetX(), joltMat.GetColumn4(1).GetY(), joltMat.GetColumn4(1).GetZ(), joltMat.GetColumn4(1).GetW(),
+            joltMat.GetColumn4(2).GetX(), joltMat.GetColumn4(2).GetY(), joltMat.GetColumn4(2).GetZ(), joltMat.GetColumn4(2).GetW(),
+            joltMat.GetColumn4(3).GetX(), joltMat.GetColumn4(3).GetY(), joltMat.GetColumn4(3).GetZ(), joltMat.GetColumn4(3).GetW()
+        );
 
-        btMotionState* motionState;
-        btTransform transform;
-
-        if ((motionState = body->getMotionState()) != nullptr)
-            motionState->getWorldTransform(transform);
-        else transform = body->getWorldTransform();
-
-        transform.setOrigin(btVector3(x,y,z));
-
-        if ((motionState = body->getMotionState()) != nullptr)
-            motionState->setWorldTransform(transform);
-        body->setWorldTransform(transform);
+        return glm::scale(model, _scale);
     }
 
-    void PhysicsObject::SetRotation(const glm::quat rotation) {
-        _rotation = rotation;
-        body->activate(true);
-        
-        btQuaternion quat(rotation.x, rotation.y, rotation.z, rotation.w);
-        btTransform transform;
-        btMotionState* motionState;
+    void PhysicsObject::SetPosition(const JPH::Vec3 position)
+    {
+        _physics->bodyInterface->SetPosition(body->GetID(), JPH::Vec3(position.GetX(), position.GetY(), position.GetZ()), JPH::EActivation::Activate);
+        _position = glm::vec3(position.GetX(), position.GetY(), position.GetZ());
+    }
 
-        if ((motionState = body->getMotionState()) != nullptr)
-            motionState->getWorldTransform(transform);
-        else transform = body->getWorldTransform();
-
-        transform.setRotation(quat);
-
-        if ((motionState = body->getMotionState()) != nullptr)
-            motionState->setWorldTransform(transform);
-        body->setWorldTransform(transform);
+    void PhysicsObject::SetRotation(const JPH::Quat rotation) {
+        _physics->bodyInterface->SetRotation(body->GetID(), rotation, JPH::EActivation::Activate);
+        _rotation = glm::quat(rotation.GetX(), rotation.GetY(), rotation.GetZ(), rotation.GetW());
     }
 
     void PhysicsObject::SetScale(const float x, const float y, const float z)
     {
-        body->activate(true);
-        collisionShape->setLocalScaling(btVector3(x, y, z));
-        _physics->dynamicsWorld->updateSingleAabb(body);
-
+        JPH::Vec3 newScale(x, y, z);
+        
+        
+       // _physics->bodyInterface->SetShape(
+       //     body->GetID(),
+       //     scaledShape,
+       //     true,
+       //     JPH::EActivation::Activate
+       // );
+        
         _scale = glm::vec3(x, y, z);
     }
 
-    btVector3 PhysicsObject::GetPositionBt()
-    {
-        btTransform transform;
-        body->getMotionState()->getWorldTransform(transform);
-
-        return transform.getOrigin();
-    }
 }
 
