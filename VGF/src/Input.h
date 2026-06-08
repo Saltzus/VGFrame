@@ -27,7 +27,7 @@ namespace VGF::Input
 	bool getDebugDrawerOn();
 
 
-	bool pickObject(const Window* window, Physics& physics, Camera* camera);
+	bool pickObject(const Window* window, Physics& physics, Camera* camera, JPH::BodyID& outBodyID, glm::vec3& outHitPos);
 
 }
 

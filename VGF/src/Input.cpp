@@ -133,7 +133,7 @@ namespace VGF::Input
 		posY = -posY;
 	}
 
-	bool pickObject(const Window* window, Physics& physics, Camera* camera)
+	bool pickObject(const Window* window, Physics& physics, Camera* camera, JPH::BodyID& outBodyID, glm::vec3& outHitPos)
 	{
 		glm::vec3 origin;
 		glm::vec3 direction;
@@ -153,14 +153,16 @@ namespace VGF::Input
 		bool had_hit = physics.physicsSystem.GetNarrowPhaseQuery().CastRay(raycast, result);
 
 		JPH::Vec3 outPosition = raycast.GetPointOnRay(result.mFraction);
+		outHitPos = { outPosition.GetX(), outPosition.GetY(), outPosition.GetZ() };
+
 		float outFraction = result.mFraction;
-		JPH::BodyID outID = result.mBodyID;
+		outBodyID = result.mBodyID;
 
 		if (had_hit)
 			physics.debugRenderer->DrawMarker(outPosition, JPH::Color::sRed, 0.1f);
 		else
 			physics.debugRenderer->DrawMarker(rayOrigin + 0.1f * rayDirection, JPH::Color::sYellow, 0.001f);
 
-		return false;
+		return had_hit;
 	}
 }
