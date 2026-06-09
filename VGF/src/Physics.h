@@ -17,9 +17,12 @@
 #include <cstdarg>
 #include <thread>
 
-#include "PhysicsDebugRenderer.h"
 #include "PipelineConfig.h"
 #include "Log.h"
+
+#ifdef JPH_DEBUG_RENDERER
+#include "PhysicsDebugRenderer.h"
+#endif
 
 namespace VGF
 {
@@ -184,8 +187,10 @@ namespace VGF
 		ObjectVsBroadPhaseLayerFilterImpl objectVsBroadphaseLayerFilter;
 		ObjectLayerPairFilterImpl objectVsObjectLayerFilter;
 
-		JPH::BodyManager::DrawSettings drawSettings;
-		PhysicsDebugRenderer* debugRenderer;
+		#ifdef JPH_DEBUG_RENDERER
+			JPH::BodyManager::DrawSettings drawSettings;
+			PhysicsDebugRenderer* debugRenderer;
+		#endif
 
 		bool debugRenderOn = false;
 

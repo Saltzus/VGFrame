@@ -5,8 +5,8 @@ namespace VGF::Vulkan
 {
     std::vector<VulkanRenderer*> allObjects;
 
-    std::vector<idObject> opaqueSwapchainObjects;
-    std::vector<idObject> translucentSwapchainObjects;
+    std::vector<VulkanRenderer*> opaqueSwapchainObjects;
+    std::vector<VulkanRenderer*> translucentSwapchainObjects;
     
     VulkanTexture::VulkanTexture(std::string filePath)
     {
@@ -123,11 +123,12 @@ namespace VGF::Vulkan
         return textureImageViewTex;
     }
 
-#ifdef NDEBUG
-    const bool enableValidationLayers = false;
-#else
+#if defined(_DEBUG) || defined(DEBUGRELEASE)
     const bool enableValidationLayers = true;
+#else
+    const bool enableValidationLayers = false;
 #endif
+    
     const std::vector<const char*> validationLayers = 
     {
         "VK_LAYER_KHRONOS_validation"
@@ -857,30 +858,10 @@ namespace VGF::Vulkan
             vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
             for (auto object : framebuffers[i]->opaqueObjects)
-            {
-                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object.object->config).first);
-
-                vkCmdBindVertexBuffers(commandBuffer, 0, 1, &object.object->vertexBuffer_vertexBufferMemory.first, offsets);
-                vkCmdBindIndexBuffer(commandBuffer, object.object->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
-
-                updateUniformBuffer(currentFrame, object);
-
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object.object->config).second, 0, 1, &object.object->descriptorSets[object.usedId][currentFrame], 0, nullptr);
-                vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.object->indicesSize), 1, 0, 0, 0);
-            }
+                object->Draw(commandBuffer, currentFrame);
 
             for (auto object : framebuffers[i]->translucentObjects)
-            {
-                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object.object->config).first);
-
-                vkCmdBindVertexBuffers(commandBuffer, 0, 1, &object.object->vertexBuffer_vertexBufferMemory.first, offsets);
-                vkCmdBindIndexBuffer(commandBuffer, object.object->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
-
-                updateUniformBuffer(currentFrame, object);
-
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object.object->config).second, 0, 1, &object.object->descriptorSets[object.usedId][currentFrame], 0, nullptr);
-                vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.object->indicesSize), 1, 0, 0, 0);
-            }
+                object->Draw(commandBuffer, currentFrame);
 
             framebuffers[i]->opaqueObjects.clear();
             framebuffers[i]->translucentObjects.clear();
@@ -902,30 +883,10 @@ namespace VGF::Vulkan
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         for (auto object : opaqueSwapchainObjects)
-        {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object.object->config).first);
-
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &object.object->vertexBuffer_vertexBufferMemory.first, offsets);
-            vkCmdBindIndexBuffer(commandBuffer, object.object->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
-
-            updateUniformBuffer(currentFrame, object);
-
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object.object->config).second, 0, 1, &object.object->descriptorSets[object.usedId][currentFrame], 0, nullptr);
-            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.object->indicesSize), 1, 0, 0, 0);
-        }
+            object->Draw(commandBuffer, currentFrame);
 
         for (auto object : translucentSwapchainObjects)
-        {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object.object->config).first);
-
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &object.object->vertexBuffer_vertexBufferMemory.first, offsets);
-            vkCmdBindIndexBuffer(commandBuffer, object.object->indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
-
-            updateUniformBuffer(currentFrame, object);
-
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipelineCache.at(object.object->config).second, 0, 1, &object.object->descriptorSets[object.usedId][currentFrame], 0, nullptr);
-            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.object->indicesSize), 1, 0, 0, 0);
-        }
+            object->Draw(commandBuffer, currentFrame);
 
         opaqueSwapchainObjects.clear();
         translucentSwapchainObjects.clear();
@@ -1001,17 +962,6 @@ namespace VGF::Vulkan
 
         if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
             VGF::Log::Error("Failed to allocate command buffers!");
-        }
-    }
-    void Vulkan::updateUniformBuffer(uint32_t currentImage, idObject object) 
-    {
-        for (auto& buffer : object.object->vulkanUniformBuffers[object.usedId])
-        {
-            if (!buffer.uniformBufferObject) {
-                VGF::Log::Error("UniformBufferObject pointer not set!");
-            }
-
-            memcpy(buffer.uniformBuffersMapped[currentImage], buffer.data.data(), buffer.data.size());
         }
     }
 
@@ -1301,7 +1251,7 @@ namespace VGF::Vulkan
 
     void Vulkan::createTextureImageView() 
     {
-        //colorTextureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+        colorTextureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
         metallicRoughnessTextureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
         emissiveTextureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
         occulsionTextureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -1489,6 +1439,36 @@ namespace VGF::Vulkan
 
         return { vertexBuffer, vertexBufferMemory };
     }
+
+    std::pair<VkBuffer, VkDeviceMemory> Vulkan::createInstanceBuffer(std::vector<glm::mat4>& modelMatrices, std::vector<uint32_t>& textureIndex)
+    {
+        std::vector<Instance> instances = Instance::Create(modelMatrices, textureIndex);
+
+        VkDeviceSize bufferSize = sizeof(instances[0]) * instances.size();
+
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+        {
+            void* data;
+            vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+            memcpy(data, instances.data(), (size_t)bufferSize);
+        }
+
+        vkUnmapMemory(device, stagingBufferMemory);
+
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+        copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+        return { vertexBuffer, vertexBufferMemory };
+    }
+
     std::pair<VkBuffer, VkDeviceMemory> Vulkan::createIndexBuffer(std::vector<uint16_t> indices) 
     {
 
@@ -1812,16 +1792,16 @@ namespace VGF::Vulkan
     {
         vulkan = Vulkan::vulkan;
 
+
         vertexBuffer_vertexBufferMemory = vulkan->createVertexBuffer(vertices);
         indexBuffer_indexBufferMemory = vulkan->createIndexBuffer(convertIndices(indices));
 
-        std::vector<VulkanUniformBuffer> vulkanBufferTemplate;
         for (UniformBufferObject* buffer : uniformBuffers)
         {
             VulkanUniformBuffer vulkanBuffer;
             vulkanBuffer.uniformBufferObject = buffer;
             vulkan->createUniformBuffers(vulkanBuffer, buffer->SizeOf());
-            vulkanBufferTemplate.push_back(vulkanBuffer);
+            vulkanUniformBuffers.emplace_back(vulkanBuffer);
         }
 
         std::vector<VulkanImageSampler> samplers =
@@ -1833,9 +1813,9 @@ namespace VGF::Vulkan
             {{vulkan->normalTextureImageView}, vulkan->textureSampler},
         };
 
-        vulkan->createDescriptorSetLayout(descriptorSetLayout, vulkanBufferTemplate, samplers);
-        //descriptorPool = vulkan->createDescriptorPool(vulkanBufferTemplate.size(), samplers.size());
-        //descriptorSets = vulkan->createDescriptorSets(descriptorSetLayout, vulkanBufferTemplate, samplers);
+        vulkan->createDescriptorSetLayout(descriptorSetLayout, vulkanUniformBuffers, samplers);
+        descriptorPool = vulkan->createDescriptorPool(vulkanUniformBuffers.size(), samplers.size());
+        descriptorSet = vulkan->createDescriptorSets(descriptorSetLayout, vulkanUniformBuffers, samplers);
 
         indicesSize = indices.size();
     }
@@ -1846,58 +1826,52 @@ namespace VGF::Vulkan
 
         vkDestroyDescriptorSetLayout(vulkan->device, descriptorSetLayout, nullptr);
         
-        for (auto& pool : descriptorPools)
-            vkDestroyDescriptorPool(vulkan->device, pool, nullptr);
+        vkDestroyDescriptorPool(vulkan->device, descriptorPool, nullptr);
 
         vkDestroyBuffer(vulkan->device, vertexBuffer_vertexBufferMemory.first, nullptr);
         vkFreeMemory(vulkan->device, vertexBuffer_vertexBufferMemory.second, nullptr);
 
+        vkDestroyBuffer(vulkan->device, instanceBuffer_instanceBufferMemory.first, nullptr);
+        vkFreeMemory(vulkan->device, instanceBuffer_instanceBufferMemory.second, nullptr);
+
         vkDestroyBuffer(vulkan->device, indexBuffer_indexBufferMemory.first, nullptr);
         vkFreeMemory(vulkan->device, indexBuffer_indexBufferMemory.second, nullptr);
 
-        //for (auto buffer : vulkanUniformBuffers)
-        //{
-        //    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        //        vkDestroyBuffer(Vulkan::vulkan->device, buffer.uniformBuffers[i], nullptr);
-        //        vkFreeMemory(Vulkan::vulkan->device, buffer.uniformBuffersMemory[i], nullptr);
-        //    }
-        //}
+        for (auto buffer : vulkanUniformBuffers)
+        {
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                vkDestroyBuffer(Vulkan::vulkan->device, buffer.uniformBuffers[i], nullptr);
+                vkFreeMemory(Vulkan::vulkan->device, buffer.uniformBuffersMemory[i], nullptr);
+            }
+        }
     }
     void VulkanRenderer::Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
     {
-        if (_timesUsed == 0) allObjects.push_back(this);
+        if (_timesUsed == 0) allObjects.emplace_back(this);
         _timesUsed++;
 
-        if (descriptorSets.size() < _timesUsed)
+        bool matrix = false;
+
+        for (UniformBufferObject* buffer : uniformBuffers)
         {
-            descriptorSets.resize(_timesUsed);
-            vulkanUniformBuffers.resize(_timesUsed);
-            descriptorPools.resize(_timesUsed);
-
-            for (UniformBufferObject* buffer : uniformBuffers)
+            if (buffer->getType() == "matrix")
             {
-                VulkanUniformBuffer vulkanBuffer;
-                vulkanBuffer.uniformBufferObject = buffer;
-                vulkan->createUniformBuffers(vulkanBuffer, buffer->SizeOf());
-                vulkanUniformBuffers[_timesUsed-1].push_back(vulkanBuffer);
+                matrix = true;
+                MatrixBufferObject* mBuffer = (MatrixBufferObject*)buffer;
+                modelMatrices.emplace_back(mBuffer->GetData().model);
+                textureIds.emplace_back(0);
             }
+        }
 
-            std::vector<VulkanImageSampler> samplers =
-            {
-                {{vulkan->colorTextureImageView}, vulkan->textureSampler},
-                {{vulkan->metallicRoughnessTextureImageView}, vulkan->textureSampler},
-                {{vulkan->emissiveTextureImageView}, vulkan->textureSampler},
-                {{vulkan->occulsionTextureImageView}, vulkan->textureSampler},
-                {{vulkan->normalTextureImageView}, vulkan->textureSampler},
-            };
-
-            descriptorPools[_timesUsed - 1] = vulkan->createDescriptorPool(vulkanUniformBuffers[_timesUsed - 1].size(), samplers.size());
-            descriptorSets[_timesUsed - 1] = vulkan->createDescriptorSets(descriptorSetLayout, vulkanUniformBuffers[_timesUsed - 1], samplers);
+        if (!matrix)
+        {
+            modelMatrices.emplace_back(glm::mat4(1.f));
+            textureIds.emplace_back(0);
         }
 
         for (size_t i = 0; i < uniformBuffers.size(); i++)
         {
-            VulkanUniformBuffer& vulkanBuffer = vulkanUniformBuffers[_timesUsed - 1][i];
+            VulkanUniformBuffer& vulkanBuffer = vulkanUniformBuffers[i];
 
             size_t size = uniformBuffers[i]->SizeOf();
             vulkanBuffer.data.resize(size);
@@ -1909,24 +1883,59 @@ namespace VGF::Vulkan
 
         CheckTextureChange(_timesUsed - 1);
 
-        std::vector<idObject>& objectVector = config.translucent ? translucentSwapchainObjects : opaqueSwapchainObjects;
-        std::vector<idObject>& framebufferObjectVector = 
-            config.translucent ? vulkan->currentFramebuffer->translucentObjects : vulkan->currentFramebuffer->opaqueObjects;
+        std::vector<VulkanRenderer*>& objectVector = config.translucent ? translucentSwapchainObjects : opaqueSwapchainObjects;
+        std::vector<VulkanRenderer*>& framebufferObjectVector = config.translucent ? vulkan->currentFramebuffer->translucentObjects : vulkan->currentFramebuffer->opaqueObjects;
 
-        if (vulkan->currentFramebuffer == nullptr) {
-            objectVector.push_back({ _timesUsed - 1, this });
+        if (!addedToRender)
+        {
+            if (vulkan->currentFramebuffer == nullptr) objectVector.emplace_back(this);
+            else framebufferObjectVector.emplace_back(this);
+
+            addedToRender = true;
         }
-        else {   
-            framebufferObjectVector.push_back({ _timesUsed - 1, this });
+    }
+
+    void VulkanRenderer::Draw(VkCommandBuffer commandBuffer, uint32_t currentFrame)
+    {
+        addedToRender = false;
+
+        if (lastTimesUsed != _timesUsed)
+        {
+            instanceBuffer_instanceBufferMemory = vulkan->createInstanceBuffer(modelMatrices, textureIds);
+            lastTimesUsed = _timesUsed;
         }
+
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan->offscreenPipelineCache.at(config).first);
+
+        VkBuffer buffers[] = { vertexBuffer_vertexBufferMemory.first, instanceBuffer_instanceBufferMemory.first };
+        VkDeviceSize offs[] = { 0, 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 2, buffers, offs);
+        vkCmdBindIndexBuffer(commandBuffer, indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
+
+        UpdateUniformBuffer(currentFrame, 0);
+        
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan->offscreenPipelineCache.at(config).second, 0, 1, &descriptorSet[currentFrame], 0, nullptr);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indicesSize), _timesUsed, 0, 0, 0);
     }
 
     void VulkanRenderer::CheckTextureChange(unsigned int timesUsed)
     {
-        vulkan->UpdateTexture(descriptorSets[timesUsed], lastTextureColor, vulkan->colorTextureImageView, vulkanUniformBuffers[timesUsed].size());
-        vulkan->UpdateTexture(descriptorSets[timesUsed], lastTextureMetallicRoughness, vulkan->metallicRoughnessTextureImageView, vulkanUniformBuffers[timesUsed].size() + 1);
-        vulkan->UpdateTexture(descriptorSets[timesUsed], lastTextureEmission, vulkan->emissiveTextureImageView, vulkanUniformBuffers[timesUsed].size() + 2);
-        vulkan->UpdateTexture(descriptorSets[timesUsed], lastTextureOcculsion, vulkan->occulsionTextureImageView, vulkanUniformBuffers[timesUsed].size() + 3);
-        vulkan->UpdateTexture(descriptorSets[timesUsed], lastTextureNormal, vulkan->normalTextureImageView, vulkanUniformBuffers[timesUsed].size() + 4);
+        vulkan->UpdateTexture(descriptorSet, lastTextureColor, vulkan->colorTextureImageView, vulkanUniformBuffers.size());
+        vulkan->UpdateTexture(descriptorSet, lastTextureMetallicRoughness, vulkan->metallicRoughnessTextureImageView, vulkanUniformBuffers.size() + 1);
+        vulkan->UpdateTexture(descriptorSet, lastTextureEmission, vulkan->emissiveTextureImageView, vulkanUniformBuffers.size() + 2);
+        vulkan->UpdateTexture(descriptorSet, lastTextureOcculsion, vulkan->occulsionTextureImageView, vulkanUniformBuffers.size() + 3);
+        vulkan->UpdateTexture(descriptorSet, lastTextureNormal, vulkan->normalTextureImageView, vulkanUniformBuffers.size() + 4);
+    }
+
+    void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage, unsigned int usedIndex)
+    {
+        for (auto& buffer : vulkanUniformBuffers)
+        {
+            if (!buffer.uniformBufferObject) {
+                VGF::Log::Error("UniformBufferObject pointer not set!");
+            }
+
+            memcpy(buffer.uniformBuffersMapped[currentImage], buffer.data.data(), buffer.data.size());
+        }
     }
 }

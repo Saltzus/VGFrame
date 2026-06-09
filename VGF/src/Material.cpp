@@ -50,6 +50,7 @@ namespace VGF
 	void Material::setDefaultMaterial(Material material)
 	{
 		*getDefaultMaterial() = material;
+		material.Bind();
 	}
 
 }

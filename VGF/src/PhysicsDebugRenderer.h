@@ -1,9 +1,5 @@
 #pragma once
 
-#ifndef JPH_DEBUG_RENDERER
-#error This file should only be included when JPH_DEBUG_RENDERER is defined
-#endif // !JPH_DEBUG_RENDERER
-
 #include <Jolt/Jolt.h>
 #include <Jolt/Renderer/DebugRenderer.h>
 

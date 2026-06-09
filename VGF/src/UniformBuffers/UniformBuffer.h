@@ -3,6 +3,8 @@
 #include <glm/glm.hpp>
 #include <cstring>
 
+#include <string>
+
 namespace VGF
 {
     enum ShaderStage
@@ -15,6 +17,7 @@ namespace VGF
     {
         virtual ~UniformBufferObject() = default;
 
+        virtual std::string getType() const { return "null"; }
         virtual ShaderStage getShaderStage();
         virtual size_t SizeOf() const;
         virtual const void* Data() const;

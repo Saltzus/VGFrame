@@ -22,8 +22,8 @@ namespace VGF::Vulkan
 		virtual void UnBind() override;
 		virtual void Delete() override;
 
-		std::vector<idObject> opaqueObjects;
-		std::vector<idObject> translucentObjects;
+		std::vector<VulkanRenderer*> opaqueObjects;
+		std::vector<VulkanRenderer*> translucentObjects;
 
 		VkFramebuffer framebuffer;
 

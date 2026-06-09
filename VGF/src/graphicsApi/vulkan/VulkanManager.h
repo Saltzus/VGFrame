@@ -148,6 +148,7 @@ namespace VGF::Vulkan
         void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
 
         std::pair<VkBuffer, VkDeviceMemory> createVertexBuffer(std::vector<GLfloat>& vertices);
+        std::pair<VkBuffer, VkDeviceMemory> createInstanceBuffer(std::vector<glm::mat4>& modelMatrices, std::vector<uint32_t>& textureIndex);
         std::pair<VkBuffer, VkDeviceMemory> createIndexBuffer(std::vector<uint16_t> indices);
 
         void createUniformBuffers
@@ -155,8 +156,6 @@ namespace VGF::Vulkan
             VulkanUniformBuffer& buffer,
             size_t typeSize
         );
-
-        void updateUniformBuffer(uint32_t currentImage, idObject object);
 
         void createDescriptorSetLayout(VkDescriptorSetLayout& descriptorsetLayout, std::vector<VulkanUniformBuffer>& uniformBuffers, std::vector<VulkanImageSampler>& imageSamplers);
         VkDescriptorPool createDescriptorPool(size_t uniformBufferCount, size_t imageSamplerCount);
@@ -285,18 +284,23 @@ namespace VGF::Vulkan
         PipelineConfig config;
 
         std::pair<VkBuffer, VkDeviceMemory> vertexBuffer_vertexBufferMemory;
+        std::pair<VkBuffer, VkDeviceMemory> instanceBuffer_instanceBufferMemory;
         std::pair<VkBuffer, VkDeviceMemory> indexBuffer_indexBufferMemory;
 
-        std::vector<std::vector<VulkanUniformBuffer>> vulkanUniformBuffers;
+        std::vector<VulkanUniformBuffer> vulkanUniformBuffers;
 
         VkDescriptorSetLayout descriptorSetLayout;
-        std::vector <VkDescriptorPool>descriptorPools;
-
-        std::vector<std::vector<VkDescriptorSet>> descriptorSets;
+        VkDescriptorPool descriptorPool;
+        std::vector<VkDescriptorSet> descriptorSet;
         
         virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override;
+        void Draw(VkCommandBuffer commandBuffer, uint32_t currentFrame);
     private:
         void CheckTextureChange(unsigned int timesUsed);
+        void UpdateUniformBuffer(uint32_t currentImage, unsigned int usedIndex);
+
+        std::vector<glm::mat4> modelMatrices;
+        std::vector<uint32_t> textureIds;
 
         VkImageView lastTextureColor = nullptr;
         VkImageView lastTextureMetallicRoughness = nullptr;
@@ -304,7 +308,9 @@ namespace VGF::Vulkan
         VkImageView lastTextureOcculsion = nullptr;
         VkImageView lastTextureNormal = nullptr;
 
+        unsigned int lastTimesUsed = 0;
         unsigned int _timesUsed = 0;
+        bool addedToRender = false;
 
         Vulkan* vulkan = nullptr;
     };

@@ -2,7 +2,6 @@
 
 #include "UniformBuffer.h"
 
-
 namespace VGF
 {
     struct MatrixData
@@ -18,6 +17,8 @@ namespace VGF
         void SetData(void* data) override;
         MatrixData GetData() { return _data; }
         virtual const void* Data() const override;
+
+        virtual std::string getType() const override { return "matrix"; }
 
         static MatrixBufferObject* getDefault();
         virtual ShaderStage getShaderStage() override;

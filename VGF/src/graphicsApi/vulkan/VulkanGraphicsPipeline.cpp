@@ -70,13 +70,26 @@ namespace VGF::Vulkan
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-        auto bindingDescription = Vertex::getBindingDescription();
-        auto attributeDescriptions = Vertex::getAttributeDescriptions();
+        auto vertexBindingDescription = Vertex::getBindingDescription();
+        auto vertexAttributeDescriptions = Vertex::getAttributeDescriptions();
 
-        vertexInputInfo.vertexBindingDescriptionCount = 1;
-        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+        auto instanceBindingDescription = Instance::getBindingDescription();
+        auto instanceAttributeDescriptions = Instance::getAttributeDescriptions();
+
+        std::array<VkVertexInputBindingDescription, 2> bindingDescriptions = 
+        {
+            vertexBindingDescription,
+            instanceBindingDescription
+        };
+
+        std::vector<VkVertexInputAttributeDescription> allAttributeDescriptions;
+        allAttributeDescriptions.insert(allAttributeDescriptions.end(),vertexAttributeDescriptions.begin(), vertexAttributeDescriptions.end());
+        allAttributeDescriptions.insert(allAttributeDescriptions.end(),instanceAttributeDescriptions.begin(), instanceAttributeDescriptions.end());
+
+        vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(allAttributeDescriptions.size());
+        vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
+        vertexInputInfo.pVertexAttributeDescriptions = allAttributeDescriptions.data();
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

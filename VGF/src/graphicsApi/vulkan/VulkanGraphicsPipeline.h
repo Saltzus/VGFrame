@@ -9,6 +9,7 @@
 
 #include <vulkan/vulkan.hpp>
 #include "VulkanVertex.h"
+#include "VulkanInstance.h"
 #include "../../PipelineConfig.h"
 
 namespace VGF::Vulkan

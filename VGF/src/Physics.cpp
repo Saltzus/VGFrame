@@ -25,7 +25,9 @@ namespace VGF
 		const float deltaTime = 1.0f / 60.0f;
 		physicsSystem.OptimizeBroadPhase();
 
+#ifdef JPH_DEBUG_RENDERER
 		debugRenderer = new PhysicsDebugRenderer();
+#endif
 	}
 
 	void Physics::Update(double delta_time)
@@ -41,7 +43,12 @@ namespace VGF
 		JPH::Factory::sInstance = nullptr;
 
 		delete tempAllocator;
+
+
+#ifdef JPH_DEBUG_RENDERER
 		delete debugRenderer;
+#endif
+
 	}
 
 	VGF::Renderer* wireframeTriangles;
@@ -50,6 +57,7 @@ namespace VGF
 
 	void Physics::DebugRender(const Camera& camera)
 	{
+#ifdef JPH_DEBUG_RENDERER
 		if (debugRenderOn)
 		{
 			if (wireframeTriangles) delete wireframeTriangles; wireframeTriangles = nullptr;
@@ -61,7 +69,9 @@ namespace VGF
 			data.view = camera.view;
 			matrixBuffer.SetData((void*)&data);
 
+
 			physicsSystem.DrawBodies(drawSettings, debugRenderer);
+
 
 			if (!debugRenderer->indices.empty() && !debugRenderer->vertices.empty())
 			{
@@ -81,5 +91,7 @@ namespace VGF
 		debugRenderer->indices.clear();
 		debugRenderer->vertices.clear();
 
+
+#endif
 	}
 }

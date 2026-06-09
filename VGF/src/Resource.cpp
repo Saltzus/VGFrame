@@ -5,7 +5,11 @@ namespace VGF
 {
 	std::vector<std::string>& Resource::GetResourcePaths()
 	{
-		static std::vector<std::string> paths = { "../../CubeCube/" };
+		static std::vector<std::string> paths = 
+		{ 
+			"../../CubeCube/",
+			"./"
+		};
 		return paths;
 	}
 
