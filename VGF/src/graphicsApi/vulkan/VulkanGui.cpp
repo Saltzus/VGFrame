@@ -5,7 +5,7 @@
 
 #include <../../imgui/imgui.h>
 #include <../../imgui/backends/imgui_impl_vulkan.h>
-#include <../../imgui/backends/imgui_impl_GLFW.h>
+#include <../../imgui/backends/imgui_impl_glfw.h>
 
 namespace VGF::Vulkan
 {

@@ -40,6 +40,7 @@ target_include_directories(ImGuiTarget PRIVATE
 
 # Create the executable.
 add_library(VGF STATIC ${CLIENT_FILES} $<TARGET_OBJECTS:ImGuiTarget>)
+target_compile_definitions(VGF PRIVATE JPH_DEBUG_RENDERER)
 
 target_link_libraries(VGF
     PUBLIC

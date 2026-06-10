@@ -1,10 +1,6 @@
 #include "PhysicsDebugRenderer.h"
-#include <Jolt/Jolt.h>
 
 #include "Physics.h"
-
-#ifdef JPH_DEBUG_RENDERER
-
 
 PhysicsDebugRenderer::PhysicsDebugRenderer()
 {
@@ -70,5 +66,3 @@ void PhysicsDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix, const JPH:
 		}
 	}
 }
-
-#endif // JPH_DEBUG_RENDERER

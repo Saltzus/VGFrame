@@ -59,6 +59,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(glfw)
 
+set(CPP_RTTI_ENABLED ON CACHE BOOL "" FORCE)
 
 # When turning this option on, the library will be compiled using doubles for positions. This allows for much bigger worlds.
 set(DOUBLE_PRECISION OFF)
@@ -82,7 +83,7 @@ set(FLOATING_POINT_EXCEPTIONS_ENABLED OFF)
 set(CPP_EXCEPTIONS_ENABLED OFF)
 # When turning this on, the library will be compiled with C++ RTTI enabled.
 # This adds some overhead and Jolt doesn't use RTTI so by default it is off.
-set(CPP_RTTI_ENABLED OFF)
+set(CPP_RTTI_ENABLED ON)
 # Number of bits to use in ObjectLayer. Can be 16 or 32.
 set(OBJECT_LAYER_BITS 16)
 # Select X86 processor features to use, by default the library compiles with AVX2, if everything is off it will be SSE2 compatible.
@@ -95,6 +96,8 @@ set(USE_LZCNT ON)
 set(USE_TZCNT ON)
 set(USE_F16C ON)
 set(USE_FMADD ON)
+
+set(JPH_DEBUG_RENDERER ON CACHE BOOL "" FORCE)
 
 # Include Jolt
 FetchContent_Declare(

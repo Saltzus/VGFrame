@@ -309,6 +309,7 @@ namespace VGF::Vulkan
         VkImageView lastTextureNormal = nullptr;
 
         unsigned int lastTimesUsed = 0;
+        unsigned int lastTimesUsed1 = 0;
         unsigned int _timesUsed = 0;
         bool addedToRender = false;
 

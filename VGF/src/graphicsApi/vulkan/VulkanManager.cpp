@@ -936,6 +936,7 @@ namespace VGF::Vulkan
         }
 
         VGF::Log::Error("Failed to find supported format!");
+        return VK_FORMAT_UNDEFINED;
     }
     VkFormat Vulkan::findDepthFormat() const
     {
@@ -1422,11 +1423,9 @@ namespace VGF::Vulkan
 
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
-        {
-            void* data;
-            vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-            memcpy(data, vertices.data(), (size_t)bufferSize);
-        }
+        void* data;
+        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, vertices.data(), (size_t)bufferSize);
 
         vkUnmapMemory(device, stagingBufferMemory);
 
@@ -1449,24 +1448,25 @@ namespace VGF::Vulkan
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
 
+        VkBuffer instanceBuffer;
+        VkDeviceMemory instanceBufferMemory;
+
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
-        {
-            void* data;
-            vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-            memcpy(data, instances.data(), (size_t)bufferSize);
-        }
+        void* data;
+        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, instances.data(), (size_t)bufferSize);
 
         vkUnmapMemory(device, stagingBufferMemory);
 
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-        copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, instanceBuffer, instanceBufferMemory);
+        copyBuffer(stagingBuffer, instanceBuffer, bufferSize);
 
 
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         vkFreeMemory(device, stagingBufferMemory, nullptr);
 
-        return { vertexBuffer, vertexBufferMemory };
+        return { instanceBuffer, instanceBufferMemory };
     }
 
     std::pair<VkBuffer, VkDeviceMemory> Vulkan::createIndexBuffer(std::vector<uint16_t> indices) 
@@ -1618,6 +1618,7 @@ namespace VGF::Vulkan
         }
 
         VGF::Log::Error("Failed to find suitable memory type!");
+        return 0;
     }
 
     void Vulkan::createInstance() 
@@ -1847,11 +1848,16 @@ namespace VGF::Vulkan
     }
     void VulkanRenderer::Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
     {
-        if (_timesUsed == 0) allObjects.emplace_back(this);
+        if (_timesUsed == 0)
+        {
+            allObjects.emplace_back(this);
+            modelMatrices.clear();
+            textureIds.clear();
+        }
+
         _timesUsed++;
 
         bool matrix = false;
-
         for (UniformBufferObject* buffer : uniformBuffers)
         {
             if (buffer->getType() == "matrix")
@@ -1901,6 +1907,9 @@ namespace VGF::Vulkan
 
         if (lastTimesUsed != _timesUsed)
         {
+            vkDestroyBuffer(vulkan->device, instanceBuffer_instanceBufferMemory.first, nullptr);
+            vkFreeMemory(vulkan->device, instanceBuffer_instanceBufferMemory.second, nullptr);
+
             instanceBuffer_instanceBufferMemory = vulkan->createInstanceBuffer(modelMatrices, textureIds);
             lastTimesUsed = _timesUsed;
         }
