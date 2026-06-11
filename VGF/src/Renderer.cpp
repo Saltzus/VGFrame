@@ -32,10 +32,18 @@ namespace VGF
 
     void Renderer::Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) const
     {
-        if (config.vertShader == "" || config.fragShader == "") VGF::Log::Error("Config is null"); // TODO : make pipeline config check if config already made with parameters or something to make pointer or reference not needed.
+        if (config.vertShader == "" || config.fragShader == "") VGF::Log::Error("Config is null");
 
         config.Activate();
         this->_impl->Render(config, uniformBuffers);
+    }
+
+    void Renderer::BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers) const
+    {
+        if (config.vertShader == "" || config.fragShader == "") VGF::Log::Error("Config is null");
+
+        config.Activate();
+        this->_impl->BatchRender(config, onetimeUniformBuffers, instanceUniformBuffers);
     }
 
     void Renderer::InitApi(GLFWwindow* window)

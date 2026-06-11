@@ -252,6 +252,23 @@ namespace VGF
 		renderer->Render(config, renderUniformBuffers);
 	}
 
+	void Model::BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindId, const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> oneTimeAdditionalUniformBuffers, const std::vector<UniformBufferObject*> instanceAdditionalUniformBuffers)
+	{
+		MatrixData data;
+		data.model = parentMatrix;
+		data.proj = camera.projection;
+		data.view = camera.view;
+		uniformBuffers[matrixBuffer]->SetData((void*)&data);
+
+		std::vector<UniformBufferObject*> renderUniformBuffers;
+		renderUniformBuffers.push_back(uniformBuffers[matrixBuffer]);
+		renderUniformBuffers.push_back(bindMaterial(camera, bindId));
+		renderUniformBuffers.push_back(LightBufferObject::getDefault());
+		renderUniformBuffers.insert(renderUniformBuffers.end(), oneTimeAdditionalUniformBuffers.begin(), oneTimeAdditionalUniformBuffers.end());
+
+		renderer->BatchRender(config, renderUniformBuffers, instanceAdditionalUniformBuffers);
+	}
+
 	void Model::drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const PipelineConfig& config, const Camera& camera, LightBufferObject lightBufffer)
 	{
 		const auto& node = model.nodes[nodeIdx];
@@ -283,6 +300,16 @@ namespace VGF
 			}
 		}
 	}
+
+	void Model::BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> oneTimeAdditionalUniformBuffers, const std::vector<UniformBufferObject*> instanceAdditionalUniformBuffers)
+	{
+		if (customModel) {
+			for (size_t i = 0; i < meshes.size(); i++) {
+				BatchDraw(parentMatrix, modelRenderers[i], -1, config, camera, oneTimeAdditionalUniformBuffers, instanceAdditionalUniformBuffers);
+			}
+		}
+	}
+
 
 	UniformBufferObject* Model::bindMaterial(const Camera& camera, const int materialIndex)
 	{

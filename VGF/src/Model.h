@@ -34,13 +34,17 @@ namespace VGF
 		void Render(const glm::mat4& parentMatrix, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {}) { Render(parentMatrix, camera, config, additionalUniformBuffers); }
 		void Render(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 		
+		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const std::vector<UniformBufferObject*> oneTimeAdditionalUniformBuffers = {}, const std::vector<UniformBufferObject*> instanceAdditionalUniformBuffers = {}) { BatchRender(parentMatrix, camera, config, oneTimeAdditionalUniformBuffers, instanceAdditionalUniformBuffers); }
+		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> oneTimeAdditionalUniformBuffers = {}, const std::vector<UniformBufferObject*> instanceAdditionalUniformBuffers = {});
+
 		tinygltf::Model model;
 		std::vector <Mesh> meshes;
 
 		bool isCustomModel() { return customModel; }
 
 	private:
-		void Draw(const glm::mat4& parentMatrix, const Renderer* renderer,const int bindMaterial, const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+		void Draw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+		void BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer,const int bindMaterial, const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> oneTimeAdditionalUniformBuffers = {}, const std::vector<UniformBufferObject*> instanceAdditionalUniformBuffers = {});
 		void drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const PipelineConfig& config, const Camera& camera, LightBufferObject lightBuffer);
 
 		std::vector<UniformBufferObject*> _additionalUniformBuffers;

@@ -279,4 +279,49 @@ namespace VGF::Opengl
 
         int error = glGetError();
     }
+
+    void OpenglRenderer::BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers)
+    {
+        int topology;
+
+        switch (config.topology)
+        {
+        case VGF::Topology::LINE_LIST:
+            topology = GL_LINES;
+            break;
+        case VGF::Topology::TRIANGLE_LIST:
+            topology = GL_TRIANGLES;
+            break;
+        default:
+            topology = GL_TRIANGLES;
+            break;
+        }
+
+        assert(onetimeUniformBuffers.size() == openglUniformBuffers.size() && "sent uniform buffers did not match initialized buffers!!");
+        for (size_t i = 0; i < onetimeUniformBuffers.size(); i++)
+        {
+            glBindBuffer(GL_UNIFORM_BUFFER, openglUniformBuffers[i]);
+            glBindBufferBase(GL_UNIFORM_BUFFER, i, openglUniformBuffers[i]);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, onetimeUniformBuffers[i]->SizeOf(), onetimeUniformBuffers[i]->Data());
+        }
+
+        std::array<const char*, 5> samplers =
+        {
+            "colorSampler",
+            "metallicRoughnessSampler",
+            "emissiveSampler",
+            "occulsionSampler",
+            "normalSampler"
+        };
+
+        for (size_t binding = 0; binding < samplers.size(); binding++)
+        {
+            GLint location = glGetUniformLocation(config.ID(), samplers[binding]);
+            glUniform1i(location, binding + 2);
+        }
+        glBindVertexArray(VAO);
+        glDrawElements(topology, indicesSize, GL_UNSIGNED_INT, 0);
+
+        int error = glGetError();
+    }
 }

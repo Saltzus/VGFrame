@@ -58,6 +58,7 @@ namespace VGF::Opengl
         ~OpenglRenderer();    
 
         virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override; // Declare draw
+        virtual void BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers) override;
     private:
 
         Opengl* opengl;

@@ -294,6 +294,8 @@ namespace VGF::Vulkan
         std::vector<VkDescriptorSet> descriptorSet;
         
         virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override;
+        virtual void BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers) override;
+
         void Draw(VkCommandBuffer commandBuffer, uint32_t currentFrame);
     private:
         void CheckTextureChange(unsigned int timesUsed);

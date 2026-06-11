@@ -22,7 +22,9 @@ namespace VGF
 		width = WinWidth;
 		height = WinHeight;
 
-		glfwInit();
+		if (!glfwInit()) {
+			throw std::runtime_error("glfwInit() failed");
+		}
 
 		glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 

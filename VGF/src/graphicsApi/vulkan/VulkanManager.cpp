@@ -1901,6 +1901,62 @@ namespace VGF::Vulkan
         }
     }
 
+    void VulkanRenderer::BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers)
+    {
+        if (_timesUsed == 0)
+        {
+            allObjects.emplace_back(this);
+            modelMatrices.clear();
+            textureIds.clear();
+        }
+
+        bool matrix = false;
+        for (UniformBufferObject* buffer : instanceUniformBuffers)
+        {
+            if (buffer->getType() == "matrix")
+            {
+                matrix = true;
+                MatrixBufferObject* mBuffer = (MatrixBufferObject*)buffer;
+                modelMatrices.emplace_back(mBuffer->GetData().model);
+                textureIds.emplace_back(0);
+            }
+        }
+
+        if (!matrix)
+        {
+            modelMatrices.emplace_back(glm::mat4(1.f));
+            textureIds.emplace_back(0);
+        }
+
+        _timesUsed = modelMatrices.size();
+
+        for (size_t i = 0; i < onetimeUniformBuffers.size(); i++)
+        {
+            VulkanUniformBuffer& vulkanBuffer = vulkanUniformBuffers[i];
+
+            size_t size = onetimeUniformBuffers[i]->SizeOf();
+            vulkanBuffer.data.resize(size);
+            memcpy(vulkanBuffer.data.data(), onetimeUniformBuffers[i]->Data(), size);
+        }
+
+        this->config = config;
+        vulkan->getOrCreatePipeline(this, config, true);
+
+        CheckTextureChange(_timesUsed - 1);
+
+        std::vector<VulkanRenderer*>& objectVector = config.translucent ? translucentSwapchainObjects : opaqueSwapchainObjects;
+        std::vector<VulkanRenderer*>& framebufferObjectVector = config.translucent ? vulkan->currentFramebuffer->translucentObjects : vulkan->currentFramebuffer->opaqueObjects;
+
+        if (!addedToRender)
+        {
+            if (vulkan->currentFramebuffer == nullptr) objectVector.emplace_back(this);
+            else framebufferObjectVector.emplace_back(this);
+
+            addedToRender = true;
+        }
+    }
+
+
     void VulkanRenderer::Draw(VkCommandBuffer commandBuffer, uint32_t currentFrame)
     {
         addedToRender = false;

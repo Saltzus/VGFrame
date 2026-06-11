@@ -20,9 +20,7 @@
 #include "PipelineConfig.h"
 #include "Log.h"
 
-#ifdef JPH_DEBUG_RENDERER
 #include "PhysicsDebugRenderer.h"
-#endif
 
 namespace VGF
 {
@@ -78,7 +76,6 @@ namespace VGF
 			return mObjectToBroadPhase[inLayer];
 		}
 
-#if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
 		virtual const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
 		{
 			switch ((JPH::BroadPhaseLayer::Type)inLayer)
@@ -91,7 +88,6 @@ namespace VGF
 				JPH_ASSERT(false); return "INVALID";
 			}
 		}
-#endif
 
 	private:
 		JPH::BroadPhaseLayer mObjectToBroadPhase[PhysicsLayers::NUM_LAYERS];
@@ -187,10 +183,8 @@ namespace VGF
 		ObjectVsBroadPhaseLayerFilterImpl objectVsBroadphaseLayerFilter;
 		ObjectLayerPairFilterImpl objectVsObjectLayerFilter;
 
-		#ifdef JPH_DEBUG_RENDERER
-			JPH::BodyManager::DrawSettings drawSettings;
-			PhysicsDebugRenderer* debugRenderer;
-		#endif
+		JPH::BodyManager::DrawSettings drawSettings;
+		PhysicsDebugRenderer* debugRenderer;
 
 		bool debugRenderOn = false;
 

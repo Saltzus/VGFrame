@@ -19,6 +19,17 @@ namespace VGF
         Render(camera, additionalUniformBuffers);
     }
 
+    void Object::BatchRender(const Camera& camera, const std::vector<UniformBufferObject*> oneTimeAdditionalUniformBuffers = {}, const std::vector<UniformBufferObject*> instanceAdditionalUniformBuffers = {})
+    {
+        glm::mat4 model = CreateModelMatrix();
+        _model->BatchRender(model, camera, oneTimeAdditionalUniformBuffers, instanceAdditionalUniformBuffers);
+    }
+    void Object::BatchRender(const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> oneTimeAdditionalUniformBuffers = {}, const std::vector<UniformBufferObject*> instanceAdditionalUniformBuffers = {})
+    {
+        _model->config = config;
+        BatchRender(camera, oneTimeAdditionalUniformBuffers, instanceAdditionalUniformBuffers);
+    }
+
     void Object::LookAt(glm::vec3 lookingPosition, float xOffset, float yOffset)
     {
         glm::vec3 direction = glm::normalize(lookingPosition - _position);

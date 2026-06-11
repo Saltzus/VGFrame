@@ -47,6 +47,7 @@ namespace VGF
         ~Renderer();
 
         void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) const;
+        void BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers) const;
         static GraphicsApis GetGraphicsApi() {return graphicApi;};
 
         static const ::VGF::Vulkan::Vulkan* GetVulkanData();
