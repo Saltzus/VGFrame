@@ -24,10 +24,12 @@ namespace VGF
 			meshes.push_back(mesh);
 		}
 
-		uniformBuffers.insert(uniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
+		std::vector<UniformBufferObject*> renderUniformBuffers;
+		renderUniformBuffers.insert(renderUniformBuffers.end(), uniformBuffers.begin(), uniformBuffers.end());
+		renderUniformBuffers.insert(renderUniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
 
 		for (auto mesh : meshes)
-			modelRenderers.emplace_back(new Renderer(mesh.indices, mesh.vertices, uniformBuffers));
+			modelRenderers.emplace_back(new Renderer(mesh.indices, mesh.vertices, renderUniformBuffers));
 
 		std::cout << "Model Loaded Succesfully\n";
 	}
@@ -43,10 +45,14 @@ namespace VGF
 		mesh.indices = indices;
 
 		meshes.push_back(mesh);
-		uniformBuffers.insert(uniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
+
+		std::vector<UniformBufferObject*> renderUniformBuffers;
+		renderUniformBuffers.insert(renderUniformBuffers.end(), uniformBuffers.begin(), uniformBuffers.end());
+		renderUniformBuffers.insert(renderUniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
+
 
 		for (auto mesh : meshes)
-			modelRenderers.emplace_back(new Renderer(mesh.indices, mesh.vertices, uniformBuffers));
+			modelRenderers.emplace_back(new Renderer(mesh.indices, mesh.vertices, renderUniformBuffers));
 	}
 
 	Model::~Model()

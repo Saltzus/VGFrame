@@ -117,8 +117,8 @@ namespace VGF::Vulkan
 
 	VulkanGui::~VulkanGui()
 	{
-        ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
+        ImGui_ImplVulkan_Shutdown();
 
         vkDestroyDescriptorPool(Vulkan::vulkan->device, descriptorPool, nullptr);
         vkDestroyRenderPass(Vulkan::vulkan->device, renderPass, nullptr);

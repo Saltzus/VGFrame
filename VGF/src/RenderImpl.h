@@ -61,6 +61,7 @@ namespace VGF
 
     struct GuiImpl 
     {
+        virtual ~GuiImpl() {}
         virtual void NewFrame() = 0;
         virtual void Render() = 0;
     };
