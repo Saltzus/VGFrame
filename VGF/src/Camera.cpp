@@ -17,7 +17,9 @@ namespace VGF
 		// Makes camera look in the right direction from the right position
 		view = glm::lookAt(position, position + orientation, up);
 		// Adds perspective to the scene
-		projection = glm::perspective(glm::radians(FOVdeg), (float)window.width / window.height, nearPlane, farPlane);
+
+        if (window.width != 0 || window.height != 0)
+		    projection = glm::perspective(glm::radians(FOVdeg), (float)window.width / window.height, nearPlane, farPlane);
 
 		// Sets new camera matrix
 		cameraMatrix = projection * view;
