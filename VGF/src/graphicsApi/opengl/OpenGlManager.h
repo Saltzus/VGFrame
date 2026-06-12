@@ -60,14 +60,24 @@ namespace VGF::Opengl
         virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override; // Declare draw
         virtual void BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers) override;
     private:
+        const int GetTopology(const PipelineConfig& config) const;
+
+        struct InstanceData {
+            glm::mat4 modelMatrix;
+            alignas(16) unsigned int textureID;
+        };
+
+        std::vector<InstanceData> instanceData;
 
         Opengl* opengl;
         std::vector<GLuint> openglUniformBuffers;
 
         int indicesSize;
+        unsigned int lastSize;
 
         GLuint VAO;
 	    GLuint VBO;
+        GLuint IBO;
     	GLuint EBO;
     };
 }

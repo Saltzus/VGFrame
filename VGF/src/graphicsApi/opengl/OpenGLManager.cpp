@@ -196,6 +196,7 @@ namespace VGF::Opengl
         glGenVertexArrays(1, &VAO);
 
         glGenBuffers(1, &VBO);
+        glGenBuffers(1, &IBO);
         glGenBuffers(1, &EBO);
 
         glBindVertexArray(VAO);
@@ -237,20 +238,7 @@ namespace VGF::Opengl
 
     void OpenglRenderer::Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
     {
-        int topology;
-         
-        switch (config.topology)
-        {
-        case VGF::Topology::LINE_LIST:
-            topology = GL_LINES;
-            break;
-        case VGF::Topology::TRIANGLE_LIST:
-            topology = GL_TRIANGLES;
-            break;
-        default:
-            topology = GL_TRIANGLES;
-            break;
-        }
+        int topology = GetTopology(config);
 
         assert(uniformBuffers.size() == openglUniformBuffers.size() && "sent uniform buffers did not match initialized buffers!!");
         for (size_t i = 0; i < uniformBuffers.size(); i++)
@@ -280,24 +268,63 @@ namespace VGF::Opengl
         int error = glGetError();
     }
 
+
     void OpenglRenderer::BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers)
     {
-        int topology;
+        int topology = GetTopology(config);
 
-        switch (config.topology)
+        instanceData.clear();
+
+        bool matrix = false;
+        for (UniformBufferObject* buffer : instanceUniformBuffers)
         {
-        case VGF::Topology::LINE_LIST:
-            topology = GL_LINES;
-            break;
-        case VGF::Topology::TRIANGLE_LIST:
-            topology = GL_TRIANGLES;
-            break;
-        default:
-            topology = GL_TRIANGLES;
-            break;
+            if (buffer->getType() == "matrix")
+            {
+                matrix = true;
+                MatrixBufferObject* mBuffer = (MatrixBufferObject*)buffer;
+
+                InstanceData data;
+                data.modelMatrix = mBuffer->GetData().model;
+                data.textureID = 0;
+                instanceData.emplace_back(data);
+            }
         }
 
-        assert(onetimeUniformBuffers.size() == openglUniformBuffers.size() && "sent uniform buffers did not match initialized buffers!!");
+        glBindVertexArray(VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, IBO);
+
+        if (lastSize != instanceData.size())
+        {
+            glBufferData(GL_ARRAY_BUFFER, instanceData.size() * sizeof(InstanceData), instanceData.data(), GL_DYNAMIC_DRAW);
+
+            for (int i = 0; i < 4; i++)
+            {
+                glVertexAttribPointer
+                (
+                    4 + i,                     
+                    4, GL_FLOAT, GL_FALSE,
+                    sizeof(InstanceData),
+                    (void*)(offsetof(InstanceData, modelMatrix) + i * sizeof(glm::vec4))
+                );
+
+                glEnableVertexAttribArray(4 + i);
+                glVertexAttribDivisor(4 + i, 1);
+            }
+
+            glVertexAttribIPointer
+            (
+                8,
+                1, GL_UNSIGNED_INT,
+                sizeof(InstanceData),
+                (void*)offsetof(InstanceData, textureID)
+            );
+
+            glEnableVertexAttribArray(8);
+            glVertexAttribDivisor(8, 1);
+
+            lastSize = instanceData.size();
+        }
+
         for (size_t i = 0; i < onetimeUniformBuffers.size(); i++)
         {
             glBindBuffer(GL_UNIFORM_BUFFER, openglUniformBuffers[i]);
@@ -319,9 +346,28 @@ namespace VGF::Opengl
             GLint location = glGetUniformLocation(config.ID(), samplers[binding]);
             glUniform1i(location, binding + 2);
         }
-        glBindVertexArray(VAO);
-        glDrawElements(topology, indicesSize, GL_UNSIGNED_INT, 0);
+        glDrawElementsInstanced(topology, indicesSize, GL_UNSIGNED_INT, 0, instanceData.size());
 
         int error = glGetError();
+    }
+
+    const int OpenglRenderer::GetTopology(const PipelineConfig& config) const
+    {
+        int topology;
+
+        switch (config.topology)
+        {
+        case VGF::Topology::LINE_LIST:
+            topology = GL_LINES;
+            break;
+        case VGF::Topology::TRIANGLE_LIST:
+            topology = GL_TRIANGLES;
+            break;
+        default:
+            topology = GL_TRIANGLES;
+            break;
+        }
+
+        return topology;
     }
 }
