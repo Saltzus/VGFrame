@@ -3,10 +3,8 @@
 
 namespace VGF::Vulkan
 {
-    std::vector<VulkanRenderer*> allObjects;
-
-    std::vector<VulkanRenderer*> opaqueSwapchainObjects;
-    std::vector<VulkanRenderer*> translucentSwapchainObjects;
+    std::vector<RenderData> opaqueSwapchainObjects;
+    std::vector<RenderData> translucentSwapchainObjects;
     
     VulkanTexture::VulkanTexture(std::string filePath)
     {
@@ -34,7 +32,14 @@ namespace VGF::Vulkan
 
         stbi_image_free(pixels);
 
-        vulkan->createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+        vulkan->createImage
+        (
+            texWidth, texHeight,
+            VK_FORMAT_R8G8B8A8_SRGB,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            textureImage, textureImageMemory);
 
         vulkan->transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         vulkan->copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
@@ -77,7 +82,15 @@ namespace VGF::Vulkan
         memcpy(data, rgbaData.data(), static_cast<size_t>(imageSize));
         vkUnmapMemory(vulkan->device, stagingBufferMemory);
 
-        vulkan->createImage(width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+        vulkan->createImage
+        (
+            width, height,
+            VK_FORMAT_R8G8B8A8_SRGB,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            textureImage, textureImageMemory
+        );
 
         vulkan->transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         vulkan->copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
@@ -112,6 +125,9 @@ namespace VGF::Vulkan
         case textureType::normal:
             Vulkan::vulkan->normalTextureImageView = textureImageViewTex;
             break;
+        case textureType::framebuffer:
+            Vulkan::vulkan->dummyTextureImageView = textureImageViewTex;
+            break;
         default:
             Vulkan::vulkan->colorTextureImageView = textureImageViewTex;
             break;
@@ -120,7 +136,7 @@ namespace VGF::Vulkan
 
     void* VulkanTexture::GetNativeImage()
     {
-        return textureImageViewTex;
+        return (void*)textureImageViewTex;
     }
 
 #if defined(_DEBUG) || defined(DEBUGRELEASE)
@@ -139,9 +155,6 @@ namespace VGF::Vulkan
     };
 
     Vulkan* Vulkan::vulkan = nullptr;
-    std::unordered_map<PipelineConfig, std::pair<VkPipeline, VkPipelineLayout>, PipelineConfigHash> Vulkan::pipelineCache = {};
-    std::unordered_map<PipelineConfig, std::pair<VkPipeline, VkPipelineLayout>, PipelineConfigHash> Vulkan::offscreenPipelineCache = {};
-
 
     Vulkan::Vulkan(GLFWwindow* window)
     {
@@ -155,22 +168,15 @@ namespace VGF::Vulkan
         pickPhysicalDevice();
         createLogicalDevice();
         createSwapChain();
-        //createPresentImages();
-        createImages(offscreenImages, offscreenImageMemory);
-
-        
+    
         createImageViews(swapChainImageViews, swapChainImages);
-        createImageViews(offscreenImageViews, offscreenImages);
 
         createRenderPass();
         createOffscreenRenderPass();
         createCommandPool();
         createDepthResources();
 
-        //createFramebuffers();
         createFramebuffers(swapChainFramebuffers, swapChainImageViews, false);
-        createFramebuffers(offscreenFramebuffers, offscreenImageViews, true);
-
 
         createTextureSampler();
         createCommandBuffers();
@@ -200,14 +206,8 @@ namespace VGF::Vulkan
 
         for (auto& pipeline_pipelineLayout : pipelineCache)
         {
-            vkDestroyPipeline(device, pipeline_pipelineLayout.second.first, nullptr);
-            vkDestroyPipelineLayout(vulkan->device, pipeline_pipelineLayout.second.second, nullptr);
-        }
-
-        for (auto& pipeline_pipelineLayout : offscreenPipelineCache)
-        {
-            vkDestroyPipeline(device, pipeline_pipelineLayout.second.first, nullptr);
-            vkDestroyPipelineLayout(vulkan->device, pipeline_pipelineLayout.second.second, nullptr);
+            vkDestroyPipeline(device, pipeline_pipelineLayout.second.pipeline, nullptr);
+            vkDestroyPipelineLayout(vulkan->device, pipeline_pipelineLayout.second.pipelineLayout, nullptr);
         }
 
         vkDestroyBuffer(device, indexBuffer, nullptr);
@@ -220,9 +220,13 @@ namespace VGF::Vulkan
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
         {
-            vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
             vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
             vkDestroyFence(device, inFlightFences[i], nullptr);
+        }
+
+        for (size_t i = 0; i < swapChainImages.size(); i++)
+        {
+            vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
         }
 
         vkDestroyCommandPool(device, commandPool, nullptr);
@@ -249,15 +253,6 @@ namespace VGF::Vulkan
         for (auto imageView : swapChainImageViews)
             vkDestroyImageView(device, imageView, nullptr);
 
-        for (auto framebuffer : offscreenFramebuffers)
-            vkDestroyFramebuffer(device, framebuffer, nullptr);
-        for (auto imageView : offscreenImageViews)
-            vkDestroyImageView(device, imageView, nullptr);
-        for (auto image : offscreenImages)
-            vkDestroyImage(device, image, nullptr);
-        for (auto memory : offscreenImageMemory)
-            vkFreeMemory(device, memory, nullptr);
-
         vkDestroySwapchainKHR(device, swapChain, nullptr);
     }
     void Vulkan::recreateSwapChain() 
@@ -274,10 +269,11 @@ namespace VGF::Vulkan
         cleanupSwapChain();
         createSwapChain();
         createImageViews(swapChainImageViews, swapChainImages);
-        createImageViews(offscreenImageViews, offscreenImages);
         createDepthResources();
         createFramebuffers(swapChainFramebuffers, swapChainImageViews, false);
-        createFramebuffers(offscreenFramebuffers, offscreenImageViews, true);
+
+        for (VulkanFrameBuffer* framebuffer : allFramebuffers)
+            framebuffer->Recreate();
     }
 
     VkResult Vulkan::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) 
@@ -513,7 +509,6 @@ namespace VGF::Vulkan
 
         swapChainImageFormat = surfaceFormat.format;
         swapChainExtent = extent;
-        createImages(offscreenImages, offscreenImageMemory);
     }
     VkSurfaceFormatKHR Vulkan::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) 
     {
@@ -688,7 +683,7 @@ namespace VGF::Vulkan
             VGF::Log::Error("Failed to create descriptor set layout!");
         }
     }
-    std::vector<VkDescriptorSet> Vulkan::createDescriptorSets(VkDescriptorSetLayout layout, std::vector<VulkanUniformBuffer>& vulkanUniformBuffers, std::vector<VulkanImageSampler>& imageSamplers)
+    void Vulkan::createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSets, VkDescriptorSetLayout layout, std::vector<VulkanUniformBuffer>& vulkanUniformBuffers, std::vector<VulkanImageSampler>& imageSamplers)
     {
         std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, layout);
         VkDescriptorSetAllocateInfo allocInfo{};
@@ -757,41 +752,42 @@ namespace VGF::Vulkan
 
             vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
-
-        return descriptorSets;
     }
 
-    std::pair<VkPipeline, VkPipelineLayout> Vulkan::getOrCreatePipeline(VulkanRenderer* object, const PipelineConfig& config, const bool offscreen)
+    unsigned int Vulkan::getOrCreatePipeline(VulkanRenderer* object, const PipelineConfig& config, const bool offscreen)
     {
-        VkRenderPass pass = renderPass;
-        if (offscreen)
+        PipelineHashKey key{ config, offscreen };
+        auto it = pipelineCache.find(key);
+        if (it != pipelineCache.end())
         {
-            pass = offscreenRenderPass;
-
-            auto it = offscreenPipelineCache.find(config);
-            if (it != offscreenPipelineCache.end()) {
-                return it->second;
-            }
-        }
-        else
-        {
-            auto it = pipelineCache.find(config);
-            if (it != pipelineCache.end()) {
-                return it->second;
-            }
+            return it->second.index;
         }
 
-        std::pair<VkPipeline, VkPipelineLayout> pipeline_pipelineLayout = createGraphicsPipeline(object, config, pass);
+        PipelineData pipelineData = createGraphicsPipeline(object, config, offscreen ? offscreenRenderPass : renderPass);
 
-        if (offscreen)
-            offscreenPipelineCache[config] = pipeline_pipelineLayout;
-        else
-            pipelineCache[config] = pipeline_pipelineLayout;
+        pipelineData.index = pipelineCache.size();
+        pipelineData.offscreen = offscreen;
 
-        return pipeline_pipelineLayout;
+        pipelines.emplace_back(std::pair{ pipelineData.pipeline, pipelineData.pipelineLayout });
+
+        pipelineCache[key] = pipelineData;
+
+        return pipelineData.index;
     }
 
-    std::pair<VkPipeline, VkPipelineLayout> Vulkan::createGraphicsPipeline(VulkanRenderer* object, const PipelineConfig& config, VkRenderPass& renderPass)
+    VkPipeline& Vulkan::GetPipeline(unsigned int pipelineID)
+    {
+        if (pipelineID > pipelines.size()) Log::Error("Could not find pipeline : " + std::to_string(pipelineID));
+        return pipelines.at(pipelineID).first;
+    }
+
+    VkPipelineLayout& Vulkan::GetPipelineLayout(unsigned int pipelineID)
+    {
+        if (pipelineID > pipelines.size()) Log::Error("Could not find pipelinelayout : " + std::to_string(pipelineID));
+        return pipelines.at(pipelineID).second;
+    }
+
+    PipelineData Vulkan::createGraphicsPipeline(VulkanRenderer* object, const PipelineConfig& config, VkRenderPass& renderPass)
     {
         VkPipeline pipeline;
         VkPipelineLayout pipelineLayout;
@@ -857,11 +853,11 @@ namespace VGF::Vulkan
 
             vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            for (auto object : framebuffers[i]->opaqueObjects)
-                object->Draw(commandBuffer, currentFrame);
+            for (RenderData& data : framebuffers[i]->opaqueObjects)
+                data.renderer->Draw(commandBuffer, currentFrame, data);
 
-            for (auto object : framebuffers[i]->translucentObjects)
-                object->Draw(commandBuffer, currentFrame);
+            for (RenderData& data : framebuffers[i]->translucentObjects)
+                data.renderer->Draw(commandBuffer, currentFrame, data);
 
             framebuffers[i]->opaqueObjects.clear();
             framebuffers[i]->translucentObjects.clear();
@@ -882,11 +878,11 @@ namespace VGF::Vulkan
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        for (auto object : opaqueSwapchainObjects)
-            object->Draw(commandBuffer, currentFrame);
+        for (RenderData& data : opaqueSwapchainObjects)
+            data.renderer->Draw(commandBuffer, currentFrame, data);
 
-        for (auto object : translucentSwapchainObjects)
-            object->Draw(commandBuffer, currentFrame);
+        for (RenderData& data : translucentSwapchainObjects)
+            data.renderer->Draw(commandBuffer, currentFrame, data);
 
         opaqueSwapchainObjects.clear();
         translucentSwapchainObjects.clear();
@@ -966,7 +962,7 @@ namespace VGF::Vulkan
         }
     }
 
-    VkDescriptorPool Vulkan::createDescriptorPool(size_t uniformBufferCount, size_t imageSamplerCount)
+    VkDescriptorPool Vulkan::createDescriptorPool(size_t uniformBufferCount, size_t imageSamplerCount, unsigned int maxSets)
     {
         std::vector<VkDescriptorPoolSize> poolSizes{};
         poolSizes.resize(uniformBufferCount + imageSamplerCount);
@@ -987,7 +983,7 @@ namespace VGF::Vulkan
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * maxSets);
 
         if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
             VGF::Log::Error("Failed to create descriptor pool!");
@@ -999,7 +995,7 @@ namespace VGF::Vulkan
     void Vulkan::createSyncObjects() 
     {
         imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-        renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+        renderFinishedSemaphores.resize(swapChainImages.size());
         inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 
         VkSemaphoreCreateInfo semaphoreInfo{};
@@ -1009,10 +1005,20 @@ namespace VGF::Vulkan
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
+        for (size_t i = 0; i < swapChainImages.size(); i++) {
+            if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS)
+            {
+                VGF::Log::Error("Failed to create synchronization objects for a frame!");
+            }
+        }
+
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
-                vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
-                vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
+            if 
+            (
+                vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
+                vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS
+            ) 
+            {
                 VGF::Log::Error("Failed to create synchronization objects for a frame!");
             }
         }
@@ -1051,16 +1057,13 @@ namespace VGF::Vulkan
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = submitCommandBuffers.data();
 
-        VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
+        VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[imageIndex] };
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
         if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
             VGF::Log::Error("Failed to submit draw command buffer!");
         }
-
-        for (auto object : allObjects) object->ResetUses();
-        allObjects.clear();
 
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -1193,6 +1196,7 @@ namespace VGF::Vulkan
         colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
+
         VkAttachmentDescription depthAttachment{};
         depthAttachment.format = findDepthFormat();
         depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -1221,19 +1225,20 @@ namespace VGF::Vulkan
 
         dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
         dependencies[0].dstSubpass = 0;
-        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependencies[0].srcAccessMask = 0;
-        dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        dependencies[0].srcAccessMask = VK_ACCESS_NONE_KHR;
+        dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
         dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-        dependencies[1].srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[1].dstSubpass = 0;
-        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependencies[1].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        dependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies[1].srcSubpass = 0;
+        dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
         dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
 
         std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
         VkRenderPassCreateInfo renderPassInfo{};
@@ -1248,15 +1253,6 @@ namespace VGF::Vulkan
         if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &offscreenRenderPass) != VK_SUCCESS) {
             VGF::Log::Error("Failed to create render pass!");
         }
-    }
-
-    void Vulkan::createTextureImageView() 
-    {
-        colorTextureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-        metallicRoughnessTextureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-        emissiveTextureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-        occulsionTextureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-        normalTextureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     void Vulkan::createTextureSampler() 
     {
@@ -1439,10 +1435,24 @@ namespace VGF::Vulkan
         return { vertexBuffer, vertexBufferMemory };
     }
 
-    std::pair<VkBuffer, VkDeviceMemory> Vulkan::createInstanceBuffer(std::vector<glm::mat4>& modelMatrices, std::vector<uint32_t>& textureIndex)
+    std::pair<VkBuffer, VkDeviceMemory> Vulkan::createInstanceBuffer(VkDeviceSize size)
     {
-        std::vector<Instance> instances = Instance::Create(modelMatrices, textureIndex);
+        VkBuffer buffer;
+        VkDeviceMemory bufferMemory;
 
+        createBuffer(
+            size,
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            buffer,
+            bufferMemory
+        );
+
+        return std::make_pair(buffer, bufferMemory);
+    }
+
+    std::pair<VkBuffer, VkDeviceMemory> Vulkan::createInstanceBuffer(std::vector<Instance> instances)
+    {
         VkDeviceSize bufferSize = sizeof(instances[0]) * instances.size();
 
         VkBuffer stagingBuffer;
@@ -1815,8 +1825,8 @@ namespace VGF::Vulkan
         };
 
         vulkan->createDescriptorSetLayout(descriptorSetLayout, vulkanUniformBuffers, samplers);
-        descriptorPool = vulkan->createDescriptorPool(vulkanUniformBuffers.size(), samplers.size());
-        descriptorSet = vulkan->createDescriptorSets(descriptorSetLayout, vulkanUniformBuffers, samplers);
+        descriptorPool = vulkan->createDescriptorPool(vulkanUniformBuffers.size(), samplers.size(), 2); // delete x2 when removing offscreensampleras
+        vulkan->createDescriptorSets(descriptorSet, descriptorSetLayout, vulkanUniformBuffers, samplers);
 
         indicesSize = indices.size();
     }
@@ -1846,89 +1856,32 @@ namespace VGF::Vulkan
             }
         }
     }
+
     void VulkanRenderer::Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
     {
-        if (_timesUsed == 0)
-        {
-            allObjects.emplace_back(this);
-            modelMatrices.clear();
-            textureIds.clear();
-        }
+        std::vector<UniformBufferObject*> oneTimeBuffers;
+        std::vector<UniformBufferObject*> instanceBuffer;
 
-        _timesUsed++;
-
-        bool matrix = false;
         for (UniformBufferObject* buffer : uniformBuffers)
         {
-            if (buffer->getType() == "matrix")
-            {
-                matrix = true;
-                MatrixBufferObject* mBuffer = (MatrixBufferObject*)buffer;
-                modelMatrices.emplace_back(mBuffer->GetData().model);
-                textureIds.emplace_back(0);
-            }
+            if (buffer->getType() == "matrix") instanceBuffer.push_back(buffer);
+            oneTimeBuffers.emplace_back(buffer);
         }
 
-        if (!matrix)
-        {
-            modelMatrices.emplace_back(glm::mat4(1.f));
-            textureIds.emplace_back(0);
-        }
-
-        for (size_t i = 0; i < uniformBuffers.size(); i++)
-        {
-            VulkanUniformBuffer& vulkanBuffer = vulkanUniformBuffers[i];
-
-            size_t size = uniformBuffers[i]->SizeOf();
-            vulkanBuffer.data.resize(size);
-            memcpy(vulkanBuffer.data.data(), uniformBuffers[i]->Data(), size);
-        }
-
-        this->config = config;
-        vulkan->getOrCreatePipeline(this, config, true);
-
-        CheckTextureChange(_timesUsed - 1);
-
-        std::vector<VulkanRenderer*>& objectVector = config.translucent ? translucentSwapchainObjects : opaqueSwapchainObjects;
-        std::vector<VulkanRenderer*>& framebufferObjectVector = config.translucent ? vulkan->currentFramebuffer->translucentObjects : vulkan->currentFramebuffer->opaqueObjects;
-
-        if (!addedToRender)
-        {
-            if (vulkan->currentFramebuffer == nullptr) objectVector.emplace_back(this);
-            else framebufferObjectVector.emplace_back(this);
-
-            addedToRender = true;
-        }
+        BatchRender(config, oneTimeBuffers, instanceBuffer);
     }
 
     void VulkanRenderer::BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers)
     {
-        if (_timesUsed == 0)
-        {
-            allObjects.emplace_back(this);
-            modelMatrices.clear();
-            textureIds.clear();
-        }
-
-        bool matrix = false;
+        std::vector<Instance> instances;
         for (UniformBufferObject* buffer : instanceUniformBuffers)
         {
             if (buffer->getType() == "matrix")
             {
-                matrix = true;
                 MatrixBufferObject* mBuffer = (MatrixBufferObject*)buffer;
-                modelMatrices.emplace_back(mBuffer->GetData().model);
-                textureIds.emplace_back(0);
+                instances.emplace_back(Instance{ mBuffer->GetData().model, 0 });
             }
         }
-
-        if (!matrix)
-        {
-            modelMatrices.emplace_back(glm::mat4(1.f));
-            textureIds.emplace_back(0);
-        }
-
-        _timesUsed = modelMatrices.size();
 
         for (size_t i = 0; i < onetimeUniformBuffers.size(); i++)
         {
@@ -1939,38 +1892,62 @@ namespace VGF::Vulkan
             memcpy(vulkanBuffer.data.data(), onetimeUniformBuffers[i]->Data(), size);
         }
 
-        this->config = config;
-        vulkan->getOrCreatePipeline(this, config, true);
+        unsigned int pipelineId = vulkan->getOrCreatePipeline(this, config, vulkan->currentFramebuffer != nullptr);
 
-        CheckTextureChange(_timesUsed - 1);
+        CheckTextureChange();
 
-        std::vector<VulkanRenderer*>& objectVector = config.translucent ? translucentSwapchainObjects : opaqueSwapchainObjects;
-        std::vector<VulkanRenderer*>& framebufferObjectVector = config.translucent ? vulkan->currentFramebuffer->translucentObjects : vulkan->currentFramebuffer->opaqueObjects;
+        std::vector<RenderData>& objectVector = config.translucent ? translucentSwapchainObjects : opaqueSwapchainObjects;
+        std::vector<RenderData>& framebufferObjectVector = config.translucent ? vulkan->currentFramebuffer->translucentObjects : vulkan->currentFramebuffer->opaqueObjects;
 
-        if (!addedToRender)
+        std::vector<RenderData>& vector = vulkan->currentFramebuffer == nullptr ? objectVector : framebufferObjectVector;
+
+        bool found = false;
+        for (RenderData& data : vector)
         {
-            if (vulkan->currentFramebuffer == nullptr) objectVector.emplace_back(this);
-            else framebufferObjectVector.emplace_back(this);
-
-            addedToRender = true;
+            if (data.renderer == this && data.pipelineId == pipelineId)
+            {
+                data.instances.insert(data.instances.end(), instances.begin(), instances.end());
+                found = true;
+                break;
+            }
         }
+
+        if (!found) vector.push_back(RenderData{ pipelineId, this, vulkan->currentFramebuffer, {instances} });
     }
 
 
-    void VulkanRenderer::Draw(VkCommandBuffer commandBuffer, uint32_t currentFrame)
+    void VulkanRenderer::Draw(VkCommandBuffer& commandBuffer, uint32_t currentFrame, RenderData data)
     {
-        addedToRender = false;
+        if (data.instances.empty()) return;
 
-        if (lastTimesUsed != _timesUsed)
+        size_t requiredSize = data.instances.size() * sizeof(Instance);
+        if (requiredSize > _instanceBufferCapasity)
         {
-            vkDestroyBuffer(vulkan->device, instanceBuffer_instanceBufferMemory.first, nullptr);
-            vkFreeMemory(vulkan->device, instanceBuffer_instanceBufferMemory.second, nullptr);
+            if (instanceBuffer_instanceBufferMemory.first != VK_NULL_HANDLE)
+            {
+                vkDestroyBuffer(vulkan->device, instanceBuffer_instanceBufferMemory.first, nullptr);
+                vkFreeMemory(vulkan->device, instanceBuffer_instanceBufferMemory.second, nullptr);
+            }
 
-            instanceBuffer_instanceBufferMemory = vulkan->createInstanceBuffer(modelMatrices, textureIds);
-            lastTimesUsed = _timesUsed;
+            _instanceBufferCapasity = requiredSize * 2;
+            instanceBuffer_instanceBufferMemory = vulkan->createInstanceBuffer(_instanceBufferCapasity);
         }
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan->offscreenPipelineCache.at(config).first);
+        void* memory = nullptr;
+        VkResult result = vkMapMemory(vulkan->device, instanceBuffer_instanceBufferMemory.second, 0, requiredSize, 0, &memory);
+
+        if (result == VK_SUCCESS && memory != nullptr)
+        {
+            memcpy(memory, data.instances.data(), requiredSize);
+            vkUnmapMemory(vulkan->device, instanceBuffer_instanceBufferMemory.second);
+        }
+        else
+        {
+            VGF::Log::Error("Failed to map instance buffer memory!");
+            return;
+        }
+
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan->GetPipeline(data.pipelineId));
 
         VkBuffer buffers[] = { vertexBuffer_vertexBufferMemory.first, instanceBuffer_instanceBufferMemory.first };
         VkDeviceSize offs[] = { 0, 0 };
@@ -1978,18 +1955,31 @@ namespace VGF::Vulkan
         vkCmdBindIndexBuffer(commandBuffer, indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
 
         UpdateUniformBuffer(currentFrame, 0);
-        
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan->offscreenPipelineCache.at(config).second, 0, 1, &descriptorSet[currentFrame], 0, nullptr);
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indicesSize), _timesUsed, 0, 0, 0);
+
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan->GetPipelineLayout(data.pipelineId), 0, 1, &descriptorSet[currentFrame], 0, nullptr);
+
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indicesSize), data.instances.size(), 0, 0, 0);
     }
 
-    void VulkanRenderer::CheckTextureChange(unsigned int timesUsed)
+    void VulkanRenderer::CheckTextureChange()
     {
-        vulkan->UpdateTexture(descriptorSet, lastTextureColor, vulkan->colorTextureImageView, vulkanUniformBuffers.size());
-        vulkan->UpdateTexture(descriptorSet, lastTextureMetallicRoughness, vulkan->metallicRoughnessTextureImageView, vulkanUniformBuffers.size() + 1);
-        vulkan->UpdateTexture(descriptorSet, lastTextureEmission, vulkan->emissiveTextureImageView, vulkanUniformBuffers.size() + 2);
-        vulkan->UpdateTexture(descriptorSet, lastTextureOcculsion, vulkan->occulsionTextureImageView, vulkanUniformBuffers.size() + 3);
-        vulkan->UpdateTexture(descriptorSet, lastTextureNormal, vulkan->normalTextureImageView, vulkanUniformBuffers.size() + 4);
+        std::vector<VkDescriptorSet>& activeSet = (vulkan->currentFramebuffer == nullptr) ? descriptorSet : offscreenDescriptorSet;
+
+        if (vulkan->currentFramebuffer == nullptr)
+            vulkan->UpdateTexture(activeSet, lastTextureColor, vulkan->colorTextureImageView,
+                vulkanUniformBuffers.size());
+        else
+            vulkan->UpdateTexture(activeSet, lastTextureDummy, vulkan->dummyTextureImageView,
+                vulkanUniformBuffers.size());
+
+        vulkan->UpdateTexture(activeSet, lastTextureMetallicRoughness, vulkan->metallicRoughnessTextureImageView,
+            vulkanUniformBuffers.size() + 1);
+        vulkan->UpdateTexture(activeSet, lastTextureEmission, vulkan->emissiveTextureImageView,
+            vulkanUniformBuffers.size() + 2);
+        vulkan->UpdateTexture(activeSet, lastTextureOcculsion, vulkan->occulsionTextureImageView,
+            vulkanUniformBuffers.size() + 3);
+        vulkan->UpdateTexture(activeSet, lastTextureNormal, vulkan->normalTextureImageView,
+            vulkanUniformBuffers.size() + 4);
     }
 
     void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage, unsigned int usedIndex)

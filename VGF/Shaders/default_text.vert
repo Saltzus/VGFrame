@@ -19,7 +19,7 @@ layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
 
 void main() {
-    gl_Position = tbo.proj * tbo.model * vec4(inPosition, 1.0);
+    gl_Position = tbo.proj * model * vec4(inPosition, 1.0);
     fragColor = tbo.color;
     fragTexCoord = inTexCoord;
 }

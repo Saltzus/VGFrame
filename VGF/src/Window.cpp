@@ -8,7 +8,7 @@ namespace VGF
 
 	Window::~Window()
 	{
-
+		glfwTerminate();
 	}
 
 	/// @param WinName = Title of the window

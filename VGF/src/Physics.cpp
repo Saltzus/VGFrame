@@ -28,7 +28,7 @@ namespace VGF
 		debugRenderer = new PhysicsDebugRenderer();
 	}
 
-	void Physics::Update(double delta_time)
+	void Physics::Update()
 	{
 		physicsSystem.Update(1.0f / 60.0f, 1, tempAllocator, &jobSystem);
 	}

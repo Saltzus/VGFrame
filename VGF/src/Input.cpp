@@ -51,7 +51,7 @@ namespace VGF::Input
 	bool f1Pressed = false;
     void processInput(GLFWwindow* window)
     {
-		if (Gui::io->WantCaptureKeyboard) return;
+		if (Gui::io && Gui::io->WantCaptureKeyboard) return;
 
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
             glfwSetWindowShouldClose(window, true);
@@ -74,7 +74,7 @@ namespace VGF::Input
 	std::map<int,bool> isPressed;
 	bool pressedKey(GLFWwindow* window, int key)
 	{
-		if (Gui::io->WantCaptureKeyboard) return false;
+		if (Gui::io && Gui::io->WantCaptureKeyboard) return false;
 		if (glfwGetKey(window, key) == GLFW_PRESS)
 		{
 			if (!isPressed[key])
@@ -92,10 +92,16 @@ namespace VGF::Input
 		return false;
 	}
 
+	bool pressingKey(GLFWwindow* window, int key)
+	{
+		if (Gui::io && Gui::io->WantCaptureKeyboard) return false;
+		return glfwGetKey(window, key) == GLFW_PRESS;
+	}
+
 	std::map<int, bool> isPressedMouse;
 	bool pressedMouseButton(GLFWwindow* window, int button)
 	{
-		if (Gui::io->WantCaptureMouse) return false;
+		if (Gui::io && Gui::io->WantCaptureMouse) return false;
 		if (glfwGetMouseButton(window, button) == GLFW_PRESS)
 		{
 			if (!isPressedMouse[button])
@@ -111,6 +117,12 @@ namespace VGF::Input
 		}
 
 		return false;
+	}
+
+	bool pressingMouseButton(GLFWwindow* window, int button)
+	{
+		if (Gui::io && Gui::io->WantCaptureMouse) return false;
+		return glfwGetMouseButton(window, button) == GLFW_PRESS;
 	}
 
 	std::pair<double, double> GetMousePosition(GLFWwindow* window)

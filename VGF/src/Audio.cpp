@@ -17,12 +17,12 @@ namespace VGF
         ma_engine_uninit(&engine);
     }  
 
-    void Audio::PlayAudio(const char* audioFile)
+    void Audio::PlayAudio(const std::string audioFile)
     {
         ma_result resultt;
         ma_sound sound;
 
-        resultt = ma_sound_init_from_file(&engine, audioFile, 0, NULL, NULL, &sound);
+        resultt = ma_sound_init_from_file(&engine, audioFile.c_str(), 0, NULL, NULL, &sound);
         if (resultt != MA_SUCCESS) {
             printf("Could not init audio file\n");
         }
