@@ -165,7 +165,7 @@ namespace VGF::Vulkan
 
         std::pair<VkBuffer, VkDeviceMemory> createVertexBuffer(std::vector<GLfloat>& vertices);
 
-        std::pair<VkBuffer, VkDeviceMemory> createInstanceBuffer(VkDeviceSize size);
+        std::pair<VkBuffer, VkDeviceMemory> Vulkan::createInstanceBuffer(VkDeviceSize size);
         std::pair<VkBuffer, VkDeviceMemory> createInstanceBuffer(std::vector<Instance> instances);
 
         std::pair<VkBuffer, VkDeviceMemory> createIndexBuffer(std::vector<uint16_t> indices);
