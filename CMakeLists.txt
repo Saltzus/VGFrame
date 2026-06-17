@@ -133,11 +133,7 @@ add_subdirectory(VGF)
 
 add_library(VGFrame INTERFACE)
 add_dependencies(VGFrame VGF)
-target_link_libraries(VGFrame
-    INTERFACE
-    VGF
-)
-
+target_link_libraries(VGFrame INTERFACE VGF)
 
 add_subdirectory(Examples/HelloWorld)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT HelloWorld)

@@ -17,7 +17,7 @@ namespace VGF::Vulkan
     struct Instance
     {
         alignas(16) glm::mat4 model = glm::mat4(1.f);
-        alignas(16) uint32_t  textureIndex;
+        alignas(16) uint32_t  textureIndex = 0;
         
 
         static VkVertexInputBindingDescription getBindingDescription() 

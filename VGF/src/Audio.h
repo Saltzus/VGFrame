@@ -12,7 +12,7 @@ namespace VGF
         Audio();
         ~Audio();
 
-        void PlayAudio(const char* audioFile);
+        void PlayAudio(const std::string audioFile);
     private:
         ma_result result;
         ma_engine engine;

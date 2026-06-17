@@ -2,7 +2,7 @@
 
 namespace VGF
 {
-	Model::Model(const char* modelPath, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers) 
+	Model::Model(const std::string modelPath, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
 		: config(config)
 	{
 		bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, modelPath);

@@ -67,17 +67,33 @@ namespace VGF
         ShaderImpl* _impl = nullptr;
     };
 
-    // Custom hash function
-    struct PipelineConfigHash 
+    struct PipelineHashKey
     {
-        std::size_t operator()(const PipelineConfig& config) const noexcept 
-        {
-            size_t h1 = std::hash<bool>()(config.translucent);
-            size_t h2 = std::hash<int>()(static_cast<int>(config.topology));
-            size_t h3 = std::hash<std::string>()(config.vertShader);
-            size_t h4 = std::hash<std::string>()(config.fragShader);
+        PipelineConfig config;
+        bool offscreen;
 
-            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3);
+        bool operator==(const PipelineHashKey& other) const noexcept
+        {
+            return 
+                offscreen == other.offscreen &&
+                config.translucent == other.config.translucent &&
+                config.topology == other.config.topology &&
+                config.vertShader == other.config.vertShader &&
+                config.fragShader == other.config.fragShader;
+        }
+    };
+
+    struct PipelineConfigKeyHash
+    {
+        std::size_t operator()(const PipelineHashKey& key) const noexcept
+        {
+            size_t h1 = std::hash<bool>()(key.config.translucent);
+            size_t h2 = std::hash<int>()(static_cast<int>(key.config.topology));
+            size_t h3 = std::hash<std::string>()(key.config.vertShader);
+            size_t h4 = std::hash<std::string>()(key.config.fragShader);
+            size_t h5 = std::hash<bool>()(key.offscreen);
+
+            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3) ^ (h5 << 4);
         }
     };
 }

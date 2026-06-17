@@ -24,8 +24,17 @@ namespace VGF
 	class Model
 	{
 	public:
-		Model(const char* modelPath, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+		Model(const std::string modelPath, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 		Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+
+		Model(const std::string modelPath, const std::vector<UniformBufferObject*> additionalUniformBuffers = {})
+			: Model(modelPath, VGF::PipelineConfig::GetDefault(), additionalUniformBuffers) {}
+
+		Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, const std::vector<UniformBufferObject*> additionalUniformBuffers = {})
+			: Model(vertices, indices, material, VGF::PipelineConfig::GetDefault(), additionalUniformBuffers) {
+		}
+		Model(std::vector <float> vertices, std::vector <unsigned int> indices, const std::vector<UniformBufferObject*> additionalUniformBuffers = {})
+			: Model(vertices, indices, VGF::Material::getDefaultMaterial(), additionalUniformBuffers) {}
 
 		~Model();
 

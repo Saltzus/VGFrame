@@ -6,6 +6,8 @@ namespace VGF
 
     PhysicsObject::PhysicsObject(Model* model, Physics* physics, JPH::Vec3 origin, JPH::Vec3 size, float mass) : Object(model), _physics(physics)
     {
+        SetScale(size);
+
         JPH::ObjectLayer layer = PhysicsLayers::NON_MOVING;
         JPH::EMotionType motionType = JPH::EMotionType::Static;
 
@@ -70,12 +72,12 @@ namespace VGF
         JPH::Vec3 newScale(x, y, z);
         
         
-       // _physics->bodyInterface->SetShape(
-       //     body->GetID(),
-       //     scaledShape,
-       //     true,
-       //     JPH::EActivation::Activate
-       // );
+       //_physics->bodyInterface->SetShape(
+       //    body->GetID(),
+       //    scaledShape,
+       //    true,
+       //    JPH::EActivation::Activate
+       //);
         
         _scale = glm::vec3(x, y, z);
     }

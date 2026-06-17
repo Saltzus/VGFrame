@@ -9,7 +9,10 @@ namespace VGF::Input
 {
     void processInput(GLFWwindow* window);
 	bool pressedKey(GLFWwindow* window, int key);
+	bool pressingKey(GLFWwindow* window, int key);
+
 	bool pressedMouseButton(GLFWwindow* window, int button);
+	bool pressingMouseButton(GLFWwindow* window, int button);
 
 	std::pair<double,double> GetMousePosition(GLFWwindow* window);
 	void GetMousePosition(GLFWwindow* window, double& posX, double& posY);
