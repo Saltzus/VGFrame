@@ -70,11 +70,22 @@ namespace VGF::Vulkan
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-        auto vertexBindingDescription = Vertex::getBindingDescription();
-        auto vertexAttributeDescriptions = Vertex::getAttributeDescriptions();
+        VkVertexInputBindingDescription vertexBindingDescription{};
+        vertexBindingDescription.binding = 0;
+        vertexBindingDescription.stride = config.vertexBuffer->GetSize();
+        vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-        auto instanceBindingDescription = Instance::getBindingDescription();
-        auto instanceAttributeDescriptions = Instance::getAttributeDescriptions();
+        std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions = config.vertexBuffer->GetVulkanAttributeDescriptions();
+
+        auto vertexdsasBindingDescription = Vertex::getBindingDescription();
+        auto vertexAdadsttributeDescriptions = Vertex::getAttributeDescriptions();
+
+        VkVertexInputBindingDescription instanceBindingDescription{};
+        instanceBindingDescription.binding = 1;
+        instanceBindingDescription.stride = config.instanceBuffer->GetSize();
+        instanceBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+
+        std::vector<VkVertexInputAttributeDescription> instanceAttributeDescriptions = config.instanceBuffer->GetVulkanAttributeDescriptions();
 
         std::array<VkVertexInputBindingDescription, 2> bindingDescriptions = 
         {

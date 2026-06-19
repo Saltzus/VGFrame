@@ -2,9 +2,12 @@
 
 #include "RenderImpl.h"
 #include "Resource.h"
+#include "VertexBuffers/VertexBuffer.h"
 
 #include <vulkan/vulkan.hpp>
 
+#include "VertexBuffers/DefaultInstanceBuffer.h"
+#include "VertexBuffers/DefaultVertexBuffer.h"
 
 
 namespace VGF
@@ -46,6 +49,9 @@ namespace VGF
 
         std::string vertShader;
         std::string fragShader;
+
+        VertexBuffer* vertexBuffer = new DefaultVertexBuffer;
+        VertexBuffer* instanceBuffer = new DefaultInstanceBuffer;
 
         static const VGF::PipelineConfig& GetDefault()
         {
