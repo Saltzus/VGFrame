@@ -150,8 +150,13 @@ namespace VGF::Opengl
     {
     }
 
+
+
     OpenglRenderer::OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, std::vector<UniformBufferObject*> uniformBuffers) : opengl(Opengl::openglInstance)
     {
+        _indices = indices;
+        _vertices = vertices;
+
         if (opengl->framebuffer == 0)
         { 
             glGenFramebuffers(1, &opengl->framebuffer);
@@ -193,37 +198,6 @@ namespace VGF::Opengl
             openglUniformBuffers.push_back(openglBuffer);
         }
 
-        glGenVertexArrays(1, &VAO);
-
-        glGenBuffers(1, &VBO);
-        glGenBuffers(1, &IBO);
-        glGenBuffers(1, &EBO);
-
-        glBindVertexArray(VAO);
-
-        // adds vertices and indices inside buffers
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
-
-        // position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
-
-        // normals
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(3 * sizeof(float)));
-        glEnableVertexAttribArray(1);
-
-        // vertex color
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float)));
-        glEnableVertexAttribArray(2);
-
-        // Texture position attribute
-        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(9 * sizeof(float)));
-        glEnableVertexAttribArray(3);
-
         indicesSize = indices.size();
     }
     OpenglRenderer::~OpenglRenderer()
@@ -238,39 +212,22 @@ namespace VGF::Opengl
 
     void OpenglRenderer::Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
     {
-        int topology = GetTopology(config);
+        std::vector<UniformBufferObject*> instanceUniformBuffers;
 
-        assert(uniformBuffers.size() == openglUniformBuffers.size() && "sent uniform buffers did not match initialized buffers!!");
-        for (size_t i = 0; i < uniformBuffers.size(); i++)
+        for (UniformBufferObject* buffer : uniformBuffers)
         {
-            glBindBuffer(GL_UNIFORM_BUFFER, openglUniformBuffers[i]);
-            glBindBufferBase(GL_UNIFORM_BUFFER, i, openglUniformBuffers[i]);
-            glBufferSubData(GL_UNIFORM_BUFFER, 0, uniformBuffers[i]->SizeOf(), uniformBuffers[i]->Data());
+            if (buffer->getType() == "matrix")
+                instanceUniformBuffers.emplace_back(buffer);
         }
 
-        std::array<const char*, 5> samplers =
-        {
-            "colorSampler",
-            "metallicRoughnessSampler",
-            "emissiveSampler",
-            "occulsionSampler",
-            "normalSampler"
-        };
-
-        for (size_t binding = 0; binding < samplers.size(); binding++)
-        {
-            GLint location = glGetUniformLocation(config.ID(), samplers[binding]);
-            glUniform1i(location, binding + 2);
-        }
-        glBindVertexArray(VAO);
-        glDrawElements(topology, indicesSize, GL_UNSIGNED_INT, 0);
-
-        int error = glGetError();
+        BatchRender(config, uniformBuffers, instanceUniformBuffers);
     }
 
 
     void OpenglRenderer::BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers)
     {
+        if (_createdVao == false) CreateVAO(config);
+
         int topology = GetTopology(config);
 
         instanceData.clear();
@@ -283,8 +240,8 @@ namespace VGF::Opengl
                 matrix = true;
                 MatrixBufferObject* mBuffer = (MatrixBufferObject*)buffer;
 
-                InstanceData data;
-                data.modelMatrix = mBuffer->GetData().model;
+                DefaultInstance data;
+                data.model = mBuffer->GetData().model;
                 data.textureID = 0;
                 instanceData.emplace_back(data);
             }
@@ -295,34 +252,19 @@ namespace VGF::Opengl
 
         if (lastSize != instanceData.size())
         {
-            glBufferData(GL_ARRAY_BUFFER, instanceData.size() * sizeof(InstanceData), instanceData.data(), GL_DYNAMIC_DRAW);
-
-            for (int i = 0; i < 4; i++)
-            {
-                glVertexAttribPointer
-                (
-                    4 + i,                     
-                    4, GL_FLOAT, GL_FALSE,
-                    sizeof(InstanceData),
-                    (void*)(offsetof(InstanceData, modelMatrix) + i * sizeof(glm::vec4))
-                );
-
-                glEnableVertexAttribArray(4 + i);
-                glVertexAttribDivisor(4 + i, 1);
-            }
-
-            glVertexAttribIPointer
-            (
-                8,
-                1, GL_UNSIGNED_INT,
-                sizeof(InstanceData),
-                (void*)offsetof(InstanceData, textureID)
-            );
-
-            glEnableVertexAttribArray(8);
-            glVertexAttribDivisor(8, 1);
-
+            glBufferData(GL_ARRAY_BUFFER, instanceData.size() * config.GetInstanceBuffer()->GetSize(), instanceData.data(), GL_DYNAMIC_DRAW);
             lastSize = instanceData.size();
+
+            if (!_configuredInstanceAttributes)
+            {
+                uint32_t location = lastLocation;
+                config.GetInstanceBuffer()->GetOpenGLAttributeDescriptions(location);
+                _configuredInstanceAttributes = true;
+            }
+        }
+        else if (!instanceData.empty())
+        {
+            glBufferSubData(GL_ARRAY_BUFFER, 0, instanceData.size() * config.GetInstanceBuffer()->GetSize(), instanceData.data());
         }
 
         for (size_t i = 0; i < onetimeUniformBuffers.size(); i++)
@@ -369,5 +311,27 @@ namespace VGF::Opengl
         }
 
         return topology;
+    }
+
+    void OpenglRenderer::CreateVAO(const PipelineConfig& config)
+    {
+        glGenVertexArrays(1, &VAO);
+
+        glGenBuffers(1, &VBO);
+        glGenBuffers(1, &IBO);
+        glGenBuffers(1, &EBO);
+
+        glBindVertexArray(VAO);
+
+        // adds vertices and indices inside buffers
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, _vertices.size() * sizeof(GLfloat), _vertices.data(), GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, _indices.size() * sizeof(GLuint), _indices.data(), GL_STATIC_DRAW);
+
+        config.GetVertexBuffer()->GetOpenGLAttributeDescriptions(lastLocation);
+
+        _createdVao = true;
     }
 }

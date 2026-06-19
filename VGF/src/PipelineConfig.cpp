@@ -8,8 +8,24 @@ namespace VGF
 {
 	bool configCreated = false;
 
+	PipelineConfig::PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent, VertexBuffer& vertexBuffer, VertexBuffer& instanceBuffer)
+		: PipelineConfig(vertShader, fragShader, topology, translucent)
+	{
+		_createdInstanceBuffer = false;
+		_createdVertexBuffer = false;
+
+		_vertexBuffer = &vertexBuffer;
+		_instanceBuffer = &instanceBuffer;
+	}
+
 	PipelineConfig::PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent)
 	{
+		if (_createdInstanceBuffer == true)
+		{
+			_vertexBuffer = new DefaultVertexBuffer;
+			_instanceBuffer = new DefaultInstanceBuffer;
+		}
+
 		this->translucent = translucent;
 		this->topology = topology;
 		this->vertShader = vertShader;
@@ -31,11 +47,31 @@ namespace VGF
 		configCreated = true;
 	}
 
-	PipelineConfig::PipelineConfig() { configCreated = false; }
+	PipelineConfig::PipelineConfig() 
+	{ 
+		configCreated = false; 
+		_createdInstanceBuffer = false; 
+		_createdVertexBuffer = false;
+	}
 
 	PipelineConfig::~PipelineConfig()
 	{
+		if (_createdInstanceBuffer) delete _instanceBuffer;
+		if (_createdVertexBuffer) delete _vertexBuffer;
+	}
 
+	void PipelineConfig::SetVertexBuffer(VertexBuffer* vertexBuffer)
+	{
+		if (_createdVertexBuffer) delete _vertexBuffer;
+		_createdVertexBuffer = false;
+		_vertexBuffer = vertexBuffer;
+	}
+
+	void PipelineConfig::SetInstanceBuffer(VertexBuffer* instanceBuffer)
+	{
+		if (_createdInstanceBuffer) delete _instanceBuffer;
+		_createdInstanceBuffer = false;
+		_instanceBuffer = instanceBuffer;
 	}
 
 	const VkPrimitiveTopology PipelineConfig::GetVulkanTopology() const

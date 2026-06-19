@@ -1408,10 +1408,8 @@ namespace VGF::Vulkan
         endSingleTimeCommands(commandBuffer);
     }
 
-    std::pair<VkBuffer, VkDeviceMemory> Vulkan::createVertexBuffer(std::vector<GLfloat>& verticess)
+    std::pair<VkBuffer, VkDeviceMemory> Vulkan::createVertexBuffer(std::vector<GLfloat>& vertices)
     {
-        std::vector<Vertex> vertices = fromGLFloats(verticess);
-
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
         VkBuffer stagingBuffer;

@@ -13,6 +13,8 @@
 #include <glm/gtx/rotate_vector.hpp>
 
 #include "../../RenderImpl.h"
+#include "../../VertexBuffers/DefaultInstanceBuffer.h"
+
 
 namespace VGF::Opengl
 {
@@ -62,18 +64,22 @@ namespace VGF::Opengl
     private:
         const int GetTopology(const PipelineConfig& config) const;
 
-        struct InstanceData {
-            glm::mat4 modelMatrix;
-            alignas(16) unsigned int textureID;
-        };
+        std::vector<GLuint> _indices;
+        std::vector<GLfloat> _vertices;
 
-        std::vector<InstanceData> instanceData;
+        void CreateVAO(const PipelineConfig& config);
+        bool _createdVao = false;
+        bool _configuredInstanceAttributes = false;
+
+        uint32_t lastLocation = 0;
+
+        std::vector<DefaultInstance> instanceData;
 
         Opengl* opengl;
         std::vector<GLuint> openglUniformBuffers;
 
         int indicesSize;
-        unsigned int lastSize;
+        unsigned int lastSize = 0;
 
         GLuint VAO;
 	    GLuint VBO;
