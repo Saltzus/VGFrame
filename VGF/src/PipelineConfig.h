@@ -5,6 +5,7 @@
 #include "VertexBuffers/VertexBuffer.h"
 
 #include <vulkan/vulkan.hpp>
+#include <typeindex>
 
 #include "VertexBuffers/DefaultInstanceBuffer.h"
 #include "VertexBuffers/DefaultVertexBuffer.h"
@@ -21,15 +22,15 @@ namespace VGF
     class PipelineConfig 
     {
     public:
-        PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent = false);
-        PipelineConfig(std::string_view vertShader, std::string_view fragShader, bool translucent, Topology topology = Topology::TRIANGLE_LIST)
-            : PipelineConfig(vertShader, fragShader, topology, translucent) {}
 
-        PipelineConfig(std::string_view vertShader, std::string_view fragShader)
-            : PipelineConfig(vertShader, fragShader, topology, translucent) {
-        }
-        
         PipelineConfig();
+        PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent = false);
+
+        PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent, VertexBuffer& vertexBuffer, VertexBuffer& instanceBuffer);
+
+        PipelineConfig(std::string_view vertShader, std::string_view fragShader, bool translucent = false, Topology topology = Topology::TRIANGLE_LIST)
+            : PipelineConfig(vertShader, fragShader, topology, translucent) {}
+        
         ~PipelineConfig();
 
         bool operator==(const PipelineConfig& other) const 
@@ -50,8 +51,14 @@ namespace VGF
         std::string vertShader;
         std::string fragShader;
 
-        VertexBuffer* vertexBuffer = new DefaultVertexBuffer;
-        VertexBuffer* instanceBuffer = new DefaultInstanceBuffer;
+        const std::type_index GetVertexBufferTypeId() const { return typeid(*_vertexBuffer); }
+        const std::type_index GetInstanceBufferTypeId() const { return typeid(*_instanceBuffer); }
+
+        const VertexBuffer* GetVertexBuffer() const { return _vertexBuffer; }
+        const VertexBuffer* GetInstanceBuffer() const { return _instanceBuffer; }
+
+        void SetVertexBuffer(VertexBuffer* vertexBuffer);
+        void SetInstanceBuffer(VertexBuffer* vertexBuffer);
 
         static const VGF::PipelineConfig& GetDefault()
         {
@@ -71,21 +78,32 @@ namespace VGF
 
     private:
         ShaderImpl* _impl = nullptr;
+
+        VertexBuffer* _vertexBuffer;
+        VertexBuffer* _instanceBuffer;
+
+        bool _createdVertexBuffer = true;
+        bool _createdInstanceBuffer = true;
     };
 
     struct PipelineHashKey
     {
-        PipelineConfig config;
+        const PipelineConfig& config;
         bool offscreen;
 
         bool operator==(const PipelineHashKey& other) const noexcept
         {
-            return 
-                offscreen == other.offscreen &&
+            return
+            {
                 config.translucent == other.config.translucent &&
-                config.topology == other.config.topology &&
                 config.vertShader == other.config.vertShader &&
-                config.fragShader == other.config.fragShader;
+                config.fragShader == other.config.fragShader &&
+                config.topology == other.config.topology &&
+                offscreen == other.offscreen &&
+
+                config.GetVertexBufferTypeId() == other.config.GetVertexBufferTypeId() &&
+                config.GetInstanceBufferTypeId() == other.config.GetInstanceBufferTypeId()
+            };
         }
     };
 
@@ -98,8 +116,9 @@ namespace VGF
             size_t h3 = std::hash<std::string>()(key.config.vertShader);
             size_t h4 = std::hash<std::string>()(key.config.fragShader);
             size_t h5 = std::hash<bool>()(key.offscreen);
-
-            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3) ^ (h5 << 4);
+            size_t h6 = std::hash<std::type_index>()(std::type_index(key.config.GetVertexBufferTypeId()));
+            size_t h7 = std::hash<std::type_index>()(std::type_index(key.config.GetInstanceBufferTypeId()));
+            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3) ^ (h5 << 4) ^ (h6 << 5) ^ (h7 << 6);
         }
     };
 }

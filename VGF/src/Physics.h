@@ -19,6 +19,8 @@
 
 #include "PipelineConfig.h"
 #include "Log.h"
+#include "VertexBuffers/DefaultInstanceBuffer.h"
+#include "VertexBuffers/DebugVertexBuffer.h"
 
 #include "PhysicsDebugRenderer.h"
 
@@ -192,6 +194,9 @@ namespace VGF
 
 		inline static Physics* physics = nullptr;
 
+		static inline DebugVertexBuffer debugVertexBuffer;
+		static inline DefaultInstanceBuffer instanceBuffer;
+
 		static const VGF::PipelineConfig& GetDefaultConfig(bool wireframe)
 		{
 			if (wireframe)
@@ -200,7 +205,10 @@ namespace VGF
 				(
 					VGF::Resource::Get("Shaders/debug.vert"),
 					VGF::Resource::Get("Shaders/debug.frag"),
-					VGF::Topology::LINE_LIST
+					VGF::Topology::LINE_LIST,
+					false,
+					debugVertexBuffer,
+					instanceBuffer
 				);
 				return config;
 			}
@@ -210,7 +218,10 @@ namespace VGF
 				(
 					VGF::Resource::Get("Shaders/debug.vert"),
 					VGF::Resource::Get("Shaders/debug.frag"),
-					VGF::Topology::TRIANGLE_LIST
+					VGF::Topology::TRIANGLE_LIST,
+					false,
+					debugVertexBuffer,
+					instanceBuffer
 				);
 				return config;
 			}

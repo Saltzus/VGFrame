@@ -22,12 +22,12 @@ public:
 
 		std::vector<float> outVertices =
 		{
-			(float)inV1.GetX(), (float)inV1.GetY(), (float)inV1.GetZ(),   0,0,1,   r,g,b,  0.5f, 0.0f,
-			(float)inV2.GetX(), (float)inV2.GetY(), (float)inV2.GetZ(),   0,0,1,   r,g,b,  1.0f, 1.0f,
-			(float)inV3.GetX(), (float)inV3.GetY(), (float)inV3.GetZ(),   0,0,1,   r,g,b,  0.0f, 1.0f,
+			(float)inV1.GetX(), (float)inV1.GetY(), (float)inV1.GetZ(), r,g,b,
+			(float)inV2.GetX(), (float)inV2.GetY(), (float)inV2.GetZ(), r,g,b,
+			(float)inV3.GetX(), (float)inV3.GetY(), (float)inV3.GetZ(), r,g,b,
 		};
 
-		unsigned int base = static_cast<unsigned int>(vertices.size()) / 11;
+		unsigned int base = static_cast<unsigned int>(vertices.size()) / 6;
 		vertices.insert(vertices.end(), outVertices.begin(), outVertices.end());
 		indices.push_back(base);
 		indices.push_back(base + 1);
@@ -41,11 +41,11 @@ public:
 
 		std::vector<float> outVertices =
 		{
-			(float)inFrom.GetX(), (float)inFrom.GetY(), (float)inFrom.GetZ(),   0,0,1,   r,g,b,  0.5f, 0.0f,
-			(float)inTo.GetX()  , (float)inTo.GetY()  , (float)inTo.GetZ()  ,   0,0,1,   r,g,b,  1.0f, 1.0f,
+			(float)inFrom.GetX(), (float)inFrom.GetY(), (float)inFrom.GetZ(), r,g,b,
+			(float)inTo.GetX()  , (float)inTo.GetY()  , (float)inTo.GetZ(), r,g,b,
 		};
 
-		unsigned int base = static_cast<unsigned int>(wireframeVertices.size()) / 11;
+		unsigned int base = static_cast<unsigned int>(wireframeVertices.size()) / 6;
 		wireframeVertices.insert(wireframeVertices.end(), outVertices.begin(), outVertices.end());
 		wireframeIndices.push_back(base);
 		wireframeIndices.push_back(base + 1);

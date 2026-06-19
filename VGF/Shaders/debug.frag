@@ -7,7 +7,6 @@ layout(binding = 5) uniform sampler2D occulsionSampler;
 layout(binding = 6) uniform sampler2D normalSampler;
 
 layout(location = 0) in vec3 fragColor;
-layout(location = 1) in vec2 fragTexCoord;
 
 layout(location = 0) out vec4 outColor;
 

@@ -72,20 +72,17 @@ namespace VGF::Vulkan
 
         VkVertexInputBindingDescription vertexBindingDescription{};
         vertexBindingDescription.binding = 0;
-        vertexBindingDescription.stride = config.vertexBuffer->GetSize();
+        vertexBindingDescription.stride = config.GetVertexBuffer()->GetSize();
         vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-        std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions = config.vertexBuffer->GetVulkanAttributeDescriptions();
-
-        auto vertexdsasBindingDescription = Vertex::getBindingDescription();
-        auto vertexAdadsttributeDescriptions = Vertex::getAttributeDescriptions();
+        std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions = config.GetVertexBuffer()->GetVulkanAttributeDescriptions(0);
 
         VkVertexInputBindingDescription instanceBindingDescription{};
         instanceBindingDescription.binding = 1;
-        instanceBindingDescription.stride = config.instanceBuffer->GetSize();
+        instanceBindingDescription.stride = config.GetInstanceBuffer()->GetSize();
         instanceBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
 
-        std::vector<VkVertexInputAttributeDescription> instanceAttributeDescriptions = config.instanceBuffer->GetVulkanAttributeDescriptions();
+        std::vector<VkVertexInputAttributeDescription> instanceAttributeDescriptions = config.GetInstanceBuffer()->GetVulkanAttributeDescriptions(vertexAttributeDescriptions.size());
 
         std::array<VkVertexInputBindingDescription, 2> bindingDescriptions = 
         {
