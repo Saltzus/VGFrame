@@ -28,7 +28,7 @@ namespace VGF
     {
         virtual ~RendererImpl() {}
         virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) = 0;
-        virtual void BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers) = 0;
+        virtual void BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers) = 0;
     };
 
     struct ApiImpl

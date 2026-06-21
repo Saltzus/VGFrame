@@ -38,12 +38,12 @@ namespace VGF
         this->_impl->Render(config, uniformBuffers);
     }
 
-    void Renderer::BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers) const
+    void Renderer::BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers) const
     {
         if (config.vertShader == "" || config.fragShader == "") VGF::Log::Error("Config is null");
 
         config.Activate();
-        this->_impl->BatchRender(config, onetimeUniformBuffers, instanceUniformBuffers);
+        this->_impl->BatchRender(config, instanceData, instanceCount, instanceStride, uniformBuffers);
     }
 
     void Renderer::InitApi(GLFWwindow* window)

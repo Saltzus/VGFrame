@@ -1449,34 +1449,6 @@ namespace VGF::Vulkan
         return std::make_pair(buffer, bufferMemory);
     }
 
-    std::pair<VkBuffer, VkDeviceMemory> Vulkan::createInstanceBuffer(std::vector<Instance> instances)
-    {
-        VkDeviceSize bufferSize = sizeof(instances[0]) * instances.size();
-
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-
-        VkBuffer instanceBuffer;
-        VkDeviceMemory instanceBufferMemory;
-
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-        void* data;
-        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, instances.data(), (size_t)bufferSize);
-
-        vkUnmapMemory(device, stagingBufferMemory);
-
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, instanceBuffer, instanceBufferMemory);
-        copyBuffer(stagingBuffer, instanceBuffer, bufferSize);
-
-
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        vkFreeMemory(device, stagingBufferMemory, nullptr);
-
-        return { instanceBuffer, instanceBufferMemory };
-    }
-
     std::pair<VkBuffer, VkDeviceMemory> Vulkan::createIndexBuffer(std::vector<uint16_t> indices) 
     {
 
@@ -1857,37 +1829,30 @@ namespace VGF::Vulkan
 
     void VulkanRenderer::Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
     {
-        std::vector<UniformBufferObject*> oneTimeBuffers;
-        std::vector<UniformBufferObject*> instanceBuffer;
+        std::vector<DefaultInstance> instances;
 
         for (UniformBufferObject* buffer : uniformBuffers)
-        {
-            if (buffer->getType() == "matrix") instanceBuffer.push_back(buffer);
-            oneTimeBuffers.emplace_back(buffer);
-        }
-
-        BatchRender(config, oneTimeBuffers, instanceBuffer);
-    }
-
-    void VulkanRenderer::BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers)
-    {
-        std::vector<Instance> instances;
-        for (UniformBufferObject* buffer : instanceUniformBuffers)
         {
             if (buffer->getType() == "matrix")
             {
                 MatrixBufferObject* mBuffer = (MatrixBufferObject*)buffer;
-                instances.emplace_back(Instance{ mBuffer->GetData().model, 0 });
+                instances.emplace_back(DefaultInstance{ mBuffer->GetData().model, 0 });
             }
         }
 
-        for (size_t i = 0; i < onetimeUniformBuffers.size(); i++)
+        BatchRender(config, instances.data(), 1, sizeof(DefaultInstance), uniformBuffers);
+    }
+
+    void VulkanRenderer::BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers)
+    {
+
+        for (size_t i = 0; i < uniformBuffers.size(); i++)
         {
             VulkanUniformBuffer& vulkanBuffer = vulkanUniformBuffers[i];
 
-            size_t size = onetimeUniformBuffers[i]->SizeOf();
+            size_t size = uniformBuffers[i]->SizeOf();
             vulkanBuffer.data.resize(size);
-            memcpy(vulkanBuffer.data.data(), onetimeUniformBuffers[i]->Data(), size);
+            memcpy(vulkanBuffer.data.data(), uniformBuffers[i]->Data(), size);
         }
 
         unsigned int pipelineId = vulkan->getOrCreatePipeline(this, config, vulkan->currentFramebuffer != nullptr);
@@ -1904,21 +1869,21 @@ namespace VGF::Vulkan
         {
             if (data.renderer == this && data.pipelineId == pipelineId)
             {
-                data.instances.insert(data.instances.end(), instances.begin(), instances.end());
+                data.instanceData.Append(instanceData, instanceCount, instanceStride);
                 found = true;
                 break;
             }
         }
 
-        if (!found) vector.push_back(RenderData{ pipelineId, this, vulkan->currentFramebuffer, {instances} });
+        if (!found) vector.emplace_back(RenderData{ pipelineId, this, vulkan->currentFramebuffer, InstanceData{ instanceData, instanceCount, instanceStride } });
     }
 
 
     void VulkanRenderer::Draw(VkCommandBuffer& commandBuffer, uint32_t currentFrame, RenderData data)
     {
-        if (data.instances.empty()) return;
+        if (data.instanceData.count <= 0) return;
 
-        size_t requiredSize = data.instances.size() * sizeof(Instance);
+        size_t requiredSize = data.instanceData.count * data.instanceData.stride;
         if (requiredSize > _instanceBufferCapasity)
         {
             if (instanceBuffer_instanceBufferMemory.first != VK_NULL_HANDLE)
@@ -1936,7 +1901,7 @@ namespace VGF::Vulkan
 
         if (result == VK_SUCCESS && memory != nullptr)
         {
-            memcpy(memory, data.instances.data(), requiredSize);
+            memcpy(memory, data.instanceData.Data(), requiredSize);
             vkUnmapMemory(vulkan->device, instanceBuffer_instanceBufferMemory.second);
         }
         else
@@ -1956,7 +1921,7 @@ namespace VGF::Vulkan
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan->GetPipelineLayout(data.pipelineId), 0, 1, &descriptorSet[currentFrame], 0, nullptr);
 
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indicesSize), data.instances.size(), 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indicesSize), data.instanceData.count, 0, 0, 0);
     }
 
     void VulkanRenderer::CheckTextureChange()

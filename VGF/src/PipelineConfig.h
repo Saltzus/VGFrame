@@ -33,18 +33,6 @@ namespace VGF
         
         ~PipelineConfig();
 
-        bool operator==(const PipelineConfig& other) const 
-        {
-            return
-            { 
-                translucent == other.translucent &&
-                topology    == other.topology    &&
-                vertShader  == other.vertShader  &&
-                fragShader  == other.fragShader
-            };
-
-        }
-
         bool translucent = false;
         Topology topology = Topology::TRIANGLE_LIST;
 
@@ -58,7 +46,20 @@ namespace VGF
         const VertexBuffer* GetInstanceBuffer() const { return _instanceBuffer; }
 
         void SetVertexBuffer(VertexBuffer* vertexBuffer);
+        template<typename T> void SetVertexBuffer()
+        {
+            if (_createdVertexBuffer) delete _vertexBuffer;
+            _createdVertexBuffer = true;
+            _vertexBuffer = new T;
+        }
+
         void SetInstanceBuffer(VertexBuffer* vertexBuffer);
+        template<typename T> void SetInstanceBuffer()
+        {
+            if (_createdInstanceBuffer) delete _instanceBuffer;
+            _createdInstanceBuffer = true;
+            _instanceBuffer = new T;
+        }
 
         static const VGF::PipelineConfig& GetDefault()
         {

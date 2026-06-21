@@ -43,8 +43,24 @@ namespace VGF
 		void Render(const glm::mat4& parentMatrix, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {}) { Render(parentMatrix, camera, config, additionalUniformBuffers); }
 		void Render(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 		
-		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const std::vector<UniformBufferObject*> oneTimeAdditionalUniformBuffers = {}, const std::vector<UniformBufferObject*> instanceAdditionalUniformBuffers = {}) { BatchRender(parentMatrix, camera, config, oneTimeAdditionalUniformBuffers, instanceAdditionalUniformBuffers); }
-		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> oneTimeAdditionalUniformBuffers = {}, const std::vector<UniformBufferObject*> instanceAdditionalUniformBuffers = {});
+		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers);
+
+		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers)
+		{
+			BatchRender(parentMatrix, camera, config, instanceData, instanceCount, instanceStride, additionalUniformBuffers);
+		}
+
+		template<typename T>
+		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const std::vector<T> instances, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+		{
+			BatchRender(parentMatrix, camera, config, instances.data(), instances.size(), sizeof(T), additionalUniformBuffers);
+		}
+
+		template<typename T>
+		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const std::vector<T> instances, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+		{
+			BatchRender(parentMatrix, camera, instances.data(), instances.size(), sizeof(T), additionalUniformBuffers);
+		}
 
 		tinygltf::Model model;
 		std::vector <Mesh> meshes;
@@ -53,8 +69,10 @@ namespace VGF
 
 	private:
 		void Draw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
-		void BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer,const int bindMaterial, const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> oneTimeAdditionalUniformBuffers = {}, const std::vector<UniformBufferObject*> instanceAdditionalUniformBuffers = {});
+		void BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const PipelineConfig& config, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 		void drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const PipelineConfig& config, const Camera& camera, LightBufferObject lightBuffer);
+
+		std::vector<UniformBufferObject*> AddUniformBuffers(const glm::mat4& parentMatrix, const int bindId, const Camera& camera, std::vector<UniformBufferObject*> additionalUniformBuffers);
 
 		std::vector<UniformBufferObject*> _additionalUniformBuffers;
 		std::vector<UniformBufferObject*> uniformBuffers =

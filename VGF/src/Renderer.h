@@ -47,7 +47,15 @@ namespace VGF
         ~Renderer();
 
         void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) const;
-        void BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers) const;
+        
+        void BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers) const;
+        
+        template<typename T>
+        void BatchRender(const PipelineConfig& config, const std::vector<T> instances, const std::vector<UniformBufferObject*> uniformBuffers) const
+        {
+            BatchRender(config, instances.data(), instances.size(), sizeof(T), uniformBuffers);
+        }
+
         static GraphicsApis GetGraphicsApi() {return graphicApi;};
 
         static const ::VGF::Vulkan::Vulkan* GetVulkanData();

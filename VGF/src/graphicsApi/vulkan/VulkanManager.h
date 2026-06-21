@@ -39,12 +39,37 @@ namespace VGF::Vulkan
 {
     inline static const int MAX_FRAMES_IN_FLIGHT = 2;
 
+    struct InstanceData
+    {
+        std::vector<std::byte> data;
+        size_t count;
+        size_t stride;
+
+        InstanceData(const void* data, size_t count, size_t stride)
+            : data(static_cast<const std::byte*>(data), static_cast<const std::byte*>(data) + count * stride)
+            , count(count)
+            , stride(stride)
+        { }
+
+        void Append(const void* data, size_t count, size_t stride)
+        {
+            this->stride = stride;
+
+            const std::byte* src = static_cast<const std::byte*>(data);
+            this->data.insert(this->data.end(), src, src + count * stride);
+            count += count;
+        }
+
+        const void* Data() { return data.data(); }
+    };
+
     struct RenderData
     {
         unsigned int pipelineId;
         VulkanRenderer* renderer;
         VulkanFrameBuffer* framebuffer;
-        std::vector<Instance> instances;
+        
+        InstanceData instanceData;
     };
 
     struct PipelineData
@@ -166,7 +191,6 @@ namespace VGF::Vulkan
         std::pair<VkBuffer, VkDeviceMemory> createVertexBuffer(std::vector<GLfloat>& vertices);
 
         std::pair<VkBuffer, VkDeviceMemory> createInstanceBuffer(VkDeviceSize size);
-        std::pair<VkBuffer, VkDeviceMemory> createInstanceBuffer(std::vector<Instance> instances);
 
         std::pair<VkBuffer, VkDeviceMemory> createIndexBuffer(std::vector<uint16_t> indices);
 
@@ -303,7 +327,7 @@ namespace VGF::Vulkan
         std::vector<VkDescriptorSet> offscreenDescriptorSet;
         
         virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override;
-        virtual void BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers) override;
+        virtual virtual void BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers) override;
 
         void Draw(VkCommandBuffer& commandBuffer, uint32_t currentFrame, RenderData data);
     private:

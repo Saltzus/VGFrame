@@ -74,6 +74,8 @@ namespace VGF
 		_instanceBuffer = instanceBuffer;
 	}
 
+
+
 	const VkPrimitiveTopology PipelineConfig::GetVulkanTopology() const
 	{
 		switch (topology)

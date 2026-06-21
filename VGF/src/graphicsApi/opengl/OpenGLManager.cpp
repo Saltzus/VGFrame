@@ -212,48 +212,35 @@ namespace VGF::Opengl
 
     void OpenglRenderer::Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
     {
-        std::vector<UniformBufferObject*> instanceUniformBuffers;
+        std::vector<DefaultInstance> instances;
 
         for (UniformBufferObject* buffer : uniformBuffers)
         {
             if (buffer->getType() == "matrix")
-                instanceUniformBuffers.emplace_back(buffer);
+            {
+                MatrixBufferObject* mBuffer = (MatrixBufferObject*)buffer;
+                instances.emplace_back(DefaultInstance{mBuffer->GetData().model, 0 });
+            }
+                
         }
 
-        BatchRender(config, uniformBuffers, instanceUniformBuffers);
+        BatchRender(config, instances.data(), 1, sizeof(DefaultInstance), uniformBuffers);
     }
 
 
-    void OpenglRenderer::BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers)
+    void OpenglRenderer::BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers)
     {
         if (_createdVao == false) CreateVAO(config);
 
         int topology = GetTopology(config);
 
-        instanceData.clear();
-
-        bool matrix = false;
-        for (UniformBufferObject* buffer : instanceUniformBuffers)
-        {
-            if (buffer->getType() == "matrix")
-            {
-                matrix = true;
-                MatrixBufferObject* mBuffer = (MatrixBufferObject*)buffer;
-
-                DefaultInstance data;
-                data.model = mBuffer->GetData().model;
-                data.textureID = 0;
-                instanceData.emplace_back(data);
-            }
-        }
-
         glBindVertexArray(VAO);
         glBindBuffer(GL_ARRAY_BUFFER, IBO);
 
-        if (lastSize != instanceData.size())
+        if (lastSize != instanceCount)
         {
-            glBufferData(GL_ARRAY_BUFFER, instanceData.size() * config.GetInstanceBuffer()->GetSize(), instanceData.data(), GL_DYNAMIC_DRAW);
-            lastSize = instanceData.size();
+            glBufferData(GL_ARRAY_BUFFER, instanceCount * config.GetInstanceBuffer()->GetSize(), instanceData, GL_DYNAMIC_DRAW);
+            lastSize = instanceCount;
 
             if (!_configuredInstanceAttributes)
             {
@@ -262,16 +249,16 @@ namespace VGF::Opengl
                 _configuredInstanceAttributes = true;
             }
         }
-        else if (!instanceData.empty())
+        else if (instanceCount > 0)
         {
-            glBufferSubData(GL_ARRAY_BUFFER, 0, instanceData.size() * config.GetInstanceBuffer()->GetSize(), instanceData.data());
+            glBufferSubData(GL_ARRAY_BUFFER, 0, instanceCount * config.GetInstanceBuffer()->GetSize(), instanceData);
         }
 
-        for (size_t i = 0; i < onetimeUniformBuffers.size(); i++)
+        for (size_t i = 0; i < uniformBuffers.size(); i++)
         {
             glBindBuffer(GL_UNIFORM_BUFFER, openglUniformBuffers[i]);
             glBindBufferBase(GL_UNIFORM_BUFFER, i, openglUniformBuffers[i]);
-            glBufferSubData(GL_UNIFORM_BUFFER, 0, onetimeUniformBuffers[i]->SizeOf(), onetimeUniformBuffers[i]->Data());
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, uniformBuffers[i]->SizeOf(), uniformBuffers[i]->Data());
         }
 
         std::array<const char*, 5> samplers =
@@ -288,7 +275,7 @@ namespace VGF::Opengl
             GLint location = glGetUniformLocation(config.ID(), samplers[binding]);
             glUniform1i(location, binding + 2);
         }
-        glDrawElementsInstanced(topology, indicesSize, GL_UNSIGNED_INT, 0, instanceData.size());
+        glDrawElementsInstanced(topology, indicesSize, GL_UNSIGNED_INT, 0, instanceCount);
 
         int error = glGetError();
     }

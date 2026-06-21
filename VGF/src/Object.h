@@ -18,8 +18,19 @@ namespace VGF
         virtual void Render(const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
         void Render(const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 
-        virtual void BatchRender(const Camera& camera, const std::vector<UniformBufferObject*> oneTimeAdditionalUniformBuffers, const std::vector<UniformBufferObject*> instanceAdditionalUniformBuffers);
-        void BatchRender(const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> oneTimeAdditionalUniformBuffers, const std::vector<UniformBufferObject*> instanceAdditionalUniformBuffers);
+        virtual void BatchRender(const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers) const;
+        void BatchRender(const Camera& camera, const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers) const;
+
+        template<typename T>
+        void BatchRender(const Camera& camera, const std::vector<T> instances, const std::vector<UniformBufferObject*> additionalUniformBuffers = {}) const
+        {
+            BatchRender(camera, instances.data(), instances.size(), sizeof(T), additionalUniformBuffers);
+        }
+        template<typename T>
+        void BatchRender(const Camera& camera, const PipelineConfig& config, const std::vector<T> instances, const std::vector<UniformBufferObject*> additionalUniformBuffers = {}) const
+        {
+            BatchRender(camera, config, instances.data(), instances.size(), sizeof(T), additionalUniformBuffers);
+        }
 
         void SetModel(Model* model) { _model = model; }
         void SetConfig(const PipelineConfig& config) { _model->config = config; }

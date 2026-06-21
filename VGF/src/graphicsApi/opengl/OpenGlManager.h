@@ -60,7 +60,7 @@ namespace VGF::Opengl
         ~OpenglRenderer();    
 
         virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override; // Declare draw
-        virtual void BatchRender(const PipelineConfig& config, std::vector<UniformBufferObject*> onetimeUniformBuffers, std::vector<UniformBufferObject*> instanceUniformBuffers) override;
+        virtual void BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers) override;
     private:
         const int GetTopology(const PipelineConfig& config) const;
 
@@ -72,8 +72,6 @@ namespace VGF::Opengl
         bool _configuredInstanceAttributes = false;
 
         uint32_t lastLocation = 0;
-
-        std::vector<DefaultInstance> instanceData;
 
         Opengl* opengl;
         std::vector<GLuint> openglUniformBuffers;

@@ -5,12 +5,8 @@ namespace VGF
 {
     void Object::Render(const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers)
     {
-        if (!additionalUniformBuffers.empty()) {
-            this->additionalUniformBuffers = additionalUniformBuffers;
-        }
-
         glm::mat4 model = CreateModelMatrix();
-        _model->Render(model, camera, this->additionalUniformBuffers);
+        _model->Render(model, camera, additionalUniformBuffers);
     }
 
     void Object::Render(const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
@@ -19,15 +15,15 @@ namespace VGF
         Render(camera, additionalUniformBuffers);
     }
 
-    void Object::BatchRender(const Camera& camera, const std::vector<UniformBufferObject*> oneTimeAdditionalUniformBuffers = {}, const std::vector<UniformBufferObject*> instanceAdditionalUniformBuffers = {})
+    void Object::BatchRender(const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers) const
     {
         glm::mat4 model = CreateModelMatrix();
-        _model->BatchRender(model, camera, oneTimeAdditionalUniformBuffers, instanceAdditionalUniformBuffers);
+        _model->BatchRender(model, camera, instanceData, instanceCount, instanceStride, additionalUniformBuffers);
     }
-    void Object::BatchRender(const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> oneTimeAdditionalUniformBuffers = {}, const std::vector<UniformBufferObject*> instanceAdditionalUniformBuffers = {})
+    void Object::BatchRender(const Camera& camera, const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers) const
     {
         _model->config = config;
-        BatchRender(camera, oneTimeAdditionalUniformBuffers, instanceAdditionalUniformBuffers);
+        BatchRender(camera, instanceData, instanceCount, instanceStride, additionalUniformBuffers);
     }
 
     void Object::LookAt(glm::vec3 lookingPosition, float xOffset, float yOffset)
