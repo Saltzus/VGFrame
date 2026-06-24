@@ -45,24 +45,72 @@ void PhysicsDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix, const JPH:
 
 	// Draw the batch
 	const BatchImpl* batch = static_cast<const BatchImpl*>(lod->mTriangleBatch.GetPtr());
+	
+	size_t triangleCount = batch->mTriangles.size();
+
+	float* vertPointr = nullptr;
+	unsigned int* indxPointr = nullptr;
+
+	size_t oldVertexSize = 0;
+	size_t oldIndexSize = 0;
+
+	if (inDrawMode == EDrawMode::Wireframe)
+	{
+		oldVertexSize = wireframeVertices.size();
+		oldIndexSize = wireframeIndices.size();
+
+		wireframeVertices.resize(wireframeVertices.size() + triangleCount * 3 * 6);
+		wireframeIndices.resize(wireframeIndices.size() + triangleCount * 6);
+
+		vertPointr = &wireframeVertices[oldVertexSize];
+		indxPointr = &wireframeIndices[oldIndexSize];
+	}
+	else
+	{
+		oldVertexSize = vertices.size();
+		oldIndexSize = indices.size();
+
+		vertices.resize(vertices.size() + triangleCount * 3 * 6);
+		indices.resize(indices.size() + triangleCount * 3);
+
+		vertPointr = &vertices[oldVertexSize];
+		indxPointr = &indices[oldIndexSize];
+	}
+
+	unsigned int base = static_cast<unsigned int>(oldVertexSize) / 6;
+
 	for (const Triangle& triangle : batch->mTriangles)
 	{
 		JPH::RVec3 v0 = inModelMatrix * JPH::Vec3(triangle.mV[0].mPosition);
 		JPH::RVec3 v1 = inModelMatrix * JPH::Vec3(triangle.mV[1].mPosition);
 		JPH::RVec3 v2 = inModelMatrix * JPH::Vec3(triangle.mV[2].mPosition);
+		
 		JPH::Color color = inModelColor * triangle.mV[0].mColor;
+		float r = color.r / 255.0f;
+		float g = color.g / 255.0f;
+		float b = color.b / 255.0f;
 
-		switch (inDrawMode)
+		*vertPointr++ = (float)v0.GetX(); *vertPointr++ = (float)v0.GetY(); *vertPointr++ = (float)v0.GetZ(); *vertPointr++ = r; *vertPointr++ = g; *vertPointr++ = b;
+		*vertPointr++ = (float)v1.GetX(); *vertPointr++ = (float)v1.GetY(); *vertPointr++ = (float)v1.GetZ(); *vertPointr++ = r; *vertPointr++ = g; *vertPointr++ = b;
+		*vertPointr++ = (float)v2.GetX(); *vertPointr++ = (float)v2.GetY(); *vertPointr++ = (float)v2.GetZ(); *vertPointr++ = r; *vertPointr++ = g; *vertPointr++ = b;
+		
+		if (inDrawMode == EDrawMode::Wireframe)
 		{
-		case EDrawMode::Wireframe:
-			DrawLine(v0, v1, color);
-			DrawLine(v1, v2, color);
-			DrawLine(v2, v0, color);
-			break;
-
-		case EDrawMode::Solid:
-			DrawTriangle(v0, v1, v2, color, inCastShadow);
-			break;
+			*indxPointr++ = base;
+			*indxPointr++ = base + 1;
+			*indxPointr++ = base + 1;
+			*indxPointr++ = base + 2;
+			*indxPointr++ = base + 2;
+			*indxPointr++ = base;
 		}
+		else
+		{
+			*indxPointr++ = base;
+			*indxPointr++ = base + 1;
+			*indxPointr++ = base + 2;
+			
+		}
+
+		base += 3;
 	}
 }

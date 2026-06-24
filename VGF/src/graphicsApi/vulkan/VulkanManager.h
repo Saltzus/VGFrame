@@ -192,7 +192,7 @@ namespace VGF::Vulkan
 
         std::pair<VkBuffer, VkDeviceMemory> createInstanceBuffer(VkDeviceSize size);
 
-        std::pair<VkBuffer, VkDeviceMemory> createIndexBuffer(std::vector<uint16_t> indices);
+        std::pair<VkBuffer, VkDeviceMemory> createIndexBuffer(std::vector<uint32_t> indices);
 
         void createUniformBuffers
         (

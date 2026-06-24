@@ -1449,7 +1449,7 @@ namespace VGF::Vulkan
         return std::make_pair(buffer, bufferMemory);
     }
 
-    std::pair<VkBuffer, VkDeviceMemory> Vulkan::createIndexBuffer(std::vector<uint16_t> indices) 
+    std::pair<VkBuffer, VkDeviceMemory> Vulkan::createIndexBuffer(std::vector<uint32_t> indices)
     {
 
         VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
@@ -1775,7 +1775,7 @@ namespace VGF::Vulkan
 
 
         vertexBuffer_vertexBufferMemory = vulkan->createVertexBuffer(vertices);
-        indexBuffer_indexBufferMemory = vulkan->createIndexBuffer(convertIndices(indices));
+        indexBuffer_indexBufferMemory = vulkan->createIndexBuffer(indices);
 
         for (UniformBufferObject* buffer : uniformBuffers)
         {
@@ -1915,7 +1915,7 @@ namespace VGF::Vulkan
         VkBuffer buffers[] = { vertexBuffer_vertexBufferMemory.first, instanceBuffer_instanceBufferMemory.first };
         VkDeviceSize offs[] = { 0, 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 2, buffers, offs);
-        vkCmdBindIndexBuffer(commandBuffer, indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(commandBuffer, indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT32);
 
         UpdateUniformBuffer(currentFrame, 0);
 

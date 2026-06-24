@@ -13,22 +13,22 @@ public:
 		mCameraPos = inCameraPos;
 		mCameraPosSet = true;
 	}
-
 	virtual void DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor, ECastShadow inCastShadow) override 
 	{
 		float r = inColor.r / 255.0f;
 		float g = inColor.g / 255.0f;
 		float b = inColor.b / 255.0f;
 
-		std::vector<float> outVertices =
-		{
-			(float)inV1.GetX(), (float)inV1.GetY(), (float)inV1.GetZ(), r,g,b,
-			(float)inV2.GetX(), (float)inV2.GetY(), (float)inV2.GetZ(), r,g,b,
-			(float)inV3.GetX(), (float)inV3.GetY(), (float)inV3.GetZ(), r,g,b,
-		};
+		vertices.push_back((float)inV1.GetX()); vertices.push_back((float)inV1.GetY()); vertices.push_back((float)inV1.GetZ());
+		vertices.push_back(r); vertices.push_back(g); vertices.push_back(b);
 
-		unsigned int base = static_cast<unsigned int>(vertices.size()) / 6;
-		vertices.insert(vertices.end(), outVertices.begin(), outVertices.end());
+		vertices.push_back((float)inV2.GetX()); vertices.push_back((float)inV2.GetY()); vertices.push_back((float)inV2.GetZ());
+		vertices.push_back(r); vertices.push_back(g); vertices.push_back(b);
+
+		vertices.push_back((float)inV3.GetX()); vertices.push_back((float)inV3.GetY()); vertices.push_back((float)inV3.GetZ());
+		vertices.push_back(r); vertices.push_back(g); vertices.push_back(b);
+
+		unsigned int base = static_cast<unsigned int>(vertices.size()) / 6 - 3;
 		indices.push_back(base);
 		indices.push_back(base + 1);
 		indices.push_back(base + 2);
@@ -39,14 +39,13 @@ public:
 		float g = inColor.g / 255.0f;
 		float b = inColor.b / 255.0f;
 
-		std::vector<float> outVertices =
-		{
-			(float)inFrom.GetX(), (float)inFrom.GetY(), (float)inFrom.GetZ(), r,g,b,
-			(float)inTo.GetX()  , (float)inTo.GetY()  , (float)inTo.GetZ(), r,g,b,
-		};
+		wireframeVertices.push_back((float)inFrom.GetX()); wireframeVertices.push_back((float)inFrom.GetY()); wireframeVertices.push_back((float)inFrom.GetZ());
+		wireframeVertices.push_back(r); wireframeVertices.push_back(g); wireframeVertices.push_back(b);
+
+		wireframeVertices.push_back((float)inTo.GetX()); wireframeVertices.push_back((float)inTo.GetY()); wireframeVertices.push_back((float)inTo.GetZ());
+		wireframeVertices.push_back(r); wireframeVertices.push_back(g); wireframeVertices.push_back(b);
 
 		unsigned int base = static_cast<unsigned int>(wireframeVertices.size()) / 6;
-		wireframeVertices.insert(wireframeVertices.end(), outVertices.begin(), outVertices.end());
 		wireframeIndices.push_back(base);
 		wireframeIndices.push_back(base + 1);
 	}
