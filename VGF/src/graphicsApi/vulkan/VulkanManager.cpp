@@ -1840,6 +1840,8 @@ namespace VGF::Vulkan
             }
         }
 
+        if (instances.empty()) instances.push_back(DefaultInstance());
+
         BatchRender(config, instances.data(), 1, sizeof(DefaultInstance), uniformBuffers);
     }
 

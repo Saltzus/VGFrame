@@ -13,11 +13,11 @@ namespace VGF
         _defaultLightBuffer._data.pointLights[0].color = glm::vec3(0.9, 0.9, 1);
         _defaultLightBuffer._data.pointLightAmount = 1;
 
-        //_defaultLightBuffer._data.directionalLights[0].direction = glm::vec3(0, 0.5f, 0.5f);
-        //_defaultLightBuffer._data.directionalLights[0].color = glm::vec3(5, 0, 0);
-        //_defaultLightBuffer._data.directionalLights[1].direction = glm::vec3(0, -0.5f, -0.5f);
-        //_defaultLightBuffer._data.directionalLights[1].color = glm::vec3(0, 0, 5);
-        //_defaultLightBuffer._data.directionLightAmount = 2;
+        _defaultLightBuffer._data.directionalLights[0].direction = glm::vec3(0, 0.5f, 0.5f);
+        _defaultLightBuffer._data.directionalLights[0].color = glm::vec3(5, 0, 0);
+        _defaultLightBuffer._data.directionalLights[1].direction = glm::vec3(0, -0.5f, -0.5f);
+        _defaultLightBuffer._data.directionalLights[1].color = glm::vec3(0, 0, 5);
+        _defaultLightBuffer._data.directionLightAmount = 2;
 
         return &_defaultLightBuffer;
     }

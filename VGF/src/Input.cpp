@@ -170,12 +170,10 @@ namespace VGF::Input
 		float outFraction = result.mFraction;
 		outBodyID = result.mBodyID;
 
-#ifdef JPH_DEBUG_RENDERER
 		if (had_hit)
 			physics.debugRenderer->DrawMarker(outPosition, JPH::Color::sRed, 0.1f);
 		else
 			physics.debugRenderer->DrawMarker(rayOrigin + 0.1f * rayDirection, JPH::Color::sYellow, 0.001f);
-#endif
 
 		return had_hit;
 	}

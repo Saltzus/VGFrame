@@ -327,7 +327,7 @@ namespace VGF::Vulkan
         std::vector<VkDescriptorSet> offscreenDescriptorSet;
         
         virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override;
-        virtual virtual void BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers) override;
+        virtual void BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers) override;
 
         void Draw(VkCommandBuffer& commandBuffer, uint32_t currentFrame, RenderData data);
     private:

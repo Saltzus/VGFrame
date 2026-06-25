@@ -3,8 +3,8 @@
 
 struct DefaultInstance
 {
-    glm::mat4 model;
-    alignas(16) unsigned int textureID;
+    glm::mat4 model = glm::mat4(1.f);
+    alignas(16) unsigned int textureID = 0;
 };
 
 struct DefaultInstanceBuffer : public VertexBuffer
