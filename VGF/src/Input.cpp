@@ -145,7 +145,7 @@ namespace VGF::Input
 		posY = -posY;
 	}
 
-	bool pickObject(const Window* window, Physics& physics, Camera* camera, JPH::BodyID& outBodyID, glm::vec3& outHitPos)
+	bool pickObject(const Window* window, Physics& physics, Camera* camera, JPH::BodyID& outBodyID, glm::vec3& outHitPos, const JPH::BodyID& ignoreBody)
 	{
 		glm::vec3 origin;
 		glm::vec3 direction;
@@ -160,9 +160,10 @@ namespace VGF::Input
 
 
 		JPH::RRayCast raycast{ rayOrigin, rayDirection * rayDistance };
+		JPH::IgnoreSingleBodyFilter filter(ignoreBody);
 
 		JPH::RayCastResult result;
-		bool had_hit = physics.physicsSystem.GetNarrowPhaseQuery().CastRay(raycast, result);
+		bool had_hit = physics.physicsSystem.GetNarrowPhaseQuery().CastRay(raycast, result, {}, {}, filter);
 
 		JPH::Vec3 outPosition = raycast.GetPointOnRay(result.mFraction);
 		outHitPos = { outPosition.GetX(), outPosition.GetY(), outPosition.GetZ() };

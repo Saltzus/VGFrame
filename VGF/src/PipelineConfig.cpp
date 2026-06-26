@@ -11,20 +11,14 @@ namespace VGF
 	PipelineConfig::PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent, VertexBuffer& vertexBuffer, VertexBuffer& instanceBuffer)
 		: PipelineConfig(vertShader, fragShader, topology, translucent)
 	{
-		_createdInstanceBuffer = false;
-		_createdVertexBuffer = false;
-
-		_vertexBuffer = &vertexBuffer;
-		_instanceBuffer = &instanceBuffer;
+		_vertexBuffer = std::shared_ptr<VertexBuffer>(&vertexBuffer);
+		_instanceBuffer = std::shared_ptr<VertexBuffer>(&instanceBuffer);
 	}
 
 	PipelineConfig::PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent)
 	{
-		if (_createdInstanceBuffer == true)
-		{
-			_vertexBuffer = new DefaultVertexBuffer;
-			_instanceBuffer = new DefaultInstanceBuffer;
-		}
+		if (!_vertexBuffer) _vertexBuffer = std::make_shared<DefaultVertexBuffer>();
+		if (!_instanceBuffer) _instanceBuffer = std::make_shared<DefaultInstanceBuffer>();
 
 		this->translucent = translucent;
 		this->topology = topology;
@@ -34,44 +28,31 @@ namespace VGF
 		switch (Renderer::GetGraphicsApi())
 		{
 		case GraphicsApis::OpenGL:
-			this->_impl = new VGF::Opengl::OpenglShader(vertShader, fragShader);
+			this->_impl = std::make_shared<VGF::Opengl::OpenglShader>(vertShader, fragShader);
 			break;
 		case GraphicsApis::Vulkan:
-			this->_impl = new VGF::Vulkan::VulkanShader(vertShader, fragShader);
+			this->_impl = std::make_shared<VGF::Vulkan::VulkanShader>(vertShader, fragShader);
 			break;
 		default:
-			this->_impl = new VGF::Opengl::OpenglShader(vertShader, fragShader);
+			this->_impl = std::make_shared<VGF::Opengl::OpenglShader>(vertShader, fragShader);
 			break;
 		}
 
 		configCreated = true;
 	}
 
-	PipelineConfig::PipelineConfig() 
-	{ 
-		configCreated = false; 
-		_createdInstanceBuffer = false; 
-		_createdVertexBuffer = false;
-	}
-
 	PipelineConfig::~PipelineConfig()
 	{
-		if (_createdInstanceBuffer) delete _instanceBuffer;
-		if (_createdVertexBuffer) delete _vertexBuffer;
 	}
 
 	void PipelineConfig::SetVertexBuffer(VertexBuffer* vertexBuffer)
 	{
-		if (_createdVertexBuffer) delete _vertexBuffer;
-		_createdVertexBuffer = false;
-		_vertexBuffer = vertexBuffer;
+		_vertexBuffer = std::shared_ptr<VertexBuffer>(vertexBuffer);
 	}
 
 	void PipelineConfig::SetInstanceBuffer(VertexBuffer* instanceBuffer)
 	{
-		if (_createdInstanceBuffer) delete _instanceBuffer;
-		_createdInstanceBuffer = false;
-		_instanceBuffer = instanceBuffer;
+		_instanceBuffer = std::shared_ptr<VertexBuffer>(instanceBuffer);
 	}
 
 

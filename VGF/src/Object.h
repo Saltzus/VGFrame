@@ -33,7 +33,7 @@ namespace VGF
         }
 
         void SetModel(Model* model) { _model = model; }
-        void SetConfig(const PipelineConfig& config) { _model->config = config; }
+        //void SetConfig(const PipelineConfig& config) { _model->config = config; }
 
         virtual void SetPosition(const float x, const float y, const float z) { _position = glm::vec3(x, y, z); }
         void SetPosition(const glm::vec3 position) { SetPosition(position.x, position.y, position.z); }

@@ -22,8 +22,6 @@ namespace VGF
     class PipelineConfig 
     {
     public:
-
-        PipelineConfig();
         PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent = false);
 
         PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent, VertexBuffer& vertexBuffer, VertexBuffer& instanceBuffer);
@@ -32,6 +30,7 @@ namespace VGF
             : PipelineConfig(vertShader, fragShader, topology, translucent) {}
         
         ~PipelineConfig();
+
 
         bool translucent = false;
         Topology topology = Topology::TRIANGLE_LIST;
@@ -42,23 +41,19 @@ namespace VGF
         const std::type_index GetVertexBufferTypeId() const { return typeid(*_vertexBuffer); }
         const std::type_index GetInstanceBufferTypeId() const { return typeid(*_instanceBuffer); }
 
-        const VertexBuffer* GetVertexBuffer() const { return _vertexBuffer; }
-        const VertexBuffer* GetInstanceBuffer() const { return _instanceBuffer; }
+        const VertexBuffer* GetVertexBuffer() const { return _vertexBuffer.get(); }
+        const VertexBuffer* GetInstanceBuffer() const { return _instanceBuffer.get(); }
 
         void SetVertexBuffer(VertexBuffer* vertexBuffer);
         template<typename T> void SetVertexBuffer()
         {
-            if (_createdVertexBuffer) delete _vertexBuffer;
-            _createdVertexBuffer = true;
-            _vertexBuffer = new T;
+            _vertexBuffer = std::make_shared<T>();
         }
 
         void SetInstanceBuffer(VertexBuffer* vertexBuffer);
         template<typename T> void SetInstanceBuffer()
         {
-            if (_createdInstanceBuffer) delete _instanceBuffer;
-            _createdInstanceBuffer = true;
-            _instanceBuffer = new T;
+            _instanceBuffer = std::make_shared<T>();
         }
 
         static const VGF::PipelineConfig& GetDefault()
@@ -78,13 +73,9 @@ namespace VGF
         const unsigned int& ID() const;
 
     private:
-        ShaderImpl* _impl = nullptr;
-
-        VertexBuffer* _vertexBuffer;
-        VertexBuffer* _instanceBuffer;
-
-        bool _createdVertexBuffer = true;
-        bool _createdInstanceBuffer = true;
+        std::shared_ptr<ShaderImpl> _impl;
+        std::shared_ptr<VertexBuffer> _vertexBuffer;
+        std::shared_ptr<VertexBuffer> _instanceBuffer;
     };
 
     struct PipelineHashKey

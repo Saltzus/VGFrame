@@ -31,9 +31,6 @@ namespace VGF
         Font* font;
 
     private:
-
-
-        PipelineConfig _config;
         Renderer* _renderer;
 
         TextEffect _effect;
