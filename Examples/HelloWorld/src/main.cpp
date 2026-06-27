@@ -118,7 +118,7 @@ int main(int argc, char** argv)
         JPH::BodyID body;
         glm::vec3 hitPos;
 
-        if (VGF::Input::pickObject(&window, physics, &camera, body, hitPos) && VGF::Input::pressingMouseButton(window, GLFW_MOUSE_BUTTON_1))
+        if (VGF::Input::pickObject(&window, physics, &camera, body, hitPos, JPH::BodyID()) && VGF::Input::pressingMouseButton(window, GLFW_MOUSE_BUTTON_1))
         {
             physics.bodyInterface->SetAngularVelocity(body, JPH::Vec3(0.0f, -5.0f, 0.0f));
         }
