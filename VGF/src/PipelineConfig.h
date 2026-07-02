@@ -69,7 +69,6 @@ namespace VGF
 
         const VkPrimitiveTopology GetVulkanTopology() const;
         void Activate() const;
-        void Delete();
         const unsigned int& ID() const;
 
     private:
@@ -80,36 +79,48 @@ namespace VGF
 
     struct PipelineHashKey
     {
-        const PipelineConfig& config;
+        bool translucent;
+        Topology topology;
+        std::string vertShader;
+        std::string fragShader;
         bool offscreen;
+        std::type_index vertexBufferType;
+        std::type_index instanceBufferType;
+
+        PipelineHashKey(const PipelineConfig& config, bool offscreen)
+            : translucent(config.translucent)
+            , topology(config.topology)
+            , vertShader(config.vertShader)
+            , fragShader(config.fragShader)
+            , offscreen(offscreen)
+            , vertexBufferType(config.GetVertexBufferTypeId())
+            , instanceBufferType(config.GetInstanceBufferTypeId())
+        {}
 
         bool operator==(const PipelineHashKey& other) const noexcept
         {
-            return
-            {
-                config.translucent == other.config.translucent &&
-                config.vertShader == other.config.vertShader &&
-                config.fragShader == other.config.fragShader &&
-                config.topology == other.config.topology &&
-                offscreen == other.offscreen &&
-
-                config.GetVertexBufferTypeId() == other.config.GetVertexBufferTypeId() &&
-                config.GetInstanceBufferTypeId() == other.config.GetInstanceBufferTypeId()
-            };
+            return translucent == other.translucent &&
+                   vertShader == other.vertShader &&
+                   fragShader == other.fragShader &&
+                   topology == other.topology &&
+                   offscreen == other.offscreen &&
+                   vertexBufferType == other.vertexBufferType &&
+                   instanceBufferType == other.instanceBufferType;
         }
     };
+
 
     struct PipelineConfigKeyHash
     {
         std::size_t operator()(const PipelineHashKey& key) const noexcept
         {
-            size_t h1 = std::hash<bool>()(key.config.translucent);
-            size_t h2 = std::hash<int>()(static_cast<int>(key.config.topology));
-            size_t h3 = std::hash<std::string>()(key.config.vertShader);
-            size_t h4 = std::hash<std::string>()(key.config.fragShader);
+            size_t h1 = std::hash<bool>()(key.translucent);
+            size_t h2 = std::hash<int>()(static_cast<int>(key.topology));
+            size_t h3 = std::hash<std::string>()(key.vertShader);
+            size_t h4 = std::hash<std::string>()(key.fragShader);
             size_t h5 = std::hash<bool>()(key.offscreen);
-            size_t h6 = std::hash<std::type_index>()(std::type_index(key.config.GetVertexBufferTypeId()));
-            size_t h7 = std::hash<std::type_index>()(std::type_index(key.config.GetInstanceBufferTypeId()));
+            size_t h6 = std::hash<std::type_index>()(key.vertexBufferType);
+            size_t h7 = std::hash<std::type_index>()(key.instanceBufferType);
             return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3) ^ (h5 << 4) ^ (h6 << 5) ^ (h7 << 6);
         }
     };

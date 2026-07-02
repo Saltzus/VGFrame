@@ -6,7 +6,6 @@
 
 namespace VGF
 {
-	bool configCreated = false;
 
 	PipelineConfig::PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent, VertexBuffer& vertexBuffer, VertexBuffer& instanceBuffer)
 		: PipelineConfig(vertShader, fragShader, topology, translucent)
@@ -38,7 +37,6 @@ namespace VGF
 			break;
 		}
 
-		configCreated = true;
 	}
 
 	PipelineConfig::~PipelineConfig()
@@ -78,11 +76,7 @@ namespace VGF
 	{
 		this->_impl->Activate();
 	}
-	void PipelineConfig::Delete()
-	{
-		if (configCreated)
-			this->_impl->Delete();
-	}
+
 	const unsigned int& PipelineConfig::ID() const
 	{
 		return this->_impl->Id();
