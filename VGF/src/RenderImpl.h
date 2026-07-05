@@ -16,8 +16,7 @@ namespace VGF
         normal,
         metallicRoughness,
         emissive,
-        occulsion,
-        framebuffer
+        occulsion
     };
 
     class PipelineConfig;

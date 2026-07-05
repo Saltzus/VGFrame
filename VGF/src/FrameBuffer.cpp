@@ -28,7 +28,7 @@ namespace VGF
         delete this->_impl;
     }
 
-    void FrameBuffer::Bind() { _framebufferTexture.Bind(textureType::framebuffer); _impl->Bind(); }
+    void FrameBuffer::Bind() { _framebufferTexture.Bind(textureType::color); _impl->Bind(); }
     void FrameBuffer::UnBind() { _impl->UnBind(); }
     void FrameBuffer::Delete() {}
 }

@@ -142,9 +142,6 @@ namespace VGF::Vulkan
         case textureType::normal:
             Vulkan::vulkan->normalTextureImageView = textureImageViewTex;
             break;
-        case textureType::framebuffer:
-            Vulkan::vulkan->dummyTextureImageView = textureImageViewTex;
-            break;
         default:
             Vulkan::vulkan->colorTextureImageView = textureImageViewTex;
             break;
@@ -1753,7 +1750,7 @@ namespace VGF::Vulkan
         {
             for (size_t i = 0; i < descriptorSets.size(); i++)
             {
-                vkDeviceWaitIdle(device); // TODO : not checked if better way to do this.
+                //vkDeviceWaitIdle(device); // TODO : not checked if better way to do this.
                 VkDescriptorImageInfo imageInfo{};
                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 imageInfo.imageView = imageView;
@@ -1867,6 +1864,7 @@ namespace VGF::Vulkan
 
     void VulkanRenderer::BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers)
     {
+        _framebuffer = vulkan->currentFramebuffer;
 
         for (size_t i = 0; i < uniformBuffers.size(); i++)
         {
@@ -1877,14 +1875,19 @@ namespace VGF::Vulkan
             memcpy(vulkanBuffer.data.data(), uniformBuffers[i]->Data(), size);
         }
 
-        unsigned int pipelineId = vulkan->getOrCreatePipeline(this, config, vulkan->currentFramebuffer != nullptr);
-
-        CheckTextureChange();
+        unsigned int pipelineId = vulkan->getOrCreatePipeline(this, config, _framebuffer != nullptr);
 
         std::vector<RenderData>& objectVector = config.translucent ? translucentSwapchainObjects : opaqueSwapchainObjects;
-        std::vector<RenderData>& framebufferObjectVector = config.translucent ? vulkan->currentFramebuffer->translucentObjects : vulkan->currentFramebuffer->opaqueObjects;
+        std::vector<RenderData>& framebufferObjectVector = config.translucent ? _framebuffer->translucentObjects : _framebuffer->opaqueObjects;
 
-        std::vector<RenderData>& vector = vulkan->currentFramebuffer == nullptr ? objectVector : framebufferObjectVector;
+        std::vector<RenderData>& vector = _framebuffer == nullptr ? objectVector : framebufferObjectVector;
+
+        std::array<VkImageView, 5> imageViews;
+        imageViews[0] = vulkan->colorTextureImageView;
+        imageViews[1] = vulkan->metallicRoughnessTextureImageView;
+        imageViews[2] = vulkan->emissiveTextureImageView;
+        imageViews[3] = vulkan->occulsionTextureImageView;
+        imageViews[4] = vulkan->normalTextureImageView;
 
         bool found = false;
         for (RenderData& data : vector)
@@ -1897,7 +1900,9 @@ namespace VGF::Vulkan
             }
         }
 
-        if (!found) vector.emplace_back(RenderData{ pipelineId, this, vulkan->currentFramebuffer, InstanceData{ instanceData, instanceCount, instanceStride } });
+        CheckTextureChange(imageViews);
+
+        if (!found) vector.emplace_back(RenderData{ pipelineId, this, _framebuffer, imageViews, InstanceData{ instanceData, instanceCount, instanceStride } });
     }
 
 
@@ -1942,28 +1947,21 @@ namespace VGF::Vulkan
         UpdateUniformBuffer(currentFrame, 0);
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan->GetPipelineLayout(data.pipelineId), 0, 1, &descriptorSet[currentFrame], 0, nullptr);
-
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indicesSize), data.instanceData.count, 0, 0, 0);
     }
 
-    void VulkanRenderer::CheckTextureChange()
+    void VulkanRenderer::CheckTextureChange(std::array<VkImageView, 5> imageViews)
     {
-        std::vector<VkDescriptorSet>& activeSet = (vulkan->currentFramebuffer == nullptr) ? descriptorSet : offscreenDescriptorSet;
+        vulkan->UpdateTexture(descriptorSet, lastTextureColor, imageViews[0],
+        vulkanUniformBuffers.size());
 
-        if (vulkan->currentFramebuffer == nullptr)
-            vulkan->UpdateTexture(activeSet, lastTextureColor, vulkan->colorTextureImageView,
-                vulkanUniformBuffers.size());
-        else
-            vulkan->UpdateTexture(activeSet, lastTextureDummy, vulkan->dummyTextureImageView,
-                vulkanUniformBuffers.size());
-
-        vulkan->UpdateTexture(activeSet, lastTextureMetallicRoughness, vulkan->metallicRoughnessTextureImageView,
+        vulkan->UpdateTexture(descriptorSet, lastTextureMetallicRoughness, imageViews[1],
             vulkanUniformBuffers.size() + 1);
-        vulkan->UpdateTexture(activeSet, lastTextureEmission, vulkan->emissiveTextureImageView,
+        vulkan->UpdateTexture(descriptorSet, lastTextureEmission, imageViews[2],
             vulkanUniformBuffers.size() + 2);
-        vulkan->UpdateTexture(activeSet, lastTextureOcculsion, vulkan->occulsionTextureImageView,
+        vulkan->UpdateTexture(descriptorSet, lastTextureOcculsion, imageViews[3],
             vulkanUniformBuffers.size() + 3);
-        vulkan->UpdateTexture(activeSet, lastTextureNormal, vulkan->normalTextureImageView,
+        vulkan->UpdateTexture(descriptorSet, lastTextureNormal, imageViews[4],
             vulkanUniformBuffers.size() + 4);
     }
 

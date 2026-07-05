@@ -68,7 +68,9 @@ namespace VGF::Vulkan
         unsigned int pipelineId;
         VulkanRenderer* renderer;
         VulkanFrameBuffer* framebuffer;
-        
+
+        std::array<VkImageView, 5> imageViews;
+
         InstanceData instanceData;
     };
 
@@ -144,7 +146,6 @@ namespace VGF::Vulkan
         std::vector<VulkanFrameBuffer*> framebuffers;
         std::vector<VulkanFrameBuffer*> allFramebuffers;
 
-        VkImageView dummyTextureImageView;
         VkImageView colorTextureImageView;
         VkImageView metallicRoughnessTextureImageView;
         VkImageView emissiveTextureImageView;
@@ -327,19 +328,19 @@ namespace VGF::Vulkan
         VkDescriptorSetLayout descriptorSetLayout;
         VkDescriptorPool descriptorPool;
         std::vector<VkDescriptorSet> descriptorSet;
-        std::vector<VkDescriptorSet> offscreenDescriptorSet;
         
         virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override;
         virtual void BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers) override;
 
         void Draw(VkCommandBuffer& commandBuffer, uint32_t currentFrame, RenderData data);
     private:
-        void CheckTextureChange();
+        void CheckTextureChange(std::array<VkImageView, 5> imageViews);
         void UpdateUniformBuffer(uint32_t currentImage, unsigned int usedIndex);
 
         size_t _instanceBufferCapasity = 0;
 
-        VkImageView lastTextureDummy = VK_NULL_HANDLE;
+        VulkanFrameBuffer* _framebuffer = VK_NULL_HANDLE;
+
         VkImageView lastTextureColor = VK_NULL_HANDLE;
         VkImageView lastTextureMetallicRoughness = VK_NULL_HANDLE;
         VkImageView lastTextureEmission = VK_NULL_HANDLE;

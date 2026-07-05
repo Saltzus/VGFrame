@@ -42,6 +42,8 @@ namespace VGF
         void SetRotation(const float x, const float y, const float z) { SetRotation(glm::quat(glm::radians(glm::vec3(x, y, z))));}
         void SetRotation(const glm::vec3 rotation) { SetRotation(rotation.x, rotation.y, rotation.z); }
 
+        glm::quat GetRotation() const {  return _rotation; }
+
         virtual void SetScale(const float x, const float y, const float z) { _scale = glm::vec3(x, y, z); }
         void SetScale(const glm::vec3 scale) { SetScale(scale.x, scale.y, scale.z); }
 
