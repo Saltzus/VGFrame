@@ -33,6 +33,7 @@ namespace VGF::Opengl
         ~OpenglTexture();  
         virtual void Bind(textureType type) override;
         virtual void* GetNativeImage() override;
+        ImTextureID GetImGuiTexture() override;
     private:
         GLuint texture;
     };

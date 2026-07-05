@@ -34,8 +34,8 @@ namespace VGF
 		}
 		if (Renderer::GetGraphicsApi() == GraphicsApis::OpenGL)
 		{
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 			glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 		}
@@ -64,6 +64,7 @@ namespace VGF
 
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			//glClipControl(GL_UPPER_LEFT, GL_NEGATIVE_ONE_TO_ONE);
 		}
 
 		Renderer::InitApi(GLFW_Window);

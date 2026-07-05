@@ -6,7 +6,7 @@
 
 namespace VGF
 {
-    Texture::Texture(std::string filePath)
+    Texture::Texture(const std::string &filePath)
     {
         switch (Renderer::GetGraphicsApi())
         {
@@ -42,14 +42,14 @@ namespace VGF
         delete this->_impl;
     }
 
-    void Texture::Bind(textureType type) const
+    void Texture::Bind(const textureType type) const
     {
         _impl->Bind(type);
     }
 
     const Texture* Texture::GetDefaultTexture()
     {
-        const static Texture* DEFAULT_TEXTURE = new Texture(Resource::Get("Textures/default.png").c_str());
+        const static Texture* DEFAULT_TEXTURE = new Texture(Resource::Get("Textures/default.png"));
         return DEFAULT_TEXTURE;
     }
     const Texture* Texture::GetWhiteTexture()

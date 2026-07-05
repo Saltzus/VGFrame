@@ -5,6 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>
 
+#include "imgui.h"
 #include "UniformBuffers/UniformBuffer.h"
 
 namespace VGF
@@ -42,6 +43,7 @@ namespace VGF
         virtual ~TextureImpl() {}
         virtual void Bind(textureType type) = 0;
         virtual void* GetNativeImage() = 0;
+        virtual ImTextureID GetImGuiTexture() = 0;
     };
 
 	struct ShaderImpl

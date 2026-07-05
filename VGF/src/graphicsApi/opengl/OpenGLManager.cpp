@@ -107,6 +107,12 @@ namespace VGF::Opengl
             rgbaData.data());
         glGenerateMipmap(GL_TEXTURE_2D);
     }
+
+    ImTextureID OpenglTexture::GetImGuiTexture()
+    {
+        return texture;
+    }
+
     OpenglTexture::~OpenglTexture()
     {
     }
@@ -139,7 +145,7 @@ namespace VGF::Opengl
         glBindTexture(GL_TEXTURE_2D, texture);
     }
 
-    void* OpenglTexture::GetNativeImage() { return (void*)texture; }
+    void* OpenglTexture::GetNativeImage() { return reinterpret_cast<void*>(static_cast<uintptr_t>(texture)); }
 
     Opengl::Opengl(GLFWwindow* window)
     {

@@ -106,10 +106,15 @@ namespace VGF::Vulkan
     public:
         VulkanTexture(std::string filePath);
         VulkanTexture(const unsigned char* data, int format, unsigned int width, unsigned int height);
+
+        ImTextureID GetImGuiTexture() override;
+
         ~VulkanTexture();
-        virtual void Bind(textureType type) override;
-        virtual void* GetNativeImage() override;
+        void Bind(textureType type) override;
+        void* GetNativeImage() override;
     private:
+        ImTextureID textureId;
+
         VkImage textureImage;
         VkDeviceMemory textureImageMemory;
         VkImageView textureImageViewTex;

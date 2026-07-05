@@ -1,4 +1,6 @@
 ﻿#include "VulkanManager.h"
+
+#include "imgui_impl_vulkan.h"
 #include "../../Camera.h"
 
 namespace VGF::Vulkan
@@ -101,6 +103,21 @@ namespace VGF::Vulkan
         vkDestroyBuffer(vulkan->device, stagingBuffer, nullptr);
         vkFreeMemory(vulkan->device, stagingBufferMemory, nullptr);
     }
+
+    ImTextureID VulkanTexture::GetImGuiTexture()
+    {
+        if (textureId) return textureId;
+
+        textureId = (ImTextureID)ImGui_ImplVulkan_AddTexture(
+            Vulkan::vulkan->textureSampler,
+            textureImageViewTex,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        );
+
+        if (!textureId) Log::Error("ImGuiImage not created!!");
+        return textureId;
+    }
+
     VulkanTexture::~VulkanTexture()
     {
         vkDestroyImage(Vulkan::vulkan->device, textureImage, nullptr);
@@ -524,8 +541,8 @@ namespace VGF::Vulkan
     {
         for (const auto& availablePresentMode : availablePresentModes) 
         {
-            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) 
-                return availablePresentMode;
+            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) return availablePresentMode;
+            if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) return availablePresentMode;
         }
 
         return VK_PRESENT_MODE_FIFO_KHR;
@@ -828,7 +845,6 @@ namespace VGF::Vulkan
 
         VkViewport viewport{};
         viewport.x = 0.0f;
-        viewport.y = 0.0f;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
@@ -842,8 +858,10 @@ namespace VGF::Vulkan
         for (size_t i = 0; i < framebuffers.size(); i++)
         {
             renderPassInfo.renderArea.extent = framebuffers[i]->extent;
+
+            viewport.y = (float)framebuffers[i]->extent.height;
             viewport.width = (float)framebuffers[i]->extent.width;
-            viewport.height = (float)framebuffers[i]->extent.height;
+            viewport.height = -(float)framebuffers[i]->extent.height;
 
             vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
@@ -868,8 +886,10 @@ namespace VGF::Vulkan
         framebuffers.clear();
 
         renderPassInfo.renderArea.extent = swapChainExtent;
+
+        viewport.y = (float)swapChainExtent.height;
         viewport.width = (float)swapChainExtent.width;
-        viewport.height = (float)swapChainExtent.height;
+        viewport.height = -(float)swapChainExtent.height;
 
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
@@ -1888,7 +1908,7 @@ namespace VGF::Vulkan
         size_t requiredSize = data.instanceData.count * data.instanceData.stride;
         if (requiredSize > _instanceBufferCapasity)
         {
-            if (instanceBuffer_instanceBufferMemory.first != VK_NULL_HANDLE)
+            if (instanceBuffer_instanceBufferMemory.first != VK_NULL_HANDLE && instanceBuffer_instanceBufferMemory.second != VK_NULL_HANDLE)
             {
                 vkDestroyBuffer(vulkan->device, instanceBuffer_instanceBufferMemory.first, nullptr);
                 vkFreeMemory(vulkan->device, instanceBuffer_instanceBufferMemory.second, nullptr);
