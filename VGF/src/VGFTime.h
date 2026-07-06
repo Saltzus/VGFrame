@@ -23,7 +23,7 @@ namespace VGF
 	{
 	public:
 		static void UpdateDeltatime();
-		static const double GetDeltaTime() { return _deltaTime; }
+		static double GetDeltaTime() { return _deltaTime; }
 	private:
 		static inline double _deltaTime = 0.0f;
 		static inline double _lastFrame = 0.0f;
