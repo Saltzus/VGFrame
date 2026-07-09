@@ -55,7 +55,12 @@ namespace VGF::Vulkan
 	}
 
 
-	void VulkanFrameBuffer::Bind() { _vulkan->currentFramebuffer = this; _vulkan->framebuffers.push_back(this); }
+    void VulkanFrameBuffer::Bind() 
+    {
+        _vulkan->currentFramebuffer = this;
+        if (std::find(_vulkan->framebuffers.begin(), _vulkan->framebuffers.end(), this) == _vulkan->framebuffers.end())
+            _vulkan->framebuffers.push_back(this);
+    }
     void VulkanFrameBuffer::UnBind() { _vulkan->currentFramebuffer = nullptr; }
 	void VulkanFrameBuffer::Delete(){}
 }

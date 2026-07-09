@@ -106,7 +106,7 @@ namespace VGF::Vulkan
 
     ImTextureID VulkanTexture::GetImGuiTexture()
     {
-        if (textureId) return textureId;
+        if (textureId != NULL) return textureId;
 
         textureId = (ImTextureID)ImGui_ImplVulkan_AddTexture(
             Vulkan::vulkan->textureSampler,
@@ -120,8 +120,18 @@ namespace VGF::Vulkan
 
     VulkanTexture::~VulkanTexture()
     {
-        vkDestroyImage(Vulkan::vulkan->device, textureImage, nullptr);
-        vkFreeMemory(Vulkan::vulkan->device, textureImageMemory, nullptr);
+        VkDevice device = Vulkan::vulkan->device;
+
+        if (textureId) 
+        {
+            ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet)textureId);
+            textureId = NULL;
+        }
+
+        if (textureImageViewTex) vkDestroyImageView(device, textureImageViewTex, nullptr);
+
+        vkDestroyImage(device, textureImage, nullptr);
+        vkFreeMemory(device, textureImageMemory, nullptr);
     }
     void VulkanTexture::Bind(textureType type)
     {

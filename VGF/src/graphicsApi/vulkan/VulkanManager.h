@@ -115,7 +115,7 @@ namespace VGF::Vulkan
         void Bind(textureType type) override;
         void* GetNativeImage() override;
     private:
-        ImTextureID textureId;
+        ImTextureID textureId = NULL;
 
         VkImage textureImage;
         VkDeviceMemory textureImageMemory;
@@ -325,8 +325,8 @@ namespace VGF::Vulkan
 
         std::vector<VulkanUniformBuffer> vulkanUniformBuffers;
 
-        VkDescriptorSetLayout descriptorSetLayout;
-        VkDescriptorPool descriptorPool;
+        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
         std::vector<VkDescriptorSet> descriptorSet;
         
         virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override;
