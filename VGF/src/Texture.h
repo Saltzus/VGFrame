@@ -34,7 +34,7 @@ namespace VGF
 
         virtual void Bind(textureType type = textureType::color) const;
         virtual void* GetNativeImage() { return _impl->GetNativeImage(); }
-        virtual ImTextureID GetImguiImage() { return _impl->GetImGuiTexture(); }
+        virtual ImTextureID GetImguiImage() const { return _impl->GetImGuiTexture(); }
 
         const unsigned int GetWidth() const { return _width; }
         const unsigned int GetHeight() const { return _height; }
