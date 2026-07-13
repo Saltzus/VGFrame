@@ -10,6 +10,7 @@
 - [nlohmann_json](https://github.com/nlohmann/json)
 - [tinygltf](https://github.com/syoyo/tinygltf)
 - [bullet3](https://github.com/bulletphysics/bullet3)
+- [FastNoiseLite](https://github.com/Auburn/FastNoiseLite)
 
 ## Build
 you can build the project using cmake for windows or linux 

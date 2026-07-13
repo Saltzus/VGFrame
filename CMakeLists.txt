@@ -34,6 +34,9 @@ target_include_directories(stb_image_write INTERFACE Libraries/stb)
 add_library(tinygltf INTERFACE)
 target_include_directories(tinygltf INTERFACE Libraries/tinygltf)
 
+add_library(FastNoiseLite INTERFACE)
+target_include_directories(FastNoiseLite INTERFACE Libraries/FastNoiseLite)
+
 add_library(vulkan INTERFACE)
 target_include_directories(vulkan INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/Libraries/vulkan/Include

@@ -55,6 +55,7 @@ target_link_libraries(VGF
     tinygltf
     freetype
     Jolt
+    FastNoiseLite
 )
 
 set_target_properties(VGF PROPERTIES FOLDER "VGFrame")
