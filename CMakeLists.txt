@@ -71,7 +71,7 @@ set(GENERATE_DEBUG_SYMBOLS ON)
 # When turning this option on, the library will override the default CMAKE_CXX_FLAGS_DEBUG/RELEASE values, otherwise they will use the platform defaults
 set(OVERRIDE_CXX_FLAGS OFF)
 # When turning this option on, the library will be compiled in such a way to attempt to keep the simulation deterministic across platforms
-set(CROSS_PLATFORM_DETERMINISTIC OFF)
+set(CROSS_PLATFORM_DETERMINISTIC ON)
 # When turning this option on, the library will be compiled with interprocedural optimizations enabled, also known as link-time optimizations or link-time code generation.
 # Note that if you turn this on you need to use SET_INTERPROCEDURAL_OPTIMIZATION() or set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON) to enable LTO specifically for your own project as well.
 # If you don't do this you may get an error: /usr/bin/ld: libJolt.a: error adding symbols: file format not recognized
@@ -129,7 +129,15 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(freetype)
 
-set_target_properties(glad glfw freetype update_mappings Jolt PROPERTIES FOLDER "VGFrame/3rd-party")
+FetchContent_Declare(
+		GameNetworkingSockets
+		GIT_REPOSITORY "https://github.com/ValveSoftware/GameNetworkingSockets"
+		GIT_TAG "v1.6.0"
+)
+
+FetchContent_MakeAvailable(GameNetworkingSockets)
+
+set_target_properties(glad glfw freetype update_mappings Jolt GameNetworkingSockets PROPERTIES FOLDER "VGFrame/3rd-party")
 
 # Subdirectories
 add_subdirectory(VGF)
