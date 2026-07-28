@@ -165,7 +165,7 @@ namespace VGF
 
 		static Physics* GetInstance() { return physics; }
 
-		void Update();
+		void Update(float deltaTime);
 		void DebugRender(const Camera& camera);
 
 		const unsigned int maxBodies = 65536;
