@@ -8,7 +8,7 @@ namespace VGF
 		this->position = -position;
 	}
 
-	void Camera::updateMatrix(VGF::Window& window, float FOVdeg, float nearPlane, float farPlane)
+	void Camera::updateMatrix(const VGF::Window& window, float FOVdeg, float nearPlane, float farPlane)
 	{
 		// Initializes matrices since otherwise they will be the null matrix
 		view = glm::mat4(1.0f);
@@ -27,7 +27,7 @@ namespace VGF
 
     double lastMouseX, lastMouseY;
 
-    void Camera::Inputs(VGF::Window& window, double deltatime)
+    void Camera::Inputs(const VGF::Window& window, double deltatime)
     {
         float frameSpeed = speed * 100 * static_cast<float>(deltatime);
 

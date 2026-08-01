@@ -38,11 +38,11 @@ namespace VGF
 		Camera(glm::vec3 position = glm::vec3(0.f));
 
 		// Updates the camera matrix to the Vertex Shader
-		void updateMatrix(Window& window, float FOVdeg, float nearPlane, float farPlane);
+		void updateMatrix(const Window& window, float FOVdeg, float nearPlane, float farPlane);
 		// Exports the camera matrix to a shader
 		void Matrix(Shader& shader, const char* uniform);
 		// Handles camera inputs
-		void Inputs(Window& window, double deltatime);
+		void Inputs(const Window& window, double deltatime);
 
     private:
     	bool _perspective;

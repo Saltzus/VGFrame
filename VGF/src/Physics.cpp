@@ -62,7 +62,6 @@ namespace VGF
 			data.view = camera.view;
 			matrixBuffer.SetData((void*)&data);
 
-
 			physicsSystem.DrawBodies(drawSettings, debugRenderer);
 
 
