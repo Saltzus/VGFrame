@@ -24,7 +24,13 @@ namespace VGF
     public:
         PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent = false);
 
-        PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent, VertexBuffer& vertexBuffer, VertexBuffer& instanceBuffer);
+        template<typename VertBuffr1, typename VertBuffr2>
+        PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent, const VertBuffr1& vertexBuffer, const VertBuffr2& instanceBuffer)
+            : PipelineConfig(vertShader, fragShader, topology, translucent)
+        {
+            _vertexBuffer = std::make_shared<VertBuffr1>(vertexBuffer);
+            _instanceBuffer = std::make_shared<VertBuffr2>(instanceBuffer);
+        }
 
         PipelineConfig(std::string_view vertShader, std::string_view fragShader, bool translucent = false, Topology topology = Topology::TRIANGLE_LIST)
             : PipelineConfig(vertShader, fragShader, topology, translucent) {}

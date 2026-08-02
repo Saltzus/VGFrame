@@ -6,14 +6,6 @@
 
 namespace VGF
 {
-
-	PipelineConfig::PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent, VertexBuffer& vertexBuffer, VertexBuffer& instanceBuffer)
-		: PipelineConfig(vertShader, fragShader, topology, translucent)
-	{
-		_vertexBuffer = std::shared_ptr<VertexBuffer>(&vertexBuffer);
-		_instanceBuffer = std::shared_ptr<VertexBuffer>(&instanceBuffer);
-	}
-
 	PipelineConfig::PipelineConfig(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent)
 	{
 		if (!_vertexBuffer) _vertexBuffer = std::make_shared<DefaultVertexBuffer>();
@@ -40,8 +32,7 @@ namespace VGF
 	}
 
 	PipelineConfig::~PipelineConfig()
-	{
-	}
+	= default;
 
 	void PipelineConfig::SetVertexBuffer(VertexBuffer* vertexBuffer)
 	{
