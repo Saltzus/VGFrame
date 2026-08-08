@@ -16,6 +16,7 @@
 #include <iostream>
 #include <cstdarg>
 #include <thread>
+#include <unordered_set>
 
 #include "PipelineConfig.h"
 #include "Log.h"
@@ -155,6 +156,20 @@ namespace VGF
 		}
 	};
 
+	class VGFBodyDrawFilter : public JPH::BodyDrawFilter
+	{
+	public:
+		std::unordered_set<JPH::BodyID> exclude;
+	private:
+		virtual bool ShouldDraw(const JPH::Body& inBody) const override
+		{
+			if (exclude.find(inBody.GetID()) != exclude.end())
+				return false;
+
+			return true;
+		}
+	};
+
 	class Camera;
 
 	class Physics
@@ -167,6 +182,9 @@ namespace VGF
 
 		void Update(float deltaTime);
 		void DebugRender(const Camera& camera);
+
+		static void ExcludeDebug(const JPH::BodyID& body) { debugDrawFilter.exclude.insert(body); }
+		static void ReincludeBody(const JPH::BodyID& body) { if (debugDrawFilter.exclude.contains(body)) debugDrawFilter.exclude.erase(body); }
 
 		const unsigned int maxBodies = 65536;
 		const unsigned int numBodyMutexes = 0;
@@ -192,7 +210,8 @@ namespace VGF
 
 	private:
 
-		inline static Physics* physics = nullptr;
+		static inline VGFBodyDrawFilter debugDrawFilter;
+		static inline Physics* physics = nullptr;
 
 		static inline DebugVertexBuffer debugVertexBuffer;
 		static inline DefaultInstanceBuffer instanceBuffer;

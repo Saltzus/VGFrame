@@ -62,8 +62,7 @@ namespace VGF
 			data.view = camera.view;
 			matrixBuffer.SetData((void*)&data);
 
-			physicsSystem.DrawBodies(drawSettings, debugRenderer);
-
+			physicsSystem.DrawBodies(drawSettings, debugRenderer, &debugDrawFilter);
 
 			if (!debugRenderer->indices.empty() && !debugRenderer->vertices.empty())
 			{
