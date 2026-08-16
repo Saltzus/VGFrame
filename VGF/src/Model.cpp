@@ -5,23 +5,122 @@ namespace VGF
 	Model::Model(const std::string modelPath, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
 		: config(config)
 	{
-		bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, modelPath);
-		if (!warn.empty())
-			printf("Warn: %s\n", warn.c_str());
-		if (!err.empty())
-			printf("Err: %s\n", err.c_str());
-		if (!ret)
-			printf("Failed to parse glTF\n");
+		tinygltf::Model gltfModel;
+		tinygltf::TinyGLTF loader;
+		std::string err, warn;
+
+		bool ret = false;
+		std::string extension = modelPath.substr(modelPath.find_last_of(".") + 1);
+		std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+
+		if (extension == "glb")
+			ret = loader.LoadBinaryFromFile(&gltfModel, &err, &warn, modelPath);
+		//else if (extension == "gltf")
+		//	ret = loader.LoadASCIIFromFile(&gltfModel, &err, &warn, modelPath);
 		else
-			std::cout << "\nSuccesfully parsed gltf" << "  \n";
+			err = "Unsupported file extension: " + extension + ". Expected .gltf or .glb";
+
+		if (!warn.empty())
+			std::cout << "glTF warning: " << warn << std::endl;
+		if (!err.empty())
+			std::cout << "glTF error: " << err << std::endl;
+		if (!ret)
+			throw std::runtime_error("Failed to load glTF model");
 
 		textures = createTextureObjects(model);
 
-		for (size_t i = 0; i < model.meshes.size(); i++)
+		for (size_t i = 0; i < gltfModel.nodes.size(); i++)
 		{
-			Mesh mesh;
-			LoadMeshData(model, model.meshes[i], mesh.vertices, mesh.indices);
-			meshes.push_back(mesh);
+			const auto& node = gltfModel.nodes[i];
+			linearNodes[i] = new Node();
+			linearNodes[i]->index = static_cast<uint32_t>(i);
+			linearNodes[i]->name = node.name;
+
+			if (node.translation.size() == 3)
+				linearNodes[i]->translation = glm::vec3(node.translation[0], node.translation[1], node.translation[2]);
+			if (node.rotation.size() == 4)
+				linearNodes[i]->rotation = glm::quat(node.rotation[0], node.rotation[1], node.rotation[2], node.rotation[3]);
+			if (node.translation.size() == 3)
+				linearNodes[i]->scale = glm::vec3(node.scale[0], node.scale[1], node.scale[2]);
+		}
+
+		for (size_t i = 0; i < gltfModel.nodes.size(); i++)
+		{
+			const auto& node = gltfModel.nodes[i];
+			for (int childIdx : node.children)
+			{
+				linearNodes[childIdx]->parent = linearNodes[i];
+				linearNodes[i]->children.push_back(linearNodes[childIdx]);
+			}
+		}
+
+		for (size_t i = 0; i < gltfModel.nodes.size(); i++)
+		{
+			const auto& node = gltfModel.nodes[i];
+			if (node.mesh >= 0)
+			{
+				const auto& mesh = gltfModel.meshes[node.mesh];
+				for (const auto& primitive : mesh.primitives)
+				{
+					Mesh newMesh;
+
+					if (primitive.material >= 0) newMesh.materialIndex = primitive.material;
+
+					LoadMeshData(model, model.meshes[i], newMesh.vertices, newMesh.indices);
+					linearNodes[i]->mesh = newMesh;
+				}
+			}
+		}
+
+		for (const auto& anim : gltfModel.animations) {
+			Animation animation;
+			animation.name = anim.name;
+
+			for (const auto& sampler : anim.samplers)
+			{
+				AnimationSampler animSampler{};
+
+				if (sampler.interpolation == "LINEAR") animSampler.interpolation = AnimationSampler::LINEAR;
+				else if (sampler.interpolation == "STEP") animSampler.interpolation = AnimationSampler::STEP;
+				else if (sampler.interpolation == "CUBICSPLINE") animSampler.interpolation = AnimationSampler::CUBICSPLINE;
+
+				{
+					const tinygltf::Accessor &  accessor   = input.accessors[glTFSampler.input];
+					const tinygltf::BufferView &bufferView = input.bufferViews[accessor.bufferView];
+					const tinygltf::Buffer &    buffer     = input.buffers[bufferView.buffer];
+					const void *                dataPtr    = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
+					const float *               buf        = static_cast<const float *>(dataPtr);
+					for (size_t index = 0; index < accessor.count; index++)
+					{
+						dstSampler.inputs.push_back(buf[index]);
+					}
+					// Adjust animation's start and end times
+					for (auto input : animations[i].samplers[j].inputs)
+					{
+						if (input < animations[i].start)
+						{
+							animations[i].start = input;
+						};
+						if (input > animations[i].end)
+						{
+							animations[i].end = input;
+						}
+					}
+
+				animation.samplers.push_back(animSampler);
+			}
+
+			// Connect samplers to node properties
+			for (const auto& channel : anim.channels) {
+				AnimationChannel animChannel{};
+
+				// Set target node and property (translation, rotation, or scale)
+				// ... (code omitted for brevity)
+
+				animation.channels.push_back(animChannel);
+			}
+
+			model.animations.push_back(animation);
 		}
 
 		std::vector<UniformBufferObject*> renderUniformBuffers;
@@ -101,102 +200,116 @@ namespace VGF
 		assert(!model.meshes.empty());
 		for (const auto& prim : mesh.primitives) 
 		{
-			if (prim.indices >= 0) 
+			uint32_t firstIndex = static_cast<uint32_t>(outIndices.size());
+			uint32_t vertexStart = static_cast<uint32_t>(outVertices.size());
+			uint32_t indexCount = 0;
+			bool hasSkin = false;
+
+			const float* positionBuffer = nullptr;
+			const float* normalsBuffer = nullptr;
+			const float* texCoordsBuffer = nullptr;
+			const uint16_t* jointIndicesBuffer = nullptr;
+			const float* jointWeightsBuffer = nullptr;
+			size_t vertexCount = 0;
+
+			// Get buffer data for vertex normals
+			if (prim.attributes.contains("POSITION"))
 			{
-				const tinygltf::Accessor& indiceAccessor = model.accessors[prim.indices];
-				size_t indicesCount = indiceAccessor.count;
-
-				switch (indiceAccessor.componentType)
-				{
-				case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: 
-				{
-					auto data = GetUShortData(model, prim.indices);
-
-					for (size_t i = 0; i < indicesCount; ++i)
-						outIndices.push_back(static_cast<uint32_t>(data[i]));
-
-				} break;
-
-				case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT: 
-				{
-					const auto* data = reinterpret_cast<const uint32_t*>
-					(
-						model.buffers[model.bufferViews[indiceAccessor.bufferView].buffer].data.data()
-						+ model.bufferViews[indiceAccessor.bufferView].byteOffset
-						+ indiceAccessor.byteOffset
-					);
-
-					for (size_t i = 0; i < indicesCount; ++i)
-						outIndices.push_back(data[i]);
-
-				} break;
-
-				default:
-					assert(false && "Unsupported index component type");
-				}
+				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("POSITION")->second];
+				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
+				positionBuffer                       = reinterpret_cast<const float *>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+				vertexCount                          = accessor.count;
+			}
+			// Get buffer data for vertex normals
+			if (prim.attributes.contains("NORMAL"))
+			{
+				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("NORMAL")->second];
+				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
+				normalsBuffer                        = reinterpret_cast<const float *>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+			}
+			// Get buffer data for vertex texture coordinates
+			if (prim.attributes.contains("TEXCOORD_0"))
+			{
+				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("TEXCOORD_0")->second];
+				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
+				texCoordsBuffer                      = reinterpret_cast<const float *>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
 			}
 
-			const auto positionAttribute = prim.attributes.find("POSITION");
-			const auto normalAtribute = prim.attributes.find("NORMAL");
-			const auto uvAttribute = prim.attributes.find("TEXCOORD_0");
-
-			assert(positionAttribute != prim.attributes.end());
-			const int positionAccessor = positionAttribute->second;
-			const float* positionData = GetFloatData(model, positionAccessor);
-			size_t vertCount = model.accessors[positionAccessor].count;
-
-			const float* normalData = nullptr;
-			if (normalAtribute != prim.attributes.end())
-				normalData = GetFloatData(model, normalAtribute->second);
-
-			const float* uvData = nullptr;
-			if (uvAttribute != prim.attributes.end())
-				uvData = GetFloatData(model, uvAttribute->second);
-
-			outVertices.clear();
-			outVertices.reserve(vertCount * 11);
-
-			for (size_t vert = 0; vert < vertCount; ++vert) 
+			// Get vertex joint indices
+			if (prim.attributes.contains("JOINTS_0"))
 			{
+				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("JOINTS_0")->second];
+				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
+				jointIndicesBuffer                   = reinterpret_cast<const uint16_t *>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+			}
+			// Get vertex joint weights
+			if (prim.attributes.contains("WEIGHTS_0"))
+			{
+				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("WEIGHTS_0")->second];
+				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
+				jointWeightsBuffer                   = reinterpret_cast<const float *>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+			}
 
-				const float* position = positionData + 3 * vert;
-				float positionX = position[0], positionY = position[1], positionZ = position[2];
+			hasSkin = (jointIndicesBuffer && jointWeightsBuffer);
 
-				// read normal (or default to zero)
-				float normalX = 0.0f, normalY = 0.0f, normalZ = 0.0f;
-				if (normalData) 
-				{
-					const float* normal = normalData + 3 * vert;
-					normalX = normal[0]; normalY = normal[1]; normalZ = normal[2];
+			// Append data to model's vertex buffer
+			std::vector<DefaultVertex> vertices;
+			for (size_t v = 0; v < vertexCount; v++)
+			{
+				DefaultVertex vert{};
+				vert.position     = glm::make_vec3(&positionBuffer[v * 3]);
+				vert.normal       = glm::normalize(glm::vec3(normalsBuffer ? glm::make_vec3(&normalsBuffer[v * 3]) : glm::vec3(0.0f)));
+				vert.texCoord     = texCoordsBuffer ? glm::make_vec2(&texCoordsBuffer[v * 2]) : glm::vec2(0.0f);
+				vert.color        = glm::vec3(1.0f);
+				vert.jointIndices = hasSkin ? glm::vec4(glm::make_vec4(&jointIndicesBuffer[v * 4])) : glm::vec4(0.0f);
+				vert.jointWeights = hasSkin ? glm::make_vec4(&jointWeightsBuffer[v * 4]) : glm::vec4(0.0f);
+				vertices.push_back(vert);
+			}
+
+			const float* raw = reinterpret_cast<const float*>(vertices.data());
+			outVertices = std::vector<float>(raw, raw + vertices.size() * 19);
+
+			// Indices
+
+			const tinygltf::Accessor&  accessor    = model.accessors[prim.indices];
+			const tinygltf::BufferView &bufferView = model.bufferViews[accessor.bufferView];
+			const tinygltf::Buffer&    buffer      = model.buffers[bufferView.buffer];
+
+			indexCount += static_cast<uint32_t>(accessor.count);
+
+			switch (accessor.componentType)
+			{
+				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
+					const uint32_t* buf = reinterpret_cast<const uint32_t*>(&buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+					for (size_t index = 0; index < accessor.count; index++)
+					{
+						outIndices.push_back(buf[index] + vertexStart);
+					}
+					break;
 				}
-
-				// read uv (or default to zero)
-				float uvU = 0.0f, uvV = 0.0f;
-				if (uvData) 
-				{
-					const float* uv = uvData + 2 * vert;
-					uvU = uv[0];
-					uvV = uv[1];
+				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
+					const uint16_t* buf = reinterpret_cast<const uint16_t*>(&buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+					for (size_t index = 0; index < accessor.count; index++)
+					{
+						outIndices.push_back(buf[index] + vertexStart);
+					}
+					break;
 				}
-
-				// push 8 floats in order: pos.xyz, normal.xyz, uv.xy
-				outVertices.push_back(positionX);
-				outVertices.push_back(positionY);
-				outVertices.push_back(positionZ);
-
-				outVertices.push_back(normalX);
-				outVertices.push_back(normalY);
-				outVertices.push_back(normalZ);
-
-				outVertices.push_back(1);
-				outVertices.push_back(1);
-				outVertices.push_back(1);
-
-				outVertices.push_back(uvU);
-				outVertices.push_back(1.0f - uvV);
+				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
+					const uint8_t* buf = reinterpret_cast<const uint8_t*>(&buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+					for (size_t index = 0; index < accessor.count; index++)
+					{
+						outIndices.push_back(buf[index] + vertexStart);
+					}
+					break;
+				}
+				default:
+					std::cerr << "Index component type " << accessor.componentType << " not supported!" << std::endl;
+					return;
 			}
 		}
 	}
+
 	std::vector<Texture*> Model::createTextureObjects(const tinygltf::Model& model) const
 	{
 		std::vector<Texture*> textureObjects;
@@ -213,7 +326,6 @@ namespace VGF
 			const auto& texture = model.textures[i];
 			assert(texture.source >= 0);
 			const auto& image = model.images[texture.source];
-			
 
 			textureObjects.emplace_back(new Texture(image.image.data(), GL_RGBA, image.width, image.height));
 		}

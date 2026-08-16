@@ -7,6 +7,9 @@ struct DefaultVertex
     glm::vec3 normal;
     glm::vec3 color;
     glm::vec2 texCoord;
+
+    glm::vec4 jointIndices;
+    glm::vec4 jointWeights;
 };
 
 struct DefaultVertexBuffer : public VertexBuffer
@@ -38,6 +41,16 @@ struct DefaultVertexBuffer : public VertexBuffer
         attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
         attributeDescriptions[3].offset = offsetof(DefaultVertex, texCoord);
 
+        attributeDescriptions[3].binding = 0;
+        attributeDescriptions[3].location = 4 + lastLocation;
+        attributeDescriptions[3].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        attributeDescriptions[3].offset = offsetof(DefaultVertex, jointIndices);
+
+        attributeDescriptions[3].binding = 0;
+        attributeDescriptions[3].location = 5 + lastLocation;
+        attributeDescriptions[3].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        attributeDescriptions[3].offset = offsetof(DefaultVertex, jointWeights);
+
         return attributeDescriptions;
     }
 
@@ -60,6 +73,16 @@ struct DefaultVertexBuffer : public VertexBuffer
 
         // Texture position attribute
         glVertexAttribPointer(lastLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DefaultVertex), (void*)offsetof(DefaultVertex, texCoord));
+        glEnableVertexAttribArray(lastLocation);
+        lastLocation++;
+
+        // Texture position attribute
+        glVertexAttribPointer(lastLocation, 4, GL_UNSIGNED_INT, GL_FALSE, sizeof(DefaultVertex), (void*)offsetof(DefaultVertex, jointIndices));
+        glEnableVertexAttribArray(lastLocation);
+        lastLocation++;
+
+        // Texture position attribute
+        glVertexAttribPointer(lastLocation, 4, GL_FLOAT, GL_FALSE, sizeof(DefaultVertex), (void*)offsetof(DefaultVertex, jointWeights));
         glEnableVertexAttribArray(lastLocation);
         lastLocation++;
     }
