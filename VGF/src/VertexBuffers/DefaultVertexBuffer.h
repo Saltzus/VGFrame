@@ -7,6 +7,10 @@ struct DefaultVertex
     glm::vec3 normal;
     glm::vec3 color;
     glm::vec2 texCoord;
+    //glm::vec2 padding;
+
+    glm::vec4 jointIndices;
+    glm::vec4 jointWeights;
 };
 
 struct DefaultVertexBuffer : public VertexBuffer
@@ -16,7 +20,7 @@ struct DefaultVertexBuffer : public VertexBuffer
     std::vector<VkVertexInputAttributeDescription> GetVulkanAttributeDescriptions(uint32_t lastLocation) const override
     {
         std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-        attributeDescriptions.resize(4);
+        attributeDescriptions.resize(6);
 
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0 + lastLocation;
@@ -37,6 +41,16 @@ struct DefaultVertexBuffer : public VertexBuffer
         attributeDescriptions[3].location = 3 + lastLocation;
         attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
         attributeDescriptions[3].offset = offsetof(DefaultVertex, texCoord);
+
+        attributeDescriptions[4].binding = 0;
+        attributeDescriptions[4].location = 4 + lastLocation;
+        attributeDescriptions[4].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        attributeDescriptions[4].offset = offsetof(DefaultVertex, jointIndices);
+
+        attributeDescriptions[5].binding = 0;
+        attributeDescriptions[5].location = 5 + lastLocation;
+        attributeDescriptions[5].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        attributeDescriptions[5].offset = offsetof(DefaultVertex, jointWeights);
 
         return attributeDescriptions;
     }
@@ -60,6 +74,16 @@ struct DefaultVertexBuffer : public VertexBuffer
 
         // Texture position attribute
         glVertexAttribPointer(lastLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DefaultVertex), (void*)offsetof(DefaultVertex, texCoord));
+        glEnableVertexAttribArray(lastLocation);
+        lastLocation++;
+
+        // Texture position attribute
+        glVertexAttribPointer(lastLocation, 4, GL_UNSIGNED_INT, GL_FALSE, sizeof(DefaultVertex), (void*)offsetof(DefaultVertex, jointIndices));
+        glEnableVertexAttribArray(lastLocation);
+        lastLocation++;
+
+        // Texture position attribute
+        glVertexAttribPointer(lastLocation, 4, GL_FLOAT, GL_FALSE, sizeof(DefaultVertex), (void*)offsetof(DefaultVertex, jointWeights));
         glEnableVertexAttribArray(lastLocation);
         lastLocation++;
     }

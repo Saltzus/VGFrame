@@ -1,35 +1,216 @@
 #include "Model.h"
 
+#include "VGFTime.h"
+
 namespace VGF
 {
-	Model::Model(const std::string modelPath, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+	Model::Model(const std::string& modelPath, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
 		: config(config)
 	{
-		bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, modelPath);
-		if (!warn.empty())
-			printf("Warn: %s\n", warn.c_str());
-		if (!err.empty())
-			printf("Err: %s\n", err.c_str());
-		if (!ret)
-			printf("Failed to parse glTF\n");
+		tinygltf::Model gltfModel;
+		tinygltf::TinyGLTF loader;
+		std::string err, warn;
+
+		bool ret = false;
+		std::string extension = modelPath.substr(modelPath.find_last_of(".") + 1);
+		std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+
+		if (extension == "glb")
+			ret = loader.LoadBinaryFromFile(&gltfModel, &err, &warn, modelPath);
+		else if (extension == "gltf")
+			ret = loader.LoadASCIIFromFile(&gltfModel, &err, &warn, modelPath);
 		else
-			std::cout << "\nSuccesfully parsed gltf" << "  \n";
+			err = "Unsupported file extension: " + extension + ". Expected .gltf or .glb";
 
-		textures = createTextureObjects(model);
+		if (!warn.empty())
+			std::cout << "glTF warning: " << warn << std::endl;
+		if (!err.empty())
+			std::cout << "glTF error: " << err << std::endl;
+		if (!ret)
+			throw std::runtime_error("Failed to load glTF model");
 
-		for (size_t i = 0; i < model.meshes.size(); i++)
+		_textures = createTextureObjects(gltfModel);
+
+		for (size_t i = 0; i < gltfModel.nodes.size(); i++)
 		{
-			Mesh mesh;
-			LoadMeshData(model, model.meshes[i], mesh.vertices, mesh.indices);
-			meshes.push_back(mesh);
+			const auto& node = gltfModel.nodes[i];
+			linearNodes.push_back(new Node);
+			linearNodes[i]->index = static_cast<uint32_t>(i);
+			linearNodes[i]->name = node.name;
+			linearNodes[i]->skin = node.skin;
+
+			if (node.translation.size() == 3)
+				linearNodes[i]->translation = glm::vec3(node.translation[0], node.translation[1], node.translation[2]);
+			if (node.rotation.size() == 4)
+				linearNodes[i]->rotation = glm::quat(node.rotation[0], node.rotation[1], node.rotation[2], node.rotation[3]);
+			if (node.scale.size() == 3)
+				linearNodes[i]->scale = glm::vec3(node.scale[0], node.scale[1], node.scale[2]);
 		}
+
+		for (size_t i = 0; i < gltfModel.nodes.size(); i++)
+		{
+			const auto& node = gltfModel.nodes[i];
+			for (int childIdx : node.children)
+			{
+				linearNodes[childIdx]->parent = linearNodes[i];
+				linearNodes[i]->children.push_back(linearNodes[childIdx]);
+			}
+		}
+
+		for (size_t i = 0; i < gltfModel.nodes.size(); i++)
+		{
+			const auto& node = gltfModel.nodes[i];
+			if (node.mesh >= 0)
+			{
+				const auto& mesh = gltfModel.meshes[node.mesh];
+
+				Mesh newMesh;
+				for (const auto& primitive : mesh.primitives)
+					if (primitive.material >= 0) newMesh.materialIndex = primitive.material;
+
+				LoadMeshData(gltfModel, gltfModel.meshes[node.mesh], newMesh.vertices, newMesh.indices);
+				linearNodes[i]->mesh = newMesh;
+			}
+		}
+
+		for (const auto& anim : gltfModel.animations) {
+			Animation animation;
+			animation.name = anim.name;
+
+			for (const auto& sampler : anim.samplers)
+			{
+				AnimationSampler animSampler{};
+
+				if (sampler.interpolation == "LINEAR") animSampler.interpolation = AnimationSampler::LINEAR;
+				else if (sampler.interpolation == "STEP") animSampler.interpolation = AnimationSampler::STEP;
+				else if (sampler.interpolation == "CUBICSPLINE") animSampler.interpolation = AnimationSampler::CUBICSPLINE;
+
+				{
+					const tinygltf::Accessor&  accessor = gltfModel.accessors[sampler.input];
+					const tinygltf::BufferView& bufferView = gltfModel.bufferViews[accessor.bufferView];
+					const tinygltf::Buffer& buffer = gltfModel.buffers[bufferView.buffer];
+					const void* dataPtr = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
+					const float* buf = static_cast<const float *>(dataPtr);
+					for (size_t index = 0; index < accessor.count; index++)
+					{
+						animSampler.inputs.push_back(buf[index]);
+					}
+
+					for (auto input : animSampler.inputs)
+					{
+						if (input < animation.start) animation.start = input;
+						if (input > animation.end) animation.end = input;
+					}
+				}
+
+				{
+					const tinygltf::Accessor &accessor = gltfModel.accessors[sampler.output];
+					const tinygltf::BufferView &bufferView = gltfModel.bufferViews[accessor.bufferView];
+					const tinygltf::Buffer &buffer = gltfModel.buffers[bufferView.buffer];
+
+					assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
+
+					const void *dataPtr = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
+
+					switch (accessor.type) {
+					case TINYGLTF_TYPE_VEC3: {
+							const glm::vec3 *buf = static_cast<const glm::vec3*>(dataPtr);
+							for (size_t index = 0; index < accessor.count; index++)
+								animSampler.outputsVec3.push_back(buf[index]);
+							break;
+					}
+					case TINYGLTF_TYPE_VEC4: {
+							const glm::vec4 *buf = static_cast<const glm::vec4*>(dataPtr);
+							for (size_t index = 0; index < accessor.count; index++)
+								animSampler.outputsVec4.push_back(buf[index]);
+							break;
+					}
+					default: {
+							std::cout << "unknown type" << std::endl;
+							break;
+					}
+					}
+				}
+
+				animation.samplers.push_back(animSampler);
+			}
+
+
+			for (const auto& channel : anim.channels) {
+				AnimationChannel animChannel{};
+
+				if(channel.target_path == "rotation")
+				{
+					animChannel.path = AnimationChannel::ROTATION;
+				}
+				if(channel.target_path == "translation")
+				{
+					animChannel.path = AnimationChannel::TRANSLATION;
+				}
+				if(channel.target_path == "scale")
+				{
+					animChannel.path = AnimationChannel::SCALE;
+				}
+				if(channel.target_path == "weights")
+				{
+					//animChannel.path
+				}
+				animChannel.samplerIndex = channel.sampler;
+				animChannel.node         = linearNodes[channel.target_node];
+
+				animation.channels.push_back(animChannel);
+			}
+
+			animations.push_back(animation);
+		}
+
+		for (size_t i = 0; i < gltfModel.skins.size(); i++)
+		{
+			tinygltf::Skin glTFSkin = gltfModel.skins[i];
+
+			skins.emplace_back();
+			skins[i].name = glTFSkin.name;
+			// Find the root node of the skeleton
+			skins[i].skeletonRoot = linearNodes[glTFSkin.skeleton];
+
+			// Find joint nodes
+			for (int jointIndex : glTFSkin.joints)
+			{
+				Node *node = linearNodes[jointIndex];
+				if (node)
+				{
+					skins[i].joints.push_back(node);
+				}
+			}
+
+			// Get the inverse bind matrices from the buffer associated to this skin
+			if (glTFSkin.inverseBindMatrices > -1)
+			{
+				const tinygltf::Accessor &  accessor   = gltfModel.accessors[glTFSkin.inverseBindMatrices];
+				const tinygltf::BufferView &bufferView = gltfModel.bufferViews[accessor.bufferView];
+				const tinygltf::Buffer &    buffer     = gltfModel.buffers[bufferView.buffer];
+				memcpy(skins[i].inverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(glm::mat4));
+
+				AnimationData data;
+				std::copy(skins[i].inverseBindMatrices.begin(), skins[i].inverseBindMatrices.end(), data.jointMatrices);
+
+				for (auto& buff : skins[i].buffers) buff.SetData(data);
+			}
+		}
+
+		textures = gltfModel.textures;
+		materials = gltfModel.materials;
 
 		std::vector<UniformBufferObject*> renderUniformBuffers;
 		renderUniformBuffers.insert(renderUniformBuffers.end(), uniformBuffers.begin(), uniformBuffers.end());
 		renderUniformBuffers.insert(renderUniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
 
-		for (auto mesh : meshes)
-			modelRenderers.emplace_back(new Renderer(mesh.indices, mesh.vertices, renderUniformBuffers));
+		for (auto& node : linearNodes)
+		{
+			if (node->mesh.indices.empty()) continue;
+			modelRenderers.emplace_back(new Renderer(node->mesh.indices, node->mesh.vertices, renderUniformBuffers));
+			node->mesh.rendererIndex = modelRenderers.size()-1;
+		}
 
 		std::cout << "Model Loaded Succesfully\n";
 	}
@@ -44,15 +225,23 @@ namespace VGF
 		mesh.vertices = vertices;
 		mesh.indices = indices;
 
-		meshes.push_back(mesh);
+		linearNodes[0] = new Node();
+		linearNodes[0]->index = static_cast<uint32_t>(0);
+		linearNodes[0]->name = "unnamed";
+		linearNodes[0]->mesh = mesh;
+
 
 		std::vector<UniformBufferObject*> renderUniformBuffers;
 		renderUniformBuffers.insert(renderUniformBuffers.end(), uniformBuffers.begin(), uniformBuffers.end());
 		renderUniformBuffers.insert(renderUniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
 
 
-		for (auto mesh : meshes)
-			modelRenderers.emplace_back(new Renderer(mesh.indices, mesh.vertices, renderUniformBuffers));
+		for (auto& node : linearNodes)
+		{
+			for (auto node : linearNodes) continue;
+			modelRenderers.emplace_back(new Renderer(node->mesh.indices, node->mesh.vertices, renderUniformBuffers));
+			node->mesh.rendererIndex = modelRenderers.size()-1;
+		}
 	}
 
 	Model::~Model()
@@ -62,6 +251,8 @@ namespace VGF
 
 		for (auto& renderer : modelRenderers)
 			delete renderer;
+
+		for (auto& node : linearNodes) delete node;
 	}
 
 	/// Read flat floats from an accessor
@@ -90,6 +281,86 @@ namespace VGF
 		);
 	}
 
+	void Model::UpdateAnimation(unsigned int index, float deltaTime)
+	{
+		if (animations.empty() || index >= animations.size()) return;
+
+		Animation& animation = animations[index];
+        animation.currentTime += deltaTime;
+
+        if (animation.currentTime > animation.end)
+            animation.currentTime = animation.start;
+
+        for (auto& channel : animation.channels)
+        {
+	        AnimationSampler& sampler = animation.samplers[channel.samplerIndex];
+
+        	auto keyFrameIt = std::ranges::lower_bound(sampler.inputs, animation.currentTime);
+        	if (keyFrameIt != sampler.inputs.end() && keyFrameIt != sampler.inputs.begin())
+        	{
+        		size_t indx = std::distance(sampler.inputs.begin(), keyFrameIt) - 1;
+        		float factor = (animation.currentTime - sampler.inputs[indx]) / (sampler.inputs[indx + 1] - sampler.inputs[indx]);
+
+        		switch (channel.path)
+        		{
+        		case AnimationChannel::TRANSLATION:
+				{
+        				glm::vec3 start = sampler.outputsVec3[indx];
+        				glm::vec3 end = sampler.outputsVec3[indx + 1];
+        				channel.node->translation = glm::mix(start, end, factor);
+        				break;
+        		}
+        		case AnimationChannel::ROTATION:
+				{
+        				glm::quat start = glm::quat(sampler.outputsVec4[indx].x, sampler.outputsVec4[indx].y, sampler.outputsVec4[indx].z, sampler.outputsVec4[indx].w);
+        				glm::quat end = glm::quat(sampler.outputsVec4[indx + 1].x, sampler.outputsVec4[indx + 1].y, sampler.outputsVec4[indx + 1].z, sampler.outputsVec4[indx + 1].w);
+        				channel.node->rotation = glm::slerp(start, end, factor);
+        				break;
+        		}
+        		case AnimationChannel::SCALE:
+				{
+        				glm::vec3 start = sampler.outputsVec3[indx];
+        				glm::vec3 end = sampler.outputsVec3[indx + 1];
+        				channel.node->scale = glm::mix(start, end, factor);
+        				break;
+        		}
+        		}
+        		break;
+        	}
+        }
+		for (auto &node : linearNodes)
+		{
+			UpdateJoints(node);
+		}
+	}
+
+	void Model::UpdateJoints(Node* node)
+	{
+		if (node->skin > -1)
+		{
+			glm::mat4 inverseTransform = glm::inverse((node->GetGlobalMatrix()));
+			Skin& skin = skins[node->skin];
+			size_t numJoints = (uint32_t) skin.joints.size();
+			std::vector<glm::mat4> jointMatrices(numJoints);
+			for (size_t i = 0; i < numJoints; i++)
+			{
+				jointMatrices[i] = skin.joints[i]->GetGlobalMatrix() * skin.inverseBindMatrices[i];
+				jointMatrices[i] = inverseTransform * jointMatrices[i];
+			}
+
+			AnimationData data;
+			std::copy(jointMatrices.begin(), jointMatrices.end(), data.jointMatrices);
+
+			skin.buffers[0].SetData(data);
+		}
+
+		for (auto &child : node->children)
+		{
+			UpdateJoints(child);
+		}
+	}
+
+
 	void Model::LoadMeshData
 	(
 		const tinygltf::Model& model,
@@ -101,102 +372,122 @@ namespace VGF
 		assert(!model.meshes.empty());
 		for (const auto& prim : mesh.primitives) 
 		{
-			if (prim.indices >= 0) 
+			uint32_t firstIndex = static_cast<uint32_t>(outIndices.size());
+			uint32_t vertexStart = static_cast<uint32_t>(outVertices.size()/19);
+			uint32_t indexCount = 0;
+			bool hasSkin = false;
+
+			const float* positionBuffer = nullptr;
+			const float* normalsBuffer = nullptr;
+			const float* texCoordsBuffer = nullptr;
+			const uint16_t* jointIndicesBuffer = nullptr;
+			const float* jointWeightsBuffer = nullptr;
+			size_t vertexCount = 0;
+
+			// Get buffer data for vertex normals
+			if (prim.attributes.contains("POSITION"))
 			{
-				const tinygltf::Accessor& indiceAccessor = model.accessors[prim.indices];
-				size_t indicesCount = indiceAccessor.count;
-
-				switch (indiceAccessor.componentType)
-				{
-				case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: 
-				{
-					auto data = GetUShortData(model, prim.indices);
-
-					for (size_t i = 0; i < indicesCount; ++i)
-						outIndices.push_back(static_cast<uint32_t>(data[i]));
-
-				} break;
-
-				case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT: 
-				{
-					const auto* data = reinterpret_cast<const uint32_t*>
-					(
-						model.buffers[model.bufferViews[indiceAccessor.bufferView].buffer].data.data()
-						+ model.bufferViews[indiceAccessor.bufferView].byteOffset
-						+ indiceAccessor.byteOffset
-					);
-
-					for (size_t i = 0; i < indicesCount; ++i)
-						outIndices.push_back(data[i]);
-
-				} break;
-
-				default:
-					assert(false && "Unsupported index component type");
-				}
+				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("POSITION")->second];
+				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
+				positionBuffer                       = reinterpret_cast<const float *>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+				vertexCount                          = accessor.count;
+			}
+			// Get buffer data for vertex normals
+			if (prim.attributes.contains("NORMAL"))
+			{
+				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("NORMAL")->second];
+				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
+				normalsBuffer                        = reinterpret_cast<const float *>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+			}
+			// Get buffer data for vertex texture coordinates
+			if (prim.attributes.contains("TEXCOORD_0"))
+			{
+				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("TEXCOORD_0")->second];
+				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
+				texCoordsBuffer                      = reinterpret_cast<const float *>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
 			}
 
-			const auto positionAttribute = prim.attributes.find("POSITION");
-			const auto normalAtribute = prim.attributes.find("NORMAL");
-			const auto uvAttribute = prim.attributes.find("TEXCOORD_0");
-
-			assert(positionAttribute != prim.attributes.end());
-			const int positionAccessor = positionAttribute->second;
-			const float* positionData = GetFloatData(model, positionAccessor);
-			size_t vertCount = model.accessors[positionAccessor].count;
-
-			const float* normalData = nullptr;
-			if (normalAtribute != prim.attributes.end())
-				normalData = GetFloatData(model, normalAtribute->second);
-
-			const float* uvData = nullptr;
-			if (uvAttribute != prim.attributes.end())
-				uvData = GetFloatData(model, uvAttribute->second);
-
-			outVertices.clear();
-			outVertices.reserve(vertCount * 11);
-
-			for (size_t vert = 0; vert < vertCount; ++vert) 
+			// Get vertex joint indices
+			if (prim.attributes.contains("JOINTS_0"))
 			{
+				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("JOINTS_0")->second];
+				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
+				jointIndicesBuffer                   = reinterpret_cast<const uint16_t *>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+			}
+			// Get vertex joint weights
+			if (prim.attributes.contains("WEIGHTS_0"))
+			{
+				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("WEIGHTS_0")->second];
+				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
+				jointWeightsBuffer                   = reinterpret_cast<const float *>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+			}
 
-				const float* position = positionData + 3 * vert;
-				float positionX = position[0], positionY = position[1], positionZ = position[2];
+			hasSkin = (jointIndicesBuffer && jointWeightsBuffer);
 
-				// read normal (or default to zero)
-				float normalX = 0.0f, normalY = 0.0f, normalZ = 0.0f;
-				if (normalData) 
-				{
-					const float* normal = normalData + 3 * vert;
-					normalX = normal[0]; normalY = normal[1]; normalZ = normal[2];
+			// Append data to model's vertex buffer
+			std::vector<DefaultVertex> vertices;
+			for (size_t v = 0; v < vertexCount; v++)
+			{
+				DefaultVertex vert{};
+				vert.position     = glm::make_vec3(&positionBuffer[v * 3]);
+				vert.normal       = glm::normalize(glm::vec3(normalsBuffer ? glm::make_vec3(&normalsBuffer[v * 3]) : glm::vec3(0.0f)));
+				vert.texCoord     = texCoordsBuffer ? glm::make_vec2(&texCoordsBuffer[v * 2]) : glm::vec2(0.0f);
+				vert.color        = glm::vec3(1.0f);
+				vert.jointIndices = hasSkin ? glm::vec4
+				(
+					(float)jointIndicesBuffer[v * 4 + 0],
+					(float)jointIndicesBuffer[v * 4 + 1],
+					(float)jointIndicesBuffer[v * 4 + 2],
+					(float)jointIndicesBuffer[v * 4 + 3]
+				) :			glm::vec4(0.0f);
+				vert.jointWeights = hasSkin ? glm::make_vec4(&jointWeightsBuffer[v * 4]) : glm::vec4(0.0f);
+				vertices.push_back(vert);
+			}
+
+			const float* raw = reinterpret_cast<const float*>(vertices.data());
+			outVertices = std::vector<float>(raw, raw + vertices.size() * 19);
+
+			// Indices
+
+			const tinygltf::Accessor&  accessor    = model.accessors[prim.indices];
+			const tinygltf::BufferView &bufferView = model.bufferViews[accessor.bufferView];
+			const tinygltf::Buffer&    buffer      = model.buffers[bufferView.buffer];
+
+			indexCount += static_cast<uint32_t>(accessor.count);
+
+			switch (accessor.componentType)
+			{
+				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
+					const uint32_t* buf = reinterpret_cast<const uint32_t*>(&buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+					for (size_t index = 0; index < accessor.count; index++)
+					{
+						outIndices.push_back(buf[index] + vertexStart);
+					}
+					break;
 				}
-
-				// read uv (or default to zero)
-				float uvU = 0.0f, uvV = 0.0f;
-				if (uvData) 
-				{
-					const float* uv = uvData + 2 * vert;
-					uvU = uv[0];
-					uvV = uv[1];
+				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
+					const uint16_t* buf = reinterpret_cast<const uint16_t*>(&buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+					for (size_t index = 0; index < accessor.count; index++)
+					{
+						outIndices.push_back(buf[index] + vertexStart);
+					}
+					break;
 				}
-
-				// push 8 floats in order: pos.xyz, normal.xyz, uv.xy
-				outVertices.push_back(positionX);
-				outVertices.push_back(positionY);
-				outVertices.push_back(positionZ);
-
-				outVertices.push_back(normalX);
-				outVertices.push_back(normalY);
-				outVertices.push_back(normalZ);
-
-				outVertices.push_back(1);
-				outVertices.push_back(1);
-				outVertices.push_back(1);
-
-				outVertices.push_back(uvU);
-				outVertices.push_back(1.0f - uvV);
+				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
+					const uint8_t* buf = reinterpret_cast<const uint8_t*>(&buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+					for (size_t index = 0; index < accessor.count; index++)
+					{
+						outIndices.push_back(buf[index] + vertexStart);
+					}
+					break;
+				}
+				default:
+					std::cerr << "Index component type " << accessor.componentType << " not supported!" << std::endl;
+					return;
 			}
 		}
 	}
+
 	std::vector<Texture*> Model::createTextureObjects(const tinygltf::Model& model) const
 	{
 		std::vector<Texture*> textureObjects;
@@ -213,7 +504,6 @@ namespace VGF
 			const auto& texture = model.textures[i];
 			assert(texture.source >= 0);
 			const auto& image = model.images[texture.source];
-			
 
 			textureObjects.emplace_back(new Texture(image.image.data(), GL_RGBA, image.width, image.height));
 		}
@@ -221,24 +511,9 @@ namespace VGF
 		return textureObjects;
 	}
 
-	glm::mat4 Model::getLocalToWorldMatrix(const tinygltf::Node& node, const glm::mat4& parentMatrix)
+	glm::mat4 Model::getLocalToWorldMatrix(const Node& node, const glm::mat4& parentMatrix)
 	{
-		if (!node.matrix.empty()) {
-			return parentMatrix * glm::mat4(node.matrix[0], node.matrix[1],
-				node.matrix[2], node.matrix[3], node.matrix[4],
-				node.matrix[5], node.matrix[6], node.matrix[7],
-				node.matrix[8], node.matrix[9], node.matrix[10],
-				node.matrix[11], node.matrix[12], node.matrix[13],
-				node.matrix[14], node.matrix[15]);
-		}
-		const auto T = node.translation.empty() ? parentMatrix :
-			glm::translate(parentMatrix, glm::vec3(node.translation[0], node.translation[1], node.translation[2]));
-
-		const auto rotationQuat = node.rotation.empty() ? glm::quat(1, 0, 0, 0) : glm::quat(float(node.rotation[3]), float(node.rotation[0]),
-			float(node.rotation[1]), float(node.rotation[2]));
-
-		const auto TR = T * glm::mat4_cast(rotationQuat);
-		return node.scale.empty() ? TR : glm::scale(TR, glm::vec3(node.scale[0], node.scale[1], node.scale[2]));
+		return glm::mat4(1.f);
 	};
 
 	std::vector<UniformBufferObject*> Model::AddUniformBuffers(const glm::mat4& parentMatrix, const int bindId, const Camera& camera, std::vector<UniformBufferObject*> additionalUniformBuffers)
@@ -253,6 +528,8 @@ namespace VGF
 		renderUniformBuffers.push_back(uniformBuffers[matrixBuffer]);
 		renderUniformBuffers.push_back(bindMaterial(camera, bindId));
 		renderUniformBuffers.push_back(LightBufferObject::getDefault());
+		renderUniformBuffers.push_back(uniformBuffers[animationBuffer]);
+
 		renderUniformBuffers.insert(renderUniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
 
 		return renderUniformBuffers;
@@ -272,32 +549,41 @@ namespace VGF
 
 	void Model::drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const PipelineConfig& config, const Camera& camera, LightBufferObject lightBufffer)
 	{
-		const auto& node = model.nodes[nodeIdx];
-		const glm::mat4 modelMatrix = getLocalToWorldMatrix(node, parentMatrix);
-		const auto& mesh = model.meshes[node.mesh];
+		const auto& node = linearNodes[nodeIdx];
+		const glm::mat4 modelMatrix = node->GetGlobalMatrix();
+		const auto& mesh = node->mesh;
 
-		if (node.mesh >= 0)
+		if (node->skin != -1)
+			uniformBuffers[animationBuffer] = &skins[node->skin].buffers[0];
+
+		if (node->mesh.rendererIndex != -1)
 		{
-			Renderer* renderer = modelRenderers[node.mesh];
-			Draw(parentMatrix, renderer, mesh.primitives[0].material, config, camera);
+			Renderer* renderer = modelRenderers[node->mesh.rendererIndex];
+			Draw(parentMatrix, renderer, mesh.materialIndex, config, camera);
 		}
 		
-		for (const auto childNodeIdx : node.children) 
-			drawNodes(childNodeIdx, modelMatrix, config, camera, *LightBufferObject::getDefault());
+		for (const auto childNode : node->children)
+			drawNodes(childNode->index, modelMatrix, config, camera, *LightBufferObject::getDefault());
 	};
 
 
 
 	void Model::Render(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
 	{
-		if (customModel) {
-			for (size_t i = 0; i < meshes.size(); i++){
+		if (customModel)
+		{
+			for (size_t i = 0; i < nodes.size(); i++)
+			{
 				Draw(parentMatrix, modelRenderers[i], -1, config, camera, additionalUniformBuffers);
 			}
 		}
-		else {
-			for (const auto nodeIdx : model.scenes[model.defaultScene].nodes) {
-				drawNodes(nodeIdx, parentMatrix, config, camera, *LightBufferObject::getDefault());
+		else
+		{
+			if (!animations.empty()) UpdateAnimation(0, VGF::Time::GetDeltaTime());
+			for (const auto node : linearNodes)
+			{
+				if (node->parent != nullptr) continue;
+				drawNodes(node->index, parentMatrix, config, camera, *LightBufferObject::getDefault());
 			}
 		}
 	}
@@ -305,7 +591,7 @@ namespace VGF
 	void Model::BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers)
 	{
 		if (!customModel) return;
-		for (size_t i = 0; i < meshes.size(); i++) 
+		for (size_t i = 0; i < nodes.size(); i++)
 		{
 			BatchDraw(parentMatrix, modelRenderers[i], -1, config, camera, instanceData, instanceCount, instanceStride, additionalUniformBuffers);
 		}
@@ -320,7 +606,7 @@ namespace VGF
 		if (_material != nullptr) _material->Bind();
 		else if (materialIndex >= 0)
 		{
-			const auto& modelMaterial = model.materials[materialIndex];
+			const auto& modelMaterial = materials[materialIndex];
 			const auto& pbrMetallicRoughness = modelMaterial.pbrMetallicRoughness;
 
 			pbrBufferData.baseColorFactor =
@@ -335,10 +621,10 @@ namespace VGF
 
 			if (pbrMetallicRoughness.baseColorTexture.index >= 0)
 			{
-				const auto& texture = model.textures[pbrMetallicRoughness.baseColorTexture.index];
+				const auto& texture = textures[pbrMetallicRoughness.baseColorTexture.index];
 				if (texture.source >= 0)
 				{
-					textureObject = textures[texture.source];
+					textureObject = _textures[texture.source];
 				}
 			}
 			textureObject->Bind(textureType::color);
@@ -352,10 +638,10 @@ namespace VGF
 			textureObject = Texture::GetWhiteTexture();
 			if (pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
 			{
-				const auto& texture = model.textures[pbrMetallicRoughness.metallicRoughnessTexture.index];
+				const auto& texture = textures[pbrMetallicRoughness.metallicRoughnessTexture.index];
 				if (texture.source >= 0)
 				{
-					textureObject = textures[texture.source];
+					textureObject = _textures[texture.source];
 				}
 			}
 			textureObject->Bind(textureType::metallicRoughness);
@@ -371,10 +657,10 @@ namespace VGF
 			textureObject = Texture::GetBlackTexture();
 			if (modelMaterial.emissiveTexture.index >= 0)
 			{
-				const auto& texture = model.textures[modelMaterial.emissiveTexture.index];
+				const auto& texture = textures[modelMaterial.emissiveTexture.index];
 				if (texture.source >= 0)
 				{
-					textureObject = textures[texture.source];
+					textureObject = _textures[texture.source];
 				}
 			}
 			textureObject->Bind(textureType::emissive);
@@ -386,11 +672,11 @@ namespace VGF
 			textureObject = Texture::GetWhiteTexture();
 			if (modelMaterial.occlusionTexture.index >= 0)
 			{
-				const auto& texture = model.textures[modelMaterial.occlusionTexture.index];
+				const auto& texture = textures[modelMaterial.occlusionTexture.index];
 				
 				if (texture.source >= 0)
 				{
-					textureObject = textures[texture.source];
+					textureObject = _textures[texture.source];
 				}
 			}
 			textureObject->Bind(textureType::occulsion);
@@ -398,11 +684,11 @@ namespace VGF
 			textureObject = Texture::GetBlueTexture();
 			if (modelMaterial.normalTexture.index >= 0)
 			{
-				const auto& texture = model.textures[modelMaterial.normalTexture.index];
+				const auto& texture = textures[modelMaterial.normalTexture.index];
 
 				if (texture.source >= 0)
 				{
-					textureObject = textures[texture.source];
+					textureObject = _textures[texture.source];
 				}
 			}
 			textureObject->Bind(textureType::normal);

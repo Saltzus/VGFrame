@@ -34,11 +34,11 @@ layout(std140, binding = 2) uniform LightBufferObject
     float pointLightAmount;
 }lightUbo;
 
-layout(binding = 3) uniform sampler2D colorSampler;
-layout(binding = 4) uniform sampler2D metallicRoughnessSampler;
-layout(binding = 5) uniform sampler2D emissiveSampler;
-layout(binding = 6) uniform sampler2D occulsionSampler;
-layout(binding = 7) uniform sampler2D normalSampler;
+layout(binding = 4) uniform sampler2D colorSampler;
+layout(binding = 5) uniform sampler2D metallicRoughnessSampler;
+layout(binding = 6) uniform sampler2D emissiveSampler;
+layout(binding = 7) uniform sampler2D occulsionSampler;
+layout(binding = 8) uniform sampler2D normalSampler;
 
 layout(location = 0) in vec3 vertexColor;
 layout(location = 1) in vec2 vertexTexCoord;
