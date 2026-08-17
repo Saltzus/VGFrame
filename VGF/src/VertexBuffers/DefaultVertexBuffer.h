@@ -77,12 +77,12 @@ struct DefaultVertexBuffer : public VertexBuffer
         glEnableVertexAttribArray(lastLocation);
         lastLocation++;
 
-        // Texture position attribute
-        glVertexAttribPointer(lastLocation, 4, GL_UNSIGNED_INT, GL_FALSE, sizeof(DefaultVertex), (void*)offsetof(DefaultVertex, jointIndices));
+        // joinIndices
+        glVertexAttribPointer(lastLocation, 4, GL_FLOAT, GL_FALSE, sizeof(DefaultVertex), (void*)offsetof(DefaultVertex, jointIndices));
         glEnableVertexAttribArray(lastLocation);
         lastLocation++;
 
-        // Texture position attribute
+        // jointWeights
         glVertexAttribPointer(lastLocation, 4, GL_FLOAT, GL_FALSE, sizeof(DefaultVertex), (void*)offsetof(DefaultVertex, jointWeights));
         glEnableVertexAttribArray(lastLocation);
         lastLocation++;
