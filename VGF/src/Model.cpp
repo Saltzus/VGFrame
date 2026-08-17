@@ -42,7 +42,7 @@ namespace VGF
 			if (node.translation.size() == 3)
 				linearNodes[i]->translation = glm::vec3(node.translation[0], node.translation[1], node.translation[2]);
 			if (node.rotation.size() == 4)
-				linearNodes[i]->rotation = glm::quat(node.rotation[0], node.rotation[1], node.rotation[2], node.rotation[3]);
+				linearNodes[i]->rotation = glm::quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
 			if (node.scale.size() == 3)
 				linearNodes[i]->scale = glm::vec3(node.scale[0], node.scale[1], node.scale[2]);
 		}
@@ -84,6 +84,9 @@ namespace VGF
 				if (sampler.interpolation == "LINEAR") animSampler.interpolation = AnimationSampler::LINEAR;
 				else if (sampler.interpolation == "STEP") animSampler.interpolation = AnimationSampler::STEP;
 				else if (sampler.interpolation == "CUBICSPLINE") animSampler.interpolation = AnimationSampler::CUBICSPLINE;
+
+				if (animSampler.interpolation == AnimationSampler::STEP || animSampler.interpolation == AnimationSampler::CUBICSPLINE)
+					VGF::Log::Error("SET or CUBICSPLINE not implemented");
 
 				{
 					const tinygltf::Accessor&  accessor = gltfModel.accessors[sampler.input];
@@ -312,8 +315,8 @@ namespace VGF
         		}
         		case AnimationChannel::ROTATION:
 				{
-        				glm::quat start = glm::quat(sampler.outputsVec4[indx].x, sampler.outputsVec4[indx].y, sampler.outputsVec4[indx].z, sampler.outputsVec4[indx].w);
-        				glm::quat end = glm::quat(sampler.outputsVec4[indx + 1].x, sampler.outputsVec4[indx + 1].y, sampler.outputsVec4[indx + 1].z, sampler.outputsVec4[indx + 1].w);
+        				glm::quat start = glm::quat(sampler.outputsVec4[indx].w, sampler.outputsVec4[indx].x, sampler.outputsVec4[indx].y, sampler.outputsVec4[indx].z);
+        				glm::quat end = glm::quat(sampler.outputsVec4[indx + 1].w, sampler.outputsVec4[indx + 1].x, sampler.outputsVec4[indx + 1].y, sampler.outputsVec4[indx + 1].z);
         				channel.node->rotation = glm::slerp(start, end, factor);
         				break;
         		}
@@ -325,11 +328,11 @@ namespace VGF
         				break;
         		}
         		}
-        		break;
         	}
         }
 		for (auto &node : linearNodes)
 		{
+			if (node->parent == nullptr)
 			UpdateJoints(node);
 		}
 	}
@@ -553,8 +556,7 @@ namespace VGF
 		const glm::mat4 modelMatrix = node->GetGlobalMatrix();
 		const auto& mesh = node->mesh;
 
-		if (node->skin != -1)
-			uniformBuffers[animationBuffer] = &skins[node->skin].buffers[0];
+		if (node->skin != -1) uniformBuffers[animationBuffer] = &skins[node->skin].buffers[0];
 
 		if (node->mesh.rendererIndex != -1)
 		{
@@ -563,7 +565,10 @@ namespace VGF
 		}
 		
 		for (const auto childNode : node->children)
+		{
 			drawNodes(childNode->index, modelMatrix, config, camera, *LightBufferObject::getDefault());
+		}
+
 	};
 
 

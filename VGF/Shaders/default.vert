@@ -28,9 +28,6 @@ layout(location = 3) out vec3 vertexNormal;
 void main()
 {
     float weightSum = inJointWeights.x + inJointWeights.y + inJointWeights.z + inJointWeights.w;
-
-    weightSum
-
     mat4 skinMatrix;
     if (weightSum < 0.001)
     {
