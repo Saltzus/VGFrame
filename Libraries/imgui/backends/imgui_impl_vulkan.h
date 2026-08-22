@@ -27,7 +27,7 @@
 
 #pragma once
 #ifndef IMGUI_DISABLE
-#include "imgui/imgui.h"      // IMGUI_IMPL_API
+#include "imgui.h"      // IMGUI_IMPL_API
 
 // [Configuration] in order to use a custom Vulkan function loader:
 // (1) You'll need to disable default Vulkan function prototypes.
@@ -167,6 +167,7 @@ IMGUI_IMPL_API bool             ImGui_ImplVulkan_LoadFunctions(uint32_t api_vers
 
 // [BETA] Selected render state data shared with callbacks.
 // This is temporarily stored in GetPlatformIO().Renderer_RenderState during the ImGui_ImplVulkan_RenderDrawData() call.
+//      ImGui_ImplVulkan_RenderState* render_state = (ImGui_ImplVulkan_RenderState*)ImGui::GetPlatformIO().Renderer_RenderState;
 // (Please open an issue if you feel you need access to more data)
 struct ImGui_ImplVulkan_RenderState
 {

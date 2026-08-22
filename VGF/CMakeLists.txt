@@ -25,6 +25,8 @@ set(3rdPartyImGui
     "${IMGUI_DIR}/backends/imgui_impl_vulkan.h"
     "${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp"
     "${IMGUI_DIR}/backends/imgui_impl_opengl3.h"
+    "${IMGUI_DIR}/misc/cpp/imgui_stdlib.cpp"
+    "${IMGUI_DIR}/misc/cpp/imgui_stdlib.h"
 )
 
 add_library(ImGuiTarget OBJECT ${3rdPartyImGui})

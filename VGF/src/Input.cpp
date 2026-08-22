@@ -53,9 +53,6 @@ namespace VGF::Input
     {
 		if (Gui::io && Gui::io->WantCaptureKeyboard) return;
 
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-            glfwSetWindowShouldClose(window, true);
-
 
 		if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
 		{

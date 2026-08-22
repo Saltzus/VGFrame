@@ -127,6 +127,8 @@ namespace VGF
 	void Window::onResize(int width, int height) {
 		this->width = width;
 		this->height = height;
-		this->resised = true;
+		this->resized = true;
+
+		for (auto callback : resizeCallbacks) callback();
 	}
 }

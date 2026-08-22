@@ -556,7 +556,7 @@ namespace VGF
 		const glm::mat4 modelMatrix = node->GetGlobalMatrix();
 		const auto& mesh = node->mesh;
 
-		if (node->skin != -1) uniformBuffers[animationBuffer] = &skins[node->skin].buffers[0];
+		if (node->skin != -1) uniformBuffers[animationBuffer] = new AnimationBufferObject(skins[node->skin].buffers[0]);
 
 		if (node->mesh.rendererIndex != -1)
 		{
