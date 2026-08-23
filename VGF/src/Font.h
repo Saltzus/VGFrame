@@ -8,16 +8,15 @@ namespace VGF
 {
 	struct Character
 	{
-		Character(Texture* tex = nullptr, glm::ivec2 s = { 0,0 }, glm::ivec2 b = { 0,0 }, unsigned int adv = 0, const bool ownsTexture = true)
-			: texture(tex), size(s), bearing(b), advance(adv), ownsTexture(ownsTexture) {
-		}
+		Character(Texture* tex, glm::ivec2 s, glm::ivec2 b, unsigned int adv, const bool ownsTexture)
+			: texture(tex), size(s), bearing(b), advance(adv), ownsTexture(ownsTexture) {}
 		~Character() { if (ownsTexture) delete texture; }
 
 		const Texture* texture;
 		glm::ivec2 size;
 		glm::ivec2 bearing;
 		unsigned int advance;
-		const bool ownsTexture;
+		const bool ownsTexture = false;
 	};
 
 	class Font

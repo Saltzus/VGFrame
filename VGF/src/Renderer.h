@@ -35,7 +35,7 @@ namespace VGF
     class Renderer
     {
     private:
-        inline static ApiImpl* Api = nullptr;
+        inline static ApiImpl* graphics = nullptr;
         RendererImpl* _impl = nullptr;
         const static GraphicsApis graphicApi;
     public:
@@ -60,7 +60,9 @@ namespace VGF
 
         static const ::VGF::Vulkan::Vulkan* GetVulkanData();
 
-        static void InitApi(GLFWwindow* window); 
+        static void InitGraphics(GLFWwindow* window);
+        static void DeleteGraphics();
+
         static void RenderGraphics();
     };
 }

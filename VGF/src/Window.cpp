@@ -67,7 +67,7 @@ namespace VGF
 			//glClipControl(GL_UPPER_LEFT, GL_NEGATIVE_ONE_TO_ONE);
 		}
 
-		Renderer::InitApi(GLFW_Window);
+		Renderer::InitGraphics(GLFW_Window);
 	}
 
 	void Window::framebuffer_size_callback(GLFWwindow* window, int width, int height)

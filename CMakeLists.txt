@@ -3,6 +3,10 @@ project(VGFrame)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Distribution")
 
+option(TRACY_ENABLE "Enable Tracy profiling" ON)
+if(TRACY_ENABLE)
+	add_compile_definitions(TRACY_ENABLE=1)
+endif()
 
 cmake_policy(SET CMP0069 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
@@ -36,6 +40,9 @@ target_include_directories(tinygltf INTERFACE Libraries/tinygltf)
 
 add_library(FastNoiseLite INTERFACE)
 target_include_directories(FastNoiseLite INTERFACE Libraries/FastNoiseLite)
+
+add_library(tracy STATIC Libraries/tracy/TracyClient.cpp)
+target_include_directories(tracy INTERFACE Libraries/tracy)
 
 add_library(vulkan INTERFACE)
 target_include_directories(vulkan INTERFACE

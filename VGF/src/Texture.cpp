@@ -26,20 +26,20 @@ namespace VGF
         switch (Renderer::GetGraphicsApi())
         {
         case GraphicsApis::OpenGL:
-            this->_impl = new VGF::Opengl::OpenglTexture(data, format, width, height);
+            _impl = new VGF::Opengl::OpenglTexture(data, format, width, height);
             break;
         case GraphicsApis::Vulkan:
-            this->_impl = new VGF::Vulkan::VulkanTexture(data, format, width, height);
+            _impl = new VGF::Vulkan::VulkanTexture(data, format, width, height);
             break;
         default:
-            this->_impl = new VGF::Opengl::OpenglTexture(data, format, width, height);
+            _impl = new VGF::Opengl::OpenglTexture(data, format, width, height);
             break;
         }
     }
     
     Texture::~Texture()
     {
-        delete this->_impl;
+        delete _impl;
     }
 
     void Texture::Bind(const textureType type) const

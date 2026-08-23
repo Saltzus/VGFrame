@@ -46,26 +46,31 @@ namespace VGF
         this->_impl->BatchRender(config, instanceData, instanceCount, instanceStride, uniformBuffers);
     }
 
-    void Renderer::InitApi(GLFWwindow* window)
+    void Renderer::InitGraphics(GLFWwindow* window)
     {
         switch (graphicApi)
         {
         case GraphicsApis::OpenGL:
-            Api = new VGF::Opengl::Opengl(window);
+            graphics = new VGF::Opengl::Opengl(window);
             break;
         case GraphicsApis::Vulkan:
-            Api = new VGF::Vulkan::Vulkan(window);
+            graphics = new VGF::Vulkan::Vulkan(window);
             break;
         default:
-            Api = new VGF::Opengl::Opengl(window);
+            graphics = new VGF::Opengl::Opengl(window);
             break;
         }
+    }
+
+    void Renderer::DeleteGraphics()
+    {
+        if (graphics) delete graphics;
     }
 
     void Renderer::RenderGraphics()
     {
         if (graphicApi == GraphicsApis::Vulkan)
-            Api->render();
+            graphics->render();
     }
 
     const ::VGF::Vulkan::Vulkan* Renderer::GetVulkanData() { return ::VGF::Vulkan::Vulkan::vulkan; }

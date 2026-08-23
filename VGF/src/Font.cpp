@@ -32,7 +32,8 @@ namespace VGF
                     nullptr,               // no texture
                     glm::ivec2(0, 0),
                     glm::ivec2(0, 0),
-                    face->glyph->advance.x // advance is still valid — space needs this
+                    face->glyph->advance.x, // advance is still valid ï¿½ space needs this,
+                    false
                 );
                 continue;
             }
@@ -43,7 +44,8 @@ namespace VGF
                 new Texture(face->glyph->bitmap.buffer, 1, face->glyph->bitmap.width, face->glyph->bitmap.rows),
                 glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
                 glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
-                face->glyph->advance.x
+                face->glyph->advance.x,
+                true
             );
         }
 

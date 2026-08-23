@@ -58,6 +58,7 @@ target_link_libraries(VGF
     Jolt
     FastNoiseLite
     GameNetworkingSockets
+    tracy
 )
 
 set_target_properties(VGF PROPERTIES FOLDER "VGFrame")

@@ -1,5 +1,7 @@
 ﻿#include "VulkanManager.h"
 
+#include <ranges>
+
 #include "imgui_impl_vulkan.h"
 #include "../../Camera.h"
 
@@ -120,19 +122,33 @@ namespace VGF::Vulkan
 
     VulkanTexture::~VulkanTexture()
     {
-        VkDevice device = Vulkan::vulkan->device;
+        VkDevice& device = Vulkan::vulkan->device;
 
-        if (textureId) 
+        if (textureId)
         {
-            ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet)textureId);
+            ImGui_ImplVulkan_RemoveTexture(reinterpret_cast<VkDescriptorSet>(textureId));
             textureId = NULL;
         }
 
-        if (textureImageViewTex) vkDestroyImageView(device, textureImageViewTex, nullptr);
+        if (textureImageViewTex != VK_NULL_HANDLE)
+        {
+            vkDestroyImageView(device, textureImageViewTex, nullptr);
+            textureImageViewTex = VK_NULL_HANDLE;
+        }
 
-        vkDestroyImage(device, textureImage, nullptr);
-        vkFreeMemory(device, textureImageMemory, nullptr);
+        if (textureImage != VK_NULL_HANDLE)
+        {
+            vkDestroyImage(device, textureImage, nullptr);
+            textureImage = VK_NULL_HANDLE;
+        }
+
+        if (textureImageMemory != VK_NULL_HANDLE)
+        {
+            vkFreeMemory(device, textureImageMemory, nullptr);
+            textureImageMemory = VK_NULL_HANDLE;
+        }
     }
+
     void VulkanTexture::Bind(textureType type)
     {
         switch (type)
@@ -208,39 +224,28 @@ namespace VGF::Vulkan
     }
     Vulkan::~Vulkan()
     {
+        // Wait vulkan to be ready
+        vkDeviceWaitIdle(device);
+
         //cleanup -----------------------
         cleanupSwapChain();
 
-        vkDestroyPipeline(device, graphicsPipeline, nullptr);
         vkDestroyRenderPass(device, renderPass, nullptr);
         vkDestroyRenderPass(device, offscreenRenderPass, nullptr);
 
-        vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-
         vkDestroySampler(device, textureSampler, nullptr);
 
-        vkDestroyImageView(device, colorTextureImageView, nullptr);
-        vkDestroyImageView(device, metallicRoughnessTextureImageView, nullptr);
-        vkDestroyImageView(device, emissiveTextureImageView, nullptr);
-        vkDestroyImageView(device, occulsionTextureImageView, nullptr);
-        vkDestroyImageView(device, normalTextureImageView, nullptr);
+        // if (colorTextureImageView != VK_NULL_HANDLE) vkDestroyImageView(device, colorTextureImageView, nullptr);
+        // if (metallicRoughnessTextureImageView != VK_NULL_HANDLE) vkDestroyImageView(device, metallicRoughnessTextureImageView, nullptr);
+        // if (emissiveTextureImageView != VK_NULL_HANDLE) vkDestroyImageView(device, emissiveTextureImageView, nullptr);
+        // if (occulsionTextureImageView != VK_NULL_HANDLE) vkDestroyImageView(device, occulsionTextureImageView, nullptr);
+        // if (normalTextureImageView != VK_NULL_HANDLE) vkDestroyImageView(device, normalTextureImageView, nullptr);
 
-        vkDestroyImage(device, textureImage, nullptr);
-        vkFreeMemory(device, textureImageMemory, nullptr);
-
-        for (auto& pipeline_pipelineLayout : pipelineCache)
+        for (PipelineData& pipelineData : pipelineCache | std::views::values)
         {
-            vkDestroyPipeline(device, pipeline_pipelineLayout.second.pipeline, nullptr);
-            vkDestroyPipelineLayout(vulkan->device, pipeline_pipelineLayout.second.pipelineLayout, nullptr);
+            vkDestroyPipeline(device, pipelineData.pipeline, nullptr);
+            vkDestroyPipelineLayout(vulkan->device, pipelineData.pipelineLayout, nullptr);
         }
-
-        vkDestroyBuffer(device, indexBuffer, nullptr);
-
-        vkFreeMemory(device, indexBufferMemory, nullptr);
-
-        vkDestroyBuffer(device, vertexBuffer, nullptr);
-
-        vkFreeMemory(device, vertexBufferMemory, nullptr);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
         {
@@ -257,13 +262,10 @@ namespace VGF::Vulkan
 
         vkDestroyDevice(device, nullptr);
 
-        if (enableValidationLayers) 
-            DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+        if (enableValidationLayers) DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 
         vkDestroySurfaceKHR(instance, surface, nullptr);
         vkDestroyInstance(instance, nullptr);
-
-        delete vulkan;
     }
 
     void Vulkan::cleanupSwapChain() 
@@ -272,10 +274,8 @@ namespace VGF::Vulkan
         vkDestroyImage(device, depthImage, nullptr);
         vkFreeMemory(device, depthImageMemory, nullptr);
 
-        for (auto framebuffer : swapChainFramebuffers)
-            vkDestroyFramebuffer(device, framebuffer, nullptr);
-        for (auto imageView : swapChainImageViews)
-            vkDestroyImageView(device, imageView, nullptr);
+        for (VkFramebuffer& framebuffer : swapChainFramebuffers) vkDestroyFramebuffer(device, framebuffer, nullptr);
+        for (VkImageView& imageView : swapChainImageViews) vkDestroyImageView(device, imageView, nullptr);
 
         vkDestroySwapchainKHR(device, swapChain, nullptr);
     }
@@ -296,8 +296,7 @@ namespace VGF::Vulkan
         createDepthResources();
         createFramebuffers(swapChainFramebuffers, swapChainImageViews, false);
 
-        for (VulkanFrameBuffer* framebuffer : allFramebuffers)
-            framebuffer->Recreate();
+        for (VulkanFrameBuffer* framebuffer : allFramebuffers) framebuffer->Recreate();
     }
 
     VkResult Vulkan::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) 
@@ -484,7 +483,7 @@ namespace VGF::Vulkan
     }
 
     void Vulkan::createSwapChain() {
-        Vulkan::SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
+        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
 
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -707,7 +706,7 @@ namespace VGF::Vulkan
             VGF::Log::Error("Failed to create descriptor set layout!");
         }
     }
-    void Vulkan::createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSets, VkDescriptorSetLayout layout, std::vector<VulkanUniformBuffer>& vulkanUniformBuffers, std::vector<VulkanImageSampler>& imageSamplers)
+    void Vulkan::createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSets, VkDescriptorSetLayout layout, VkDescriptorPool descriptorPool, std::vector<VulkanUniformBuffer>& vulkanUniformBuffers, std::vector<VulkanImageSampler>& imageSamplers)
     {
         std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, layout);
         VkDescriptorSetAllocateInfo allocInfo{};
@@ -989,7 +988,7 @@ namespace VGF::Vulkan
         }
     }
 
-    VkDescriptorPool Vulkan::createDescriptorPool(size_t uniformBufferCount, size_t imageSamplerCount, unsigned int maxSets)
+    VkDescriptorPool Vulkan::createDescriptorPool(VkDescriptorPool& descriptorPool, size_t uniformBufferCount, size_t imageSamplerCount, unsigned int maxSets)
     {
         std::vector<VkDescriptorPoolSize> poolSizes{};
         poolSizes.resize(uniformBufferCount + imageSamplerCount);
@@ -1435,7 +1434,7 @@ namespace VGF::Vulkan
         endSingleTimeCommands(commandBuffer);
     }
 
-    std::pair<VkBuffer, VkDeviceMemory> Vulkan::createVertexBuffer(std::vector<GLfloat>& vertices)
+    void Vulkan::createVertexBuffer(VkBuffer& vertexBuffer, VkDeviceMemory& vertexBufferMemory, std::vector<GLfloat>& vertices)
     {
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
@@ -1456,27 +1455,21 @@ namespace VGF::Vulkan
 
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         vkFreeMemory(device, stagingBufferMemory, nullptr);
-
-        return { vertexBuffer, vertexBufferMemory };
     }
 
-    std::pair<VkBuffer, VkDeviceMemory> Vulkan::createInstanceBuffer(VkDeviceSize size)
+    void Vulkan::createInstanceBuffer(VkBuffer& instanceBuffer, VkDeviceMemory& instanceBufferMemory, VkDeviceSize size)
     {
-        VkBuffer buffer;
-        VkDeviceMemory bufferMemory;
-
-        createBuffer(
+        createBuffer
+        (
             size,
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            buffer,
-            bufferMemory
+            instanceBuffer,
+            instanceBufferMemory
         );
-
-        return std::make_pair(buffer, bufferMemory);
     }
 
-    std::pair<VkBuffer, VkDeviceMemory> Vulkan::createIndexBuffer(std::vector<uint32_t> indices)
+    void Vulkan::createIndexBuffer(VkBuffer& indexBuffer, VkDeviceMemory& indexBufferMemory, std::vector<uint32_t> indices)
     {
 
         VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
@@ -1497,8 +1490,6 @@ namespace VGF::Vulkan
 
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         vkFreeMemory(device, stagingBufferMemory, nullptr);
-
-        return { indexBuffer, indexBufferMemory };
     }
 
     void Vulkan::createUniformBuffers(VulkanUniformBuffer& buffer, size_t typeSize) 
@@ -1800,9 +1791,8 @@ namespace VGF::Vulkan
     {
         vulkan = Vulkan::vulkan;
 
-
-        vertexBuffer_vertexBufferMemory = vulkan->createVertexBuffer(vertices);
-        indexBuffer_indexBufferMemory = vulkan->createIndexBuffer(indices);
+        vulkan->createVertexBuffer(vertexBuffer, vertexBufferMemory, vertices);
+        vulkan->createIndexBuffer(indexBuffer, indexBufferMemory, indices);
 
         for (UniformBufferObject* buffer : uniformBuffers)
         {
@@ -1822,8 +1812,8 @@ namespace VGF::Vulkan
         };
 
         vulkan->createDescriptorSetLayout(descriptorSetLayout, vulkanUniformBuffers, samplers);
-        descriptorPool = vulkan->createDescriptorPool(vulkanUniformBuffers.size(), samplers.size(), 2); // delete x2 when removing offscreensampleras
-        vulkan->createDescriptorSets(descriptorSet, descriptorSetLayout, vulkanUniformBuffers, samplers);
+        vulkan->createDescriptorPool(descriptorPool, vulkanUniformBuffers.size(), samplers.size(), 2); // delete x2 when removing offscreensampleras
+        vulkan->createDescriptorSets(descriptorSet, descriptorSetLayout, descriptorPool, vulkanUniformBuffers, samplers);
 
         indicesSize = indices.size();
     }
@@ -1836,18 +1826,19 @@ namespace VGF::Vulkan
         
         vkDestroyDescriptorPool(vulkan->device, descriptorPool, nullptr);
 
-        vkDestroyBuffer(vulkan->device, vertexBuffer_vertexBufferMemory.first, nullptr);
-        vkFreeMemory(vulkan->device, vertexBuffer_vertexBufferMemory.second, nullptr);
+        vkDestroyBuffer(vulkan->device, vertexBuffer, nullptr);
+        vkFreeMemory(vulkan->device, vertexBufferMemory, nullptr);
 
-        vkDestroyBuffer(vulkan->device, instanceBuffer_instanceBufferMemory.first, nullptr);
-        vkFreeMemory(vulkan->device, instanceBuffer_instanceBufferMemory.second, nullptr);
+        vkDestroyBuffer(vulkan->device, instanceBuffer, nullptr);
+        vkFreeMemory(vulkan->device, instanceBufferMemory, nullptr);
 
-        vkDestroyBuffer(vulkan->device, indexBuffer_indexBufferMemory.first, nullptr);
-        vkFreeMemory(vulkan->device, indexBuffer_indexBufferMemory.second, nullptr);
+        vkDestroyBuffer(vulkan->device, indexBuffer, nullptr);
+        vkFreeMemory(vulkan->device, indexBufferMemory, nullptr);
 
         for (auto buffer : vulkanUniformBuffers)
         {
-            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+            {
                 vkDestroyBuffer(Vulkan::vulkan->device, buffer.uniformBuffers[i], nullptr);
                 vkFreeMemory(Vulkan::vulkan->device, buffer.uniformBuffersMemory[i], nullptr);
             }
@@ -1923,36 +1914,36 @@ namespace VGF::Vulkan
         size_t requiredSize = data.instanceData.count * data.instanceData.stride;
         if (requiredSize > _instanceBufferCapasity)
         {
-            if (instanceBuffer_instanceBufferMemory.first != VK_NULL_HANDLE && instanceBuffer_instanceBufferMemory.second != VK_NULL_HANDLE)
+            if (instanceBuffer != VK_NULL_HANDLE && instanceBufferMemory != VK_NULL_HANDLE)
             {
-                vkDestroyBuffer(vulkan->device, instanceBuffer_instanceBufferMemory.first, nullptr);
-                vkFreeMemory(vulkan->device, instanceBuffer_instanceBufferMemory.second, nullptr);
+                vkDestroyBuffer(vulkan->device, instanceBuffer, nullptr);
+                vkFreeMemory(vulkan->device, instanceBufferMemory, nullptr);
             }
 
             _instanceBufferCapasity = requiredSize * 2;
-            instanceBuffer_instanceBufferMemory = vulkan->createInstanceBuffer(_instanceBufferCapasity);
+            vulkan->createInstanceBuffer(instanceBuffer, instanceBufferMemory, _instanceBufferCapasity);
         }
 
         void* memory = nullptr;
-        VkResult result = vkMapMemory(vulkan->device, instanceBuffer_instanceBufferMemory.second, 0, requiredSize, 0, &memory);
+        VkResult result = vkMapMemory(vulkan->device, instanceBufferMemory, 0, requiredSize, 0, &memory);
 
         if (result == VK_SUCCESS && memory != nullptr)
         {
             memcpy(memory, data.instanceData.Data(), requiredSize);
-            vkUnmapMemory(vulkan->device, instanceBuffer_instanceBufferMemory.second);
+            vkUnmapMemory(vulkan->device, instanceBufferMemory);
         }
         else
         {
-            VGF::Log::Error("Failed to map instance buffer memory!");
+            Log::Error("Failed to map instance buffer memory!");
             return;
         }
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan->GetPipeline(data.pipelineId));
 
-        VkBuffer buffers[] = { vertexBuffer_vertexBufferMemory.first, instanceBuffer_instanceBufferMemory.first };
-        VkDeviceSize offs[] = { 0, 0 };
+        const VkBuffer buffers[2] = { vertexBuffer, instanceBuffer };
+        constexpr VkDeviceSize offs[2] = { 0, 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 2, buffers, offs);
-        vkCmdBindIndexBuffer(commandBuffer, indexBuffer_indexBufferMemory.first, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
         UpdateUniformBuffer(currentFrame, 0);
 

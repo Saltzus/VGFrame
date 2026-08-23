@@ -117,9 +117,9 @@ namespace VGF::Vulkan
     private:
         ImTextureID textureId = NULL;
 
-        VkImage textureImage;
-        VkDeviceMemory textureImageMemory;
-        VkImageView textureImageViewTex;
+        VkImage textureImage = VK_NULL_HANDLE;
+        VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
+        VkImageView textureImageViewTex = VK_NULL_HANDLE;
     };
 
     class Vulkan : public ApiImpl
@@ -146,14 +146,13 @@ namespace VGF::Vulkan
         std::vector<VulkanFrameBuffer*> framebuffers;
         std::vector<VulkanFrameBuffer*> allFramebuffers;
 
-        VkImageView colorTextureImageView;
-        VkImageView metallicRoughnessTextureImageView;
-        VkImageView emissiveTextureImageView;
-        VkImageView occulsionTextureImageView;
-        VkImageView normalTextureImageView;
+        VkImageView colorTextureImageView = VK_NULL_HANDLE;
+        VkImageView metallicRoughnessTextureImageView = VK_NULL_HANDLE;
+        VkImageView emissiveTextureImageView = VK_NULL_HANDLE;
+        VkImageView occulsionTextureImageView = VK_NULL_HANDLE;
+        VkImageView normalTextureImageView = VK_NULL_HANDLE;
 
         std::vector<VkCommandBuffer> commandBuffers;
-
 
         VkImageView depthImageView;
 
@@ -173,9 +172,6 @@ namespace VGF::Vulkan
 
         VkFormat findDepthFormat() const;
 
-
-        VkDescriptorPool descriptorPool;
-
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
         void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
         VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
@@ -194,11 +190,10 @@ namespace VGF::Vulkan
         VkCommandBuffer beginSingleTimeCommands() const;
         void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
 
-        std::pair<VkBuffer, VkDeviceMemory> createVertexBuffer(std::vector<GLfloat>& vertices);
+        void createVertexBuffer(VkBuffer& vertexBuffer, VkDeviceMemory& vertexBufferMemory, std::vector<GLfloat>& vertices);
+        void createInstanceBuffer(VkBuffer& instanceBuffer, VkDeviceMemory& instanceBufferMemory, VkDeviceSize size);
 
-        std::pair<VkBuffer, VkDeviceMemory> createInstanceBuffer(VkDeviceSize size);
-
-        std::pair<VkBuffer, VkDeviceMemory> createIndexBuffer(std::vector<uint32_t> indices);
+        void createIndexBuffer(VkBuffer& indexBuffer, VkDeviceMemory& indexBufferMemory, std::vector<uint32_t> indices);
 
         void createUniformBuffers
         (
@@ -207,8 +202,8 @@ namespace VGF::Vulkan
         );
 
         void createDescriptorSetLayout(VkDescriptorSetLayout& descriptorsetLayout, std::vector<VulkanUniformBuffer>& uniformBuffers, std::vector<VulkanImageSampler>& imageSamplers);
-        VkDescriptorPool createDescriptorPool(size_t uniformBufferCount, size_t imageSamplerCount, unsigned int maxSets);
-        void createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSets, VkDescriptorSetLayout layout, std::vector<VulkanUniformBuffer>& uniformBuffers, std::vector<VulkanImageSampler>& imageSamplers);
+        VkDescriptorPool createDescriptorPool(VkDescriptorPool& descriptorPool, size_t uniformBufferCount, size_t imageSamplerCount, unsigned int maxSets);
+        void createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSets, VkDescriptorSetLayout layout, VkDescriptorPool descriptorPool, std::vector<VulkanUniformBuffer>& uniformBuffers, std::vector<VulkanImageSampler>& imageSamplers);
 
         uint32_t getCurrentFrame() { return currentFrame; }
 
@@ -234,24 +229,11 @@ namespace VGF::Vulkan
         std::vector <VkDeviceMemory> offscreenImageMemory;
         VkFormat offscreenImageFormat;
         std::vector<VkFramebuffer> offscreenFramebuffers;
-        //VkPipelineLayout pipelineLayout;
-        VkPipeline graphicsPipeline;
-
 
         VkCommandPool commandPool;
 
         VkImage depthImage;
         VkDeviceMemory depthImageMemory;
-
-        VkImage textureImage;
-        VkDeviceMemory textureImageMemory;
-
-        VkBuffer vertexBuffer;
-        VkDeviceMemory vertexBufferMemory;
-        VkBuffer indexBuffer;
-        VkDeviceMemory indexBufferMemory;
-
-
 
         std::vector<VkCommandBuffer> offscreenCommandBuffers;
 
@@ -319,9 +301,14 @@ namespace VGF::Vulkan
         VulkanRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, std::vector<UniformBufferObject*> uniformBuffers);
         ~VulkanRenderer();
 
-        std::pair<VkBuffer, VkDeviceMemory> vertexBuffer_vertexBufferMemory;
-        std::pair<VkBuffer, VkDeviceMemory> instanceBuffer_instanceBufferMemory;
-        std::pair<VkBuffer, VkDeviceMemory> indexBuffer_indexBufferMemory;
+        VkBuffer indexBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
+
+        VkBuffer vertexBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
+
+        VkBuffer instanceBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory instanceBufferMemory = VK_NULL_HANDLE;
 
         std::vector<VulkanUniformBuffer> vulkanUniformBuffers;
 
