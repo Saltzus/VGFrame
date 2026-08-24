@@ -1,5 +1,7 @@
 #include "Model.h"
 
+#include <cmath>
+
 #include "VGFTime.h"
 
 namespace VGF
@@ -363,6 +365,218 @@ namespace VGF
 		}
 	}
 
+	void Model::BlendAnimations(uint32_t fromAnimation, uint32_t toAnimation, float blendFactor) {
+		// Store original node transformations
+		std::vector<glm::vec3> originalTranslations;
+		std::vector<glm::quat> originalRotations;
+		std::vector<glm::vec3> originalScales;
+
+		for (const Node* node : linearNodes)
+		{
+			originalTranslations.push_back(node->translation);
+			originalRotations.push_back(node->rotation);
+			originalScales.push_back(node->scale);
+		}
+
+		// Apply first animation fully
+		UpdateAnimation(fromAnimation, 0.0f);
+
+		// Store intermediate transformations
+		std::vector<glm::vec3> fromTranslations;
+		std::vector<glm::quat> fromRotations;
+		std::vector<glm::vec3> fromScales;
+
+		for (const Node* node : linearNodes)
+		{
+			fromTranslations.push_back(node->translation);
+			fromRotations.push_back(node->rotation);
+			fromScales.push_back(node->scale);
+		}
+
+		// Restore original transformations
+		for (size_t i = 0; i < linearNodes.size(); i++)
+		{
+			linearNodes[i]->translation = originalTranslations[i];
+			linearNodes[i]->rotation = originalRotations[i];
+			linearNodes[i]->scale = originalScales[i];
+		}
+
+		// Apply second animation fully
+		UpdateAnimation(toAnimation, 0.0f);
+
+		// Blend between the two animations
+		for (size_t i = 0; i < linearNodes.size(); i++)
+		{
+			linearNodes[i]->translation = glm::mix(fromTranslations[i], linearNodes[i]->translation, blendFactor);
+			linearNodes[i]->rotation = glm::slerp(fromRotations[i], linearNodes[i]->rotation, blendFactor);
+			linearNodes[i]->scale = glm::mix(fromScales[i], linearNodes[i]->scale, blendFactor);
+		}
+	}
+
+	bool Model::SolveTwoBoneIK
+	(
+    	Node* rootNode,      // The root joint (e.g., shoulder or hip)
+    	Node* midNode,       // The middle joint (e.g., elbow or knee)
+    	Node* endNode,       // The end effector (e.g., hand or foot)
+    	const glm::vec3& targetPosition,  // Target world position
+    	const glm::vec3& hingeAxis,       // Axis of rotation for the middle joint
+    	float preferredAngle      // Preferred angle for resolving ambiguity
+	)
+	{
+    	// Get the original global positions
+    	glm::mat4 rootGlobal = rootNode->GetGlobalMatrix();
+    	glm::mat4 midGlobal = midNode->GetGlobalMatrix();
+    	glm::mat4 endGlobal = endNode->GetGlobalMatrix();
+
+    	glm::vec3 rootPos = glm::vec3(rootGlobal[3]);
+    	glm::vec3 midPos = glm::vec3(midGlobal[3]);
+    	glm::vec3 endPos = glm::vec3(endGlobal[3]);
+
+    	// Calculate bone lengths
+    	float bone1Length = glm::length(midPos - rootPos);
+    	float bone2Length = glm::length(endPos - midPos);
+    	float totalLength = bone1Length + bone2Length;
+
+    	// Calculate the distance to the target
+    	float targetDistance = glm::length(targetPosition - rootPos);
+
+    	// Check if the target is reachable
+    	if (targetDistance > totalLength)
+    	{
+        	// Target is too far - stretch as far as possible
+        	glm::vec3 direction = glm::normalize(targetPosition - rootPos);
+
+        	// Set mid-node position
+        	glm::vec3 newMidPos = rootPos + direction * bone1Length;
+
+        	// Convert to local space and update node
+        	glm::mat4 rootInv = glm::inverse(rootGlobal);
+        	glm::vec3 localMidPos = glm::vec3(rootInv * glm::vec4(newMidPos, 1.0f));
+        	midNode->translation = localMidPos;
+
+        	// Update mid global matrix after changes
+        	midGlobal = midNode->GetGlobalMatrix();
+
+        	// Set end node position
+        	glm::vec3 newEndPos = newMidPos + direction * bone2Length;
+
+        	// Convert to local space and update node
+        	glm::mat4 midInv = glm::inverse(midGlobal);
+        	glm::vec3 localEndPos = glm::vec3(midInv * glm::vec4(newEndPos, 1.0f));
+        	endNode->translation = localEndPos;
+
+        	return false; // Target not fully reached
+    	}
+
+    	// Target is reachable - apply cosine law to find the angles
+    	float a = bone1Length;
+    	float b = targetDistance;
+    	float c = bone2Length;
+
+    	// Calculate the angle between the first bone and the target direction
+    	float cosAngle1 = (b*b + a*a - c*c) / (2*b*a);
+    	cosAngle1 = glm::clamp(cosAngle1, -1.0f, 1.0f); // Avoid numerical errors
+    	float angle1 = std::acos(cosAngle1);
+
+    	// Calculate the direction to the target
+    	glm::vec3 targetDir = glm::normalize(targetPosition - rootPos);
+
+    	// Create a rotation that aligns the x-axis with the target direction
+    	glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
+    	glm::vec3 rotAxis = glm::cross(xAxis, targetDir);
+
+    	if (glm::length(rotAxis) < 0.001f) {
+        	// Target is along the x-axis, use the up vector
+        	rotAxis = glm::vec3(0.0f, 1.0f, 0.0f);
+    	} else {
+        	rotAxis = glm::normalize(rotAxis);
+    	}
+
+    	float rotAngle = std::acos(glm::dot(xAxis, targetDir));
+    	glm::quat targetRot = glm::angleAxis(rotAngle, rotAxis);
+
+    	// Create a rotation around the target direction by the preferred angle
+    	glm::quat prefRot = glm::angleAxis(preferredAngle, targetDir);
+
+    	// Combine rotations
+    	glm::quat finalRot = prefRot * targetRot * glm::angleAxis(angle1, hingeAxis);
+
+    	// Apply the rotation to the root node
+    	rootNode->rotation = finalRot;
+
+    	// Update the mid-node's global matrix after root changes
+    	midGlobal = midNode->GetGlobalMatrix();
+    	midPos = glm::vec3(midGlobal[3]);
+
+    	// Calculate the angle for the middle joint
+    	float cosAngle2 = (a*a + c*c - b*b) / (2*a*c);
+    	cosAngle2 = glm::clamp(cosAngle2, -1.0f, 1.0f); // Avoid numerical errors
+    	float angle2 = std::acos(cosAngle2);
+
+    	// The middle joint bends in the opposite direction (PI - angle2)
+    	glm::quat midRot = glm::angleAxis(glm::pi<float>() - angle2, hingeAxis);
+    	midNode->rotation = midRot;
+
+    	return true; // Target reached
+	}
+
+	void Model::ApplyJointConstraints(Node* node, const glm::vec3& minAngles, const glm::vec3& maxAngles)
+	{
+		// Convert quaternion to Euler angles
+		glm::vec3 eulerAngles = glm::degrees(glm::eulerAngles(node->rotation));
+
+		// Apply constraints
+		eulerAngles.x = glm::clamp(eulerAngles.x, minAngles.x, maxAngles.x);
+		eulerAngles.y = glm::clamp(eulerAngles.y, minAngles.y, maxAngles.y);
+		eulerAngles.z = glm::clamp(eulerAngles.z, minAngles.z, maxAngles.z);
+
+		// Convert back to quaternion
+		glm::quat constrainedRotation = glm::quat(glm::radians(eulerAngles));
+
+		// Apply the constrained rotation
+		node->rotation = constrainedRotation;
+	}
+
+	// Apply IK on top of an animation
+	void Model::ApplyIKToAnimation(uint32_t animationIndex, float deltaTime, Node* endEffector, const glm::vec3& targetPosition, float ikWeight) {
+		// First, update the animation normally
+		UpdateAnimation(animationIndex, deltaTime);
+
+		// If IK weight is zero, we're done
+		if (ikWeight <= 0.0f) return;
+
+		// Build the joint chain from end effector to root
+		std::vector<Node*> chain;
+		Node* current = endEffector;
+
+		// Add up to 3 joints to the chain (e.g., hand, elbow, shoulder)
+		while (current && chain.size() < 3)
+		{
+			chain.push_back(current);
+			current = current->parent;
+		}
+
+		// Reverse the chain to go from root to end effector
+		std::ranges::reverse(chain);
+
+		// Store original rotations
+		std::vector<glm::quat> originalRotations;
+		for (const Node* node : chain)
+			originalRotations.push_back(node->rotation);
+
+		// Apply IK
+		SolveTwoBoneIK(chain[0], chain[1], chain[2], targetPosition,
+					  glm::vec3(0.0f, 0.0f, 1.0f));
+
+		// Blend between original and IK rotations based on weight
+		if (ikWeight < 1.0f)
+		{
+			for (size_t i = 0; i < chain.size(); i++)
+			{
+				chain[i]->rotation = glm::slerp(originalRotations[i],chain[i]->rotation,ikWeight);
+			}
+		}
+	}
 
 	void Model::LoadMeshData
 	(

@@ -134,10 +134,23 @@ namespace VGF
 			return (nodeIt != linearNodes.end()) ? *nodeIt : nullptr;
 		}
 
-
-
 		void UpdateAnimation(unsigned int index, float deltaTime);
 		void UpdateJoints(Node* node);
+
+		void BlendAnimations(uint32_t fromAnimation, uint32_t toAnimation, float blendFactor);
+
+		static bool SolveTwoBoneIK
+		(
+			Node* rootNode,
+			Node* midNode,
+			Node* endNode,
+			const glm::vec3& targetPosition,
+			const glm::vec3& hingeAxis,
+			float preferredAngle = 0.0f
+		);
+
+		static void ApplyJointConstraints(Node* node, const glm::vec3& minAngles, const glm::vec3& maxAngles);
+		void ApplyIKToAnimation(uint32_t animationIndex, float deltaTime, Node* endEffector, const glm::vec3& targetPosition, float ikWeight = 1.0f);
 
 		void Render(const glm::mat4& parentMatrix, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {}) { Render(parentMatrix, camera, config, additionalUniformBuffers); }
 		void Render(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
@@ -224,7 +237,7 @@ namespace VGF
 
 		std::vector<UniformBufferObject*> AddUniformBuffers(const glm::mat4& parentMatrix, const int bindId, const Camera& camera, std::vector<UniformBufferObject*> additionalUniformBuffers);
 
-		void LoadMeshData
+		static void LoadMeshData
 		(
 			const tinygltf::Model& model,
 			tinygltf::Mesh& mesh,
