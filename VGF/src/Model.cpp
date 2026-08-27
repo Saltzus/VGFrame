@@ -2,7 +2,14 @@
 
 #include <cmath>
 
+#include "Physics.h"
 #include "VGFTime.h"
+#include "ozz/animation/runtime/ik_two_bone_job.h"
+#include "ozz/base/maths/simd_math.h"
+#include "ozz/base/maths/internal/simd_math_config.h"
+#include "ozz-animation/samples/framework/utils.h"
+#include "ozz/animation/runtime/local_to_model_job.h"
+#include "ozz/base/maths/simd_quaternion.h"
 
 namespace VGF
 {
@@ -87,8 +94,9 @@ namespace VGF
 				else if (sampler.interpolation == "STEP") animSampler.interpolation = AnimationSampler::STEP;
 				else if (sampler.interpolation == "CUBICSPLINE") animSampler.interpolation = AnimationSampler::CUBICSPLINE;
 
-				if (animSampler.interpolation == AnimationSampler::STEP || animSampler.interpolation == AnimationSampler::CUBICSPLINE)
-					VGF::Log::Error("SET or CUBICSPLINE not implemented");
+				animSampler.interpolation = AnimationSampler::LINEAR;
+				//if (animSampler.interpolation == AnimationSampler::STEP || animSampler.interpolation == AnimationSampler::CUBICSPLINE)
+					//VGF::Log::Error("SET or CUBICSPLINE not implemented");
 
 				{
 					const tinygltf::Accessor&  accessor = gltfModel.accessors[sampler.input];
@@ -175,8 +183,7 @@ namespace VGF
 
 			skins.emplace_back();
 			skins[i].name = glTFSkin.name;
-			// Find the root node of the skeleton
-			skins[i].skeletonRoot = linearNodes[glTFSkin.skeleton];
+
 
 			// Find joint nodes
 			for (int jointIndex : glTFSkin.joints)
@@ -184,6 +191,9 @@ namespace VGF
 				Node *node = linearNodes[jointIndex];
 				if (node)
 				{
+					if (!node->parent || std::ranges::find(glTFSkin.joints, node->parent->index) == glTFSkin.joints.end())
+						skins[i].skeletonRoot = linearNodes[jointIndex];
+
 					skins[i].joints.push_back(node);
 				}
 			}
@@ -332,11 +342,6 @@ namespace VGF
         		}
         	}
         }
-		for (auto &node : linearNodes)
-		{
-			if (node->parent == nullptr)
-			UpdateJoints(node);
-		}
 	}
 
 	void Model::UpdateJoints(Node* node)
@@ -482,8 +487,8 @@ namespace VGF
     	glm::vec3 targetDir = glm::normalize(targetPosition - rootPos);
 
     	// Create a rotation that aligns the x-axis with the target direction
-    	glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
-    	glm::vec3 rotAxis = glm::cross(xAxis, targetDir);
+		glm::vec3 restDir = glm::normalize(glm::vec3(midNode->translation));
+		glm::vec3 rotAxis = glm::cross(restDir, targetDir);
 
     	if (glm::length(rotAxis) < 0.001f) {
         	// Target is along the x-axis, use the up vector
@@ -492,7 +497,7 @@ namespace VGF
         	rotAxis = glm::normalize(rotAxis);
     	}
 
-    	float rotAngle = std::acos(glm::dot(xAxis, targetDir));
+		float rotAngle = std::acos(glm::clamp(glm::dot(restDir, targetDir), -1.0f, 1.0f));
     	glm::quat targetRot = glm::angleAxis(rotAngle, rotAxis);
 
     	// Create a rotation around the target direction by the preferred angle
@@ -502,7 +507,10 @@ namespace VGF
     	glm::quat finalRot = prefRot * targetRot * glm::angleAxis(angle1, hingeAxis);
 
     	// Apply the rotation to the root node
-    	rootNode->rotation = finalRot;
+		glm::quat parentGlobalRot = rootNode->parent
+		? glm::quat_cast(rootNode->parent->GetGlobalMatrix())
+		: glm::quat(1, 0, 0, 0);
+    	rootNode->rotation = glm::inverse(parentGlobalRot) * finalRot;
 
     	// Update the mid-node's global matrix after root changes
     	midGlobal = midNode->GetGlobalMatrix();
@@ -515,7 +523,8 @@ namespace VGF
 
     	// The middle joint bends in the opposite direction (PI - angle2)
     	glm::quat midRot = glm::angleAxis(glm::pi<float>() - angle2, hingeAxis);
-    	midNode->rotation = midRot;
+		glm::quat rootGlobalMatrix = glm::quat_cast(rootNode->GetGlobalMatrix());
+    	midNode->rotation = glm::inverse(rootGlobalMatrix) * midRot;
 
     	return true; // Target reached
 	}
@@ -565,8 +574,8 @@ namespace VGF
 			originalRotations.push_back(node->rotation);
 
 		// Apply IK
-		SolveTwoBoneIK(chain[0], chain[1], chain[2], targetPosition,
-					  glm::vec3(0.0f, 0.0f, 1.0f));
+		//SolveTwoBoneIK(chain[0], chain[1], chain[2], targetPosition,
+		//			  glm::vec3(0.0f, 0.0f, 1.0f));
 
 		// Blend between original and IK rotations based on weight
 		if (ikWeight < 1.0f)
@@ -597,7 +606,7 @@ namespace VGF
 			const float* positionBuffer = nullptr;
 			const float* normalsBuffer = nullptr;
 			const float* texCoordsBuffer = nullptr;
-			const uint16_t* jointIndicesBuffer = nullptr;
+			const uint8_t* jointIndicesBuffer = nullptr;
 			const float* jointWeightsBuffer = nullptr;
 			size_t vertexCount = 0;
 
@@ -629,7 +638,7 @@ namespace VGF
 			{
 				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("JOINTS_0")->second];
 				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
-				jointIndicesBuffer                   = reinterpret_cast<const uint16_t *>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+				jointIndicesBuffer                   = &(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]);
 			}
 			// Get vertex joint weights
 			if (prim.attributes.contains("WEIGHTS_0"))
@@ -798,7 +807,14 @@ namespace VGF
 		}
 		else
 		{
-			if (!animations.empty()) UpdateAnimation(0, VGF::Time::GetDeltaTime());
+			//if (!animations.empty()) UpdateAnimation(0, VGF::Time::GetDeltaTime());
+
+			for (auto &node : linearNodes)
+			{
+				if (node->parent == nullptr)
+					UpdateJoints(node);
+			}
+
 			for (const auto node : linearNodes)
 			{
 				if (node->parent != nullptr) continue;

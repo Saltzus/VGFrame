@@ -6,11 +6,17 @@
 
 #include "Material.h"
 #include "Renderer.h"
+#include "glm/gtx/matrix_decompose.hpp"
 #include "UniformBuffers/AnimationBuffer.h"
 
 #include "UniformBuffers/MatrixBuffer.h"
 #include "UniformBuffers/LightBuffer.h"
 #include "UniformBuffers/PBRBuffer.h"
+
+#include "ozz/animation/offline/animation_builder.h"
+#include "ozz/animation/runtime/skeleton.h"
+#include "ozz/base/io/archive.h"
+#include "ozz/base/maths/simd_math.h"
 
 namespace VGF
 {
@@ -30,6 +36,7 @@ namespace VGF
 		Node* parent = nullptr;
 		std::vector<Node*> children;
 		Mesh mesh;
+
 		glm::mat4 matrix = glm::mat4(1.f);
 
 		//Animation
@@ -38,16 +45,19 @@ namespace VGF
 		glm::vec3 scale = glm::vec3(1.0f);
 		int skin = -1;
 
-		glm::mat4 GetLocalMatrix()
+		bool useLocalMatrix = false;
+
+		glm::mat4 GetLocalMatrix() const
 		{
 			return glm::translate(glm::mat4(1.f), translation) *
 			glm::toMat4(rotation) *
-			glm::scale(glm::mat4(1.f), scale) *
-			matrix;
+			glm::scale(glm::mat4(1.f), scale);
 		}
 
-		glm::mat4 GetGlobalMatrix()
+		glm::mat4 GetGlobalMatrix() const
 		{
+			if (useLocalMatrix) return GetLocalMatrix();
+
 			glm::mat4 matrx = GetLocalMatrix();
 			Node* node = parent;
 			while (node)
@@ -56,6 +66,22 @@ namespace VGF
 				node = node->parent;
 			}
 			return matrx;
+		}
+		ozz::math::Float4x4 GetGlobalFloat4x4() const
+		{
+			glm::mat4 matrx = GetLocalMatrix();
+			Node* node = parent;
+			while (node)
+			{
+				matrx = node->GetLocalMatrix() * matrx;
+				node = node->parent;
+			}
+
+			glm::mat4 transposed = glm::transpose(matrx);
+			ozz::math::Float4x4 ozz_matrix;
+			std::memcpy(&ozz_matrix, &transposed, sizeof(ozz::math::Float4x4));
+
+			return ozz_matrix;
 		}
 	};
 

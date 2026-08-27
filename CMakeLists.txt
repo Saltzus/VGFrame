@@ -55,19 +55,6 @@ target_link_libraries(vulkan INTERFACE vulkan-1)
 
 include(FetchContent)
 
-# Disable GLFW extras before fetching the content
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_DOCS     OFF CACHE BOOL "" FORCE)
-set(GLFW_INSTALL        OFF CACHE BOOL "" FORCE)  # Optional: don't generate install targets
-
-FetchContent_Declare(
-  glfw
-  GIT_REPOSITORY https://github.com/glfw/glfw.git
-  GIT_TAG        3.3.8  # Use the version you want
-)
-
-FetchContent_MakeAvailable(glfw)
 
 set(CPP_RTTI_ENABLED ON CACHE BOOL "" FORCE)
 
@@ -144,10 +131,12 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(GameNetworkingSockets)
 
+# Subdirectories
+add_subdirectory(Libraries/ozz-animation)
+add_subdirectory(VGF)
+
 set_target_properties(glad glfw freetype update_mappings Jolt GameNetworkingSockets PROPERTIES FOLDER "VGFrame/3rd-party")
 
-# Subdirectories
-add_subdirectory(VGF)
 
 add_library(VGFrame INTERFACE)
 add_dependencies(VGFrame VGF)

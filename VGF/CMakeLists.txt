@@ -59,6 +59,7 @@ target_link_libraries(VGF
     FastNoiseLite
     GameNetworkingSockets
     tracy
+    ozz_animation
 )
 
 set_target_properties(VGF PROPERTIES FOLDER "VGFrame")
