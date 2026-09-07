@@ -1,8 +1,8 @@
 #include "Input.h"
 #include <glm/glm.hpp>
 
-#include <VGF/src/Gui.h>
-#include <VGF/src/Physics.h>
+#include "Gui.h"
+#include "Physics.h"
 
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>

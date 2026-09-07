@@ -7,7 +7,6 @@
 #include "ozz/animation/runtime/ik_two_bone_job.h"
 #include "ozz/base/maths/simd_math.h"
 #include "ozz/base/maths/internal/simd_math_config.h"
-#include "ozz-animation/samples/framework/utils.h"
 #include "ozz/animation/runtime/local_to_model_job.h"
 #include "ozz/base/maths/simd_quaternion.h"
 

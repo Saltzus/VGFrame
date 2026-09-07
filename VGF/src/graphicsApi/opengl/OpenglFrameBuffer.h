@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../RenderImpl.h"
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 namespace VGF::Opengl
 {

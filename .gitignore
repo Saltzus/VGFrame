@@ -26,3 +26,12 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
+
+# Xmake cache
+.xmake/
+build/
+vsxmake2022/
+vsxmake2026/
+
+# MacOS Cache
+.DS_Store

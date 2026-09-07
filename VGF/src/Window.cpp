@@ -54,7 +54,7 @@ namespace VGF
 
 		if (Renderer::GetGraphicsApi() == GraphicsApis::OpenGL)
 		{
-			if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+			if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress))
 			{
 				std::cout << "Failed to initialize GLAD" << std::endl;
 			}

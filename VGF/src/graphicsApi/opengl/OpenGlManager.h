@@ -2,7 +2,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <string>
 #include <stb_image.h>

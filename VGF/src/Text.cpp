@@ -1,6 +1,6 @@
 #include "Text.h"
-#include <VGF/src/Shapes.h>
-#include <VGF/src/Log.h>
+#include "Shapes.h"
+#include "Log.h"
 
 namespace VGF
 {

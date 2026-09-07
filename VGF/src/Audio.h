@@ -1,6 +1,6 @@
 #pragma once
 
-#include <miniaudio/miniaudio.h>
+#include <miniaudio.h>
 #include <glm/common.hpp>
 #include <iostream>
 

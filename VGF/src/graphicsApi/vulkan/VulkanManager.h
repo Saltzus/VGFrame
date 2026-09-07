@@ -2,7 +2,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 #define GLFW_INCLUDE_VULKAN
 #include <vulkan/vulkan.hpp>
 #include <stb_image.h>

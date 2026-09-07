@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <vulkan/vulkan_core.h>
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 class VertexBuffer
 {
