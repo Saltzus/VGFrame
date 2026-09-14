@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../RenderImpl.h"
+
 #include <vulkan/vulkan.hpp>
 
 namespace VGF::Vulkan

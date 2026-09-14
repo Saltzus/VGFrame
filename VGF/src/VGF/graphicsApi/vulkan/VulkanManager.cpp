@@ -202,6 +202,10 @@ namespace VGF::Vulkan
 
         this->window = window;
 
+        if (volkInitialize() != VK_SUCCESS) {
+            Log::Error("Could not initialize volk");
+        }
+
         createInstance();
         setupDebugMessenger();
         createSurface(window);
@@ -310,17 +314,6 @@ namespace VGF::Vulkan
         auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
         if (func != nullptr) func(instance, debugMessenger, pAllocator);
     }
-
-    struct Vulkan::QueueFamilyIndices 
-    {
-        std::optional<uint32_t> graphicsFamily;
-        std::optional<uint32_t> presentFamily;
-
-        bool isComplete() 
-        {
-            return graphicsFamily.has_value() && presentFamily.has_value();
-        }
-    };
 
     struct Vulkan::SwapChainSupportDetails 
     {
@@ -436,7 +429,6 @@ namespace VGF::Vulkan
 
     void Vulkan::createLogicalDevice() 
     {
-
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -480,6 +472,8 @@ namespace VGF::Vulkan
 
         vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
         vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+
+        volkLoadDevice(device);
     }
 
     void Vulkan::createSwapChain() {
@@ -1659,6 +1653,8 @@ namespace VGF::Vulkan
         if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
             VGF::Log::Error("Failed to create instance!");
         }
+
+        volkLoadInstance(instance);
     }
     void Vulkan::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) 
     {

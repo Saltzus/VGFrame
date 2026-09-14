@@ -7,7 +7,6 @@
 #include <cerrno>
 #include <vector>
 
-#include <vulkan/vulkan.hpp>
 #include "../../PipelineConfig.h"
 
 namespace VGF::Vulkan

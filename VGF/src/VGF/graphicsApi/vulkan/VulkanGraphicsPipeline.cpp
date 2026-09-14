@@ -2,6 +2,8 @@
 #include "../../Model.h"
 #include "../../Log.h"
 
+#include "volk.h"
+
 namespace VGF::Vulkan
 {
 

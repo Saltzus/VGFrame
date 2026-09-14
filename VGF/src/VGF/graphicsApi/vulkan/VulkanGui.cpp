@@ -97,11 +97,18 @@ namespace VGF::Vulkan
 
 
         ImGui_ImplGlfw_InitForVulkan(window, true);
+
+        Vulkan::QueueFamilyIndices indices = Vulkan::vulkan->findQueueFamilies(Vulkan::vulkan->physicalDevice);
+        if (!indices.isComplete()) {
+            VGF::Log::Error("Queue families incomplete — cannot initialize ImGui Vulkan backend!");
+            return;
+        }
+
         ImGui_ImplVulkan_InitInfo init_info = {};
         init_info.Instance = Vulkan::vulkan->instance;
         init_info.PhysicalDevice = Vulkan::vulkan->physicalDevice;
         init_info.Device = Vulkan::vulkan->device;
-        //init_info.QueueFamily = ;
+        init_info.QueueFamily = indices.graphicsFamily.value();
         init_info.Queue = Vulkan::vulkan->graphicsQueue;
         init_info.PipelineCache = VK_NULL_HANDLE;
         init_info.DescriptorPool = descriptorPool;
@@ -111,7 +118,9 @@ namespace VGF::Vulkan
         init_info.PipelineInfoMain.RenderPass = renderPass;
         init_info.PipelineInfoMain.Subpass = 0;
         init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+        init_info.ApiVersion = VK_API_VERSION_1_3;
         //init_info.CheckVkResultFn = check_vk_result;
+
         ImGui_ImplVulkan_Init(&init_info);
 	}
 

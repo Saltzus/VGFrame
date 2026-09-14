@@ -1,10 +1,14 @@
 ﻿#pragma once
 
 #define GLM_ENABLE_EXPERIMENTAL
+#define GLFW_INCLUDE_VULKAN
 
 #include <glad/gl.h>
-#define GLFW_INCLUDE_VULKAN
+
+
+#include <volk.h>
 #include <vulkan/vulkan.hpp>
+
 #include <stb_image.h>
 #include <vector>
 #include <map>
@@ -164,6 +168,19 @@ namespace VGF::Vulkan
         static inline std::unordered_map<PipelineHashKey, PipelineData, PipelineConfigKeyHash> pipelineCache = {};
         static inline std::vector<std::pair<VkPipeline, VkPipelineLayout>> pipelines = {};
 
+        struct QueueFamilyIndices
+        {
+            std::optional<uint32_t> graphicsFamily;
+            std::optional<uint32_t> presentFamily;
+
+            bool isComplete()
+            {
+                return graphicsFamily.has_value() && presentFamily.has_value();
+            }
+        };
+
+        QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+
         unsigned int getOrCreatePipeline(VulkanRenderer* object, const PipelineConfig& config, const bool offscreen);
         PipelineData createGraphicsPipeline(VulkanRenderer* object, const PipelineConfig& config, VkRenderPass& renderPass);
 
@@ -249,11 +266,9 @@ namespace VGF::Vulkan
         VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
         void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
         
-        struct QueueFamilyIndices;
         void pickPhysicalDevice();
         bool isDeviceSuitable(VkPhysicalDevice device);
         bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-        QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
         void createSurface(GLFWwindow* window);
 
         struct SwapChainSupportDetails;
