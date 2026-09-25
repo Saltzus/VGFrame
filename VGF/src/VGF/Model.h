@@ -13,11 +13,6 @@
 #include "UniformBuffers/LightBuffer.h"
 #include "UniformBuffers/PBRBuffer.h"
 
-#include "ozz/animation/offline/animation_builder.h"
-#include "ozz/animation/runtime/skeleton.h"
-#include "ozz/base/io/archive.h"
-#include "ozz/base/maths/simd_math.h"
-
 namespace VGF
 {
 	struct Mesh

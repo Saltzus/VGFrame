@@ -7,7 +7,6 @@ add_requires
     "tinygltf 2.9.7",
     "volk",
     "vulkan-validationlayers",
-    "ozz-animation",
     "freetype",
     "nlohmann_json",
     "tracy",

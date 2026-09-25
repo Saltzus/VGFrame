@@ -4,11 +4,6 @@
 
 #include "Physics.h"
 #include "VGFTime.h"
-#include "ozz/animation/runtime/ik_two_bone_job.h"
-#include "ozz/base/maths/simd_math.h"
-#include "ozz/base/maths/internal/simd_math_config.h"
-#include "ozz/animation/runtime/local_to_model_job.h"
-#include "ozz/base/maths/simd_quaternion.h"
 
 namespace VGF
 {
@@ -81,7 +76,8 @@ namespace VGF
 			}
 		}
 
-		for (const auto& anim : gltfModel.animations) {
+		for (const auto& anim : gltfModel.animations) 
+		{
 			Animation animation;
 			animation.name = anim.name;
 
@@ -124,22 +120,26 @@ namespace VGF
 
 					const void *dataPtr = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
 
-					switch (accessor.type) {
-					case TINYGLTF_TYPE_VEC3: {
-							const glm::vec3 *buf = static_cast<const glm::vec3*>(dataPtr);
-							for (size_t index = 0; index < accessor.count; index++)
-								animSampler.outputsVec3.push_back(buf[index]);
-							break;
+					switch (accessor.type) 
+					{
+					case TINYGLTF_TYPE_VEC3: 
+					{
+						const glm::vec3 *buf = static_cast<const glm::vec3*>(dataPtr);
+						for (size_t index = 0; index < accessor.count; index++)
+							animSampler.outputsVec3.push_back(buf[index]);
+						break;
 					}
-					case TINYGLTF_TYPE_VEC4: {
-							const glm::vec4 *buf = static_cast<const glm::vec4*>(dataPtr);
-							for (size_t index = 0; index < accessor.count; index++)
-								animSampler.outputsVec4.push_back(buf[index]);
-							break;
+					case TINYGLTF_TYPE_VEC4: 
+					{
+						const glm::vec4 *buf = static_cast<const glm::vec4*>(dataPtr);
+						for (size_t index = 0; index < accessor.count; index++)
+							animSampler.outputsVec4.push_back(buf[index]);
+						break;
 					}
-					default: {
-							std::cout << "unknown type" << std::endl;
-							break;
+					default: 
+					{
+						std::cout << "unknown type" << std::endl;
+						break;
 					}
 					}
 				}
@@ -151,22 +151,11 @@ namespace VGF
 			for (const auto& channel : anim.channels) {
 				AnimationChannel animChannel{};
 
-				if(channel.target_path == "rotation")
-				{
-					animChannel.path = AnimationChannel::ROTATION;
-				}
-				if(channel.target_path == "translation")
-				{
-					animChannel.path = AnimationChannel::TRANSLATION;
-				}
-				if(channel.target_path == "scale")
-				{
-					animChannel.path = AnimationChannel::SCALE;
-				}
-				if(channel.target_path == "weights")
-				{
-					//animChannel.path
-				}
+				if(channel.target_path == "rotation")		animChannel.path = AnimationChannel::ROTATION;
+				if(channel.target_path == "translation")	animChannel.path = AnimationChannel::TRANSLATION;
+				if(channel.target_path == "scale")			animChannel.path = AnimationChannel::SCALE;
+				if(channel.target_path == "weights")		animChannel.path;
+
 				animChannel.samplerIndex = channel.sampler;
 				animChannel.node         = linearNodes[channel.target_node];
 
@@ -260,13 +249,9 @@ namespace VGF
 
 	Model::~Model()
 	{
-		for (auto& uniform : uniformBuffers)
-			delete uniform;
-
-		for (auto& renderer : modelRenderers)
-			delete renderer;
-
-		for (auto& node : linearNodes) delete node;
+		for (auto& uniform : uniformBuffers)	delete uniform;
+		for (auto& renderer : modelRenderers)	delete renderer;
+		for (auto& node : linearNodes)			delete node;
 	}
 
 	/// Read flat floats from an accessor
@@ -303,7 +288,7 @@ namespace VGF
         animation.currentTime += deltaTime;
 
         if (animation.currentTime > animation.end)
-            animation.currentTime = animation.start;
+			animation.currentTime = animation.start;
 
         for (auto& channel : animation.channels)
         {

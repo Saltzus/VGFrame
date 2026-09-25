@@ -17,7 +17,6 @@ target("VGF")
         "volk",
         "vulkan-headers",
         "vulkan-validationlayers",
-        "ozz-animation",
         "freetype",
         "nlohmann_json",
         "tracy",
