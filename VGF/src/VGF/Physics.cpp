@@ -28,9 +28,20 @@ namespace VGF
 		debugRenderer = new PhysicsDebugRenderer();
 	}
 
+	float accumulator = 0;
+	float alpha = 0;
 	void Physics::Update(float deltaTime)
 	{
-		physicsSystem.Update(deltaTime, 1, tempAllocator, &jobSystem);
+		accumulator += deltaTime;
+		float fixedDeltaTime = 1.f / 60.f;
+
+		while (accumulator >= fixedDeltaTime)
+		{
+			physicsSystem.Update(fixedDeltaTime, 1, tempAllocator, &jobSystem);
+			accumulator -= fixedDeltaTime;
+		}
+
+		alpha = accumulator / fixedDeltaTime;
 	}
 
 	Physics::~Physics()

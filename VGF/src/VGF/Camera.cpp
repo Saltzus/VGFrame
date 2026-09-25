@@ -10,18 +10,14 @@ namespace VGF
 
 	void Camera::updateMatrix(const VGF::Window& window, float FOVdeg, float nearPlane, float farPlane)
 	{
-		// Initializes matrices since otherwise they will be the null matrix
 		view = glm::mat4(1.0f);
 		projection = glm::mat4(1.0f);
 
-		// Makes camera look in the right direction from the right position
 		view = glm::lookAt(position, position + orientation, up);
-		// Adds perspective to the scene
 
         if (window.width != 0 || window.height != 0)
 		    projection = glm::perspective(glm::radians(FOVdeg), (float)window.width / window.height, nearPlane, farPlane);
 
-		// Sets new camera matrix
 		cameraMatrix = projection * view;
 	}
 
@@ -31,12 +27,12 @@ namespace VGF
     {
         float frameSpeed = speed * 100 * static_cast<float>(deltatime);
 
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) position += frameSpeed * orientation;
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) position += frameSpeed * -glm::normalize(glm::cross(orientation, up));
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) position += frameSpeed * -orientation;
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) position += frameSpeed * glm::normalize(glm::cross(orientation, up));
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) position += frameSpeed * up;
-        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) position += frameSpeed * -up;
+        if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) position += frameSpeed * orientation;
+        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) position += frameSpeed * -glm::normalize(glm::cross(orientation, up));
+        if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) position += frameSpeed * -orientation;
+        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) position += frameSpeed * glm::normalize(glm::cross(orientation, up));
+        if (glfwGetKey(window, GLFW_KEY_RIGHT_ALT) == GLFW_PRESS) position += frameSpeed * up;
+        if (glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS) position += frameSpeed * -up;
 
         if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
             speed = 0.2f;

@@ -45,8 +45,6 @@ namespace VGF
 		glm::vec3 scale = glm::vec3(1.0f);
 		int skin = -1;
 
-		bool useLocalMatrix = false;
-
 		glm::mat4 GetLocalMatrix() const
 		{
 			return glm::translate(glm::mat4(1.f), translation) *
@@ -56,32 +54,8 @@ namespace VGF
 
 		glm::mat4 GetGlobalMatrix() const
 		{
-			if (useLocalMatrix) return GetLocalMatrix();
-
-			glm::mat4 matrx = GetLocalMatrix();
-			Node* node = parent;
-			while (node)
-			{
-				matrx = node->GetLocalMatrix() * matrx;
-				node = node->parent;
-			}
-			return matrx;
-		}
-		ozz::math::Float4x4 GetGlobalFloat4x4() const
-		{
-			glm::mat4 matrx = GetLocalMatrix();
-			Node* node = parent;
-			while (node)
-			{
-				matrx = node->GetLocalMatrix() * matrx;
-				node = node->parent;
-			}
-
-			glm::mat4 transposed = glm::transpose(matrx);
-			ozz::math::Float4x4 ozz_matrix;
-			std::memcpy(&ozz_matrix, &transposed, sizeof(ozz::math::Float4x4));
-
-			return ozz_matrix;
+			if (parent) return parent->GetGlobalMatrix() * GetLocalMatrix();
+			return GetLocalMatrix();
 		}
 	};
 

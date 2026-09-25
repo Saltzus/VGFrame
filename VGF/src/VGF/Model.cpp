@@ -423,109 +423,92 @@ namespace VGF
     	Node* midNode,       // The middle joint (e.g., elbow or knee)
     	Node* endNode,       // The end effector (e.g., hand or foot)
     	const glm::vec3& targetPosition,  // Target world position
-    	const glm::vec3& hingeAxis,       // Axis of rotation for the middle joint
+    	const glm::vec3& poleVector,       // Axis of rotation for the middle joint
     	float preferredAngle      // Preferred angle for resolving ambiguity
 	)
 	{
-    	// Get the original global positions
-    	glm::mat4 rootGlobal = rootNode->GetGlobalMatrix();
-    	glm::mat4 midGlobal = midNode->GetGlobalMatrix();
-    	glm::mat4 endGlobal = endNode->GetGlobalMatrix();
 
-    	glm::vec3 rootPos = glm::vec3(rootGlobal[3]);
-    	glm::vec3 midPos = glm::vec3(midGlobal[3]);
-    	glm::vec3 endPos = glm::vec3(endGlobal[3]);
+		glm::vec3 rootPosition = glm::vec3(rootNode->GetGlobalMatrix()[3]);
+		glm::vec3 midPosition = glm::vec3(midNode->GetGlobalMatrix()[3]);
+		glm::vec3 endPosition = glm::vec3(endNode->GetGlobalMatrix()[3]);
 
-    	// Calculate bone lengths
-    	float bone1Length = glm::length(midPos - rootPos);
-    	float bone2Length = glm::length(endPos - midPos);
-    	float totalLength = bone1Length + bone2Length;
+		float lenght1 = glm::length(midPosition - rootPosition);
+		float lenght2 = glm::length(endPosition - midPosition);
+		if (lenght1 < 0.00001f || lenght2 < 0.00001f) return false;
 
-    	// Calculate the distance to the target
-    	float targetDistance = glm::length(targetPosition - rootPos);
 
-    	// Check if the target is reachable
-    	if (targetDistance > totalLength)
-    	{
-        	// Target is too far - stretch as far as possible
-        	glm::vec3 direction = glm::normalize(targetPosition - rootPos);
+		glm::vec3 toTarget = targetPosition - rootPosition;
+		float distance = glm::length(toTarget);
+		if (distance < 0.00001f) return false;
+		
+		glm::vec3 targetDirection = toTarget / distance;
 
-        	// Set mid-node position
-        	glm::vec3 newMidPos = rootPos + direction * bone1Length;
+		float minReach = std::abs(lenght1 - lenght2) + 0.0001f;
+		float maxReach = lenght1 + lenght2 - 0.0001f;
+		float clampedDistance = glm::clamp(distance, minReach, maxReach);
+		glm::vec3 clampedTarget = rootPosition + targetDirection * clampedDistance;
 
-        	// Convert to local space and update node
-        	glm::mat4 rootInv = glm::inverse(rootGlobal);
-        	glm::vec3 localMidPos = glm::vec3(rootInv * glm::vec4(newMidPos, 1.0f));
-        	midNode->translation = localMidPos;
 
-        	// Update mid global matrix after changes
-        	midGlobal = midNode->GetGlobalMatrix();
+		float cosA = (clampedDistance * clampedDistance + lenght1 * lenght1 - lenght2 * lenght2) / (2.0f * clampedDistance * lenght1);
+		cosA = glm::clamp(cosA, -1.f, 1.f);
+		float angleAtRoot = std::acos(cosA);
 
-        	// Set end node position
-        	glm::vec3 newEndPos = newMidPos + direction * bone2Length;
+		glm::vec3 forward = targetDirection;
+		glm::vec3 up = poleVector - forward * glm::dot(poleVector, forward);
+		if (glm::dot(up, up) < 0.000001f)
+		{
+			glm::vec3 altPole = (std::abs(forward.x) < 0.9f) ? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 0);
+			up = altPole - forward * glm::dot(altPole, forward);
+		}
+		up = glm::normalize(up);
 
-        	// Convert to local space and update node
-        	glm::mat4 midInv = glm::inverse(midGlobal);
-        	glm::vec3 localEndPos = glm::vec3(midInv * glm::vec4(newEndPos, 1.0f));
-        	endNode->translation = localEndPos;
+		glm::vec3 desiredMidDirection = glm::cos(angleAtRoot) * forward + glm::sin(angleAtRoot) * up;
+		glm::vec3 desiredMidPosition = rootPosition + desiredMidDirection * lenght1;
 
-        	return false; // Target not fully reached
-    	}
+		glm::vec3 rootBoneDir = glm::normalize(desiredMidPosition - rootPosition);
+		glm::vec3 rootRollDir = up;
+		rootRollDir = glm::normalize(rootRollDir - rootBoneDir * glm::dot(rootRollDir, rootBoneDir));
+		glm::vec3 rootRight = glm::cross(rootBoneDir, rootRollDir);
 
-    	// Target is reachable - apply cosine law to find the angles
-    	float a = bone1Length;
-    	float b = targetDistance;
-    	float c = bone2Length;
+		glm::mat3 rootBasis;
+		rootBasis[0] = rootRight;
+		rootBasis[1] = rootBoneDir;
+		rootBasis[2] = rootRollDir;
 
-    	// Calculate the angle between the first bone and the target direction
-    	float cosAngle1 = (b*b + a*a - c*c) / (2*b*a);
-    	cosAngle1 = glm::clamp(cosAngle1, -1.0f, 1.0f); // Avoid numerical errors
-    	float angle1 = std::acos(cosAngle1);
+		glm::quat rootWorldNew = glm::normalize(glm::quat_cast(rootBasis));
 
-    	// Calculate the direction to the target
-    	glm::vec3 targetDir = glm::normalize(targetPosition - rootPos);
+		glm::quat parentWorldRot = rootNode->parent
+			? glm::normalize(glm::quat_cast(glm::mat3(rootNode->parent->GetGlobalMatrix())))
+			: glm::quat(1, 0, 0, 0);
 
-    	// Create a rotation that aligns the x-axis with the target direction
-		glm::vec3 restDir = glm::normalize(glm::vec3(midNode->translation));
-		glm::vec3 rotAxis = glm::cross(restDir, targetDir);
+		rootNode->rotation = glm::normalize(glm::inverse(parentWorldRot) * rootWorldNew);
 
-    	if (glm::length(rotAxis) < 0.001f) {
-        	// Target is along the x-axis, use the up vector
-        	rotAxis = glm::vec3(0.0f, 1.0f, 0.0f);
-    	} else {
-        	rotAxis = glm::normalize(rotAxis);
-    	}
 
-		float rotAngle = std::acos(glm::clamp(glm::dot(restDir, targetDir), -1.0f, 1.0f));
-    	glm::quat targetRot = glm::angleAxis(rotAngle, rotAxis);
+		glm::vec3 midBoneDir = glm::normalize(clampedTarget - desiredMidPosition);
+		glm::vec3 midRollDir = up;
+		midRollDir = glm::normalize(midRollDir - midBoneDir * glm::dot(midRollDir, midBoneDir));
+		if (glm::dot(midRollDir, midRollDir) < 1e-6f) {
+			glm::vec3 alt = (std::abs(midBoneDir.y) < 0.9f) ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
+			midRollDir = glm::normalize(alt - midBoneDir * glm::dot(alt, midBoneDir));
+		}
+		glm::vec3 midRight = glm::cross(midBoneDir, midRollDir);
 
-    	// Create a rotation around the target direction by the preferred angle
-    	glm::quat prefRot = glm::angleAxis(preferredAngle, targetDir);
+		glm::mat3 midBasis;
+		midBasis[0] = midRight;
+		midBasis[1] = midBoneDir;
+		midBasis[2] = midRollDir;
 
-    	// Combine rotations
-    	glm::quat finalRot = prefRot * targetRot * glm::angleAxis(angle1, hingeAxis);
+		glm::quat midWorldNew = glm::normalize(glm::quat_cast(midBasis));
 
-    	// Apply the rotation to the root node
-		glm::quat parentGlobalRot = rootNode->parent
-		? glm::quat_cast(rootNode->parent->GetGlobalMatrix())
-		: glm::quat(1, 0, 0, 0);
-    	rootNode->rotation = glm::inverse(parentGlobalRot) * finalRot;
+		midNode->rotation = glm::normalize(glm::inverse(rootWorldNew) * midWorldNew);
 
-    	// Update the mid-node's global matrix after root changes
-    	midGlobal = midNode->GetGlobalMatrix();
-    	midPos = glm::vec3(midGlobal[3]);
+		//std::cout << rootNode->rotation.w << "\n";
+		//std::cout << rootNode->rotation.x << "\n";
+		//std::cout << rootNode->rotation.y << "\n";
+		//std::cout << rootNode->rotation.z << "\n";
+		//std::cout  << "\n\n";
 
-    	// Calculate the angle for the middle joint
-    	float cosAngle2 = (a*a + c*c - b*b) / (2*a*c);
-    	cosAngle2 = glm::clamp(cosAngle2, -1.0f, 1.0f); // Avoid numerical errors
-    	float angle2 = std::acos(cosAngle2);
-
-    	// The middle joint bends in the opposite direction (PI - angle2)
-    	glm::quat midRot = glm::angleAxis(glm::pi<float>() - angle2, hingeAxis);
-		glm::quat rootGlobalMatrix = glm::quat_cast(rootNode->GetGlobalMatrix());
-    	midNode->rotation = glm::inverse(rootGlobalMatrix) * midRot;
-
-    	return true; // Target reached
+		return true;
 	}
 
 	void Model::ApplyJointConstraints(Node* node, const glm::vec3& minAngles, const glm::vec3& maxAngles)
@@ -775,7 +758,7 @@ namespace VGF
 	void Model::drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const PipelineConfig& config, const Camera& camera, LightBufferObject lightBufffer)
 	{
 		const auto& node = linearNodes[nodeIdx];
-		const glm::mat4 modelMatrix = node->GetGlobalMatrix();
+		const glm::mat4 modelMatrix = parentMatrix * node->GetLocalMatrix();
 		const auto& mesh = node->mesh;
 
 		if (node->skin != -1) uniformBuffers[animationBuffer] = new AnimationBufferObject(skins[node->skin].buffers[0]);
