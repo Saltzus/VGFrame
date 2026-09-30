@@ -5,24 +5,24 @@ namespace VGF
 {
     void Object::Render(const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers)
     {
-        glm::mat4 model = CreateModelMatrix();
-        _model->Render(model, camera, additionalUniformBuffers);
+        glm::mat4 modelMatrix = CreateModelMatrix(camera.view);
+        model.Render(modelMatrix, camera, additionalUniformBuffers);
     }
 
     void Object::Render(const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
     {
-        _model->config = config;
+        model.config = config;
         Render(camera, additionalUniformBuffers);
     }
 
     void Object::BatchRender(const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers) const
     {
-        glm::mat4 model = CreateModelMatrix();
-        _model->BatchRender(model, camera, instanceData, instanceCount, instanceStride, additionalUniformBuffers);
+        glm::mat4 modelMatrix = CreateModelMatrix(camera.view);
+        model.BatchRender(modelMatrix, camera, instanceData, instanceCount, instanceStride, additionalUniformBuffers);
     }
     void Object::BatchRender(const Camera& camera, const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers) const
     {
-        _model->config = config;
+        model.config = config;
         BatchRender(camera, instanceData, instanceCount, instanceStride, additionalUniformBuffers);
     }
 
@@ -43,10 +43,11 @@ namespace VGF
         SetRotation(offset * base);
     }
 
-    glm::mat4 Object::CreateModelMatrix() const
+    glm::mat4 Object::CreateModelMatrix(glm::mat4 cameraViewMatrix) const
     {
         glm::mat4 model = glm::mat4(1.f);
-
+        if (relativeToCamera) model = glm::inverse(cameraViewMatrix);
+       
         model = glm::translate(model, _position);
         model *= glm::mat4_cast(_rotation);
         model = glm::scale(model, _scale);

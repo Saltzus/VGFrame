@@ -8,7 +8,8 @@ namespace VGF
     class PhysicsObject : public Object
     {
     public:
-        PhysicsObject(Model* model, Physics* physics, JPH::Vec3 origin = { 0,0,0 }, JPH::Vec3 size = { 1,1,1 }, float mass = 0.f);
+        PhysicsObject(Model& model, Physics* physics, JPH::Vec3 origin = { 0,0,0 }, JPH::Vec3 size = { 1,1,1 }, float mass = 0.f);
+        PhysicsObject(std::string modelPath, Physics* physics, JPH::Vec3 origin = { 0,0,0 }, JPH::Vec3 size = { 1,1,1 }, float mass = 0.f);
 
         ~PhysicsObject();
 
@@ -34,7 +35,8 @@ namespace VGF
 
     private:
         Physics* _physics;
-        glm::mat4 CreateModelMatrix() const override;
+        glm::mat4 CreateModelMatrix(glm::mat4 cameraViewMatrix) const override;
+        void InitObject(Physics* physics, JPH::Vec3 origin, JPH::Vec3 size, float mass);
     };
 
 }

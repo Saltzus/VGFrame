@@ -4,7 +4,17 @@ namespace VGF
 {
     using namespace JPH::literals;
 
-    PhysicsObject::PhysicsObject(Model* model, Physics* physics, JPH::Vec3 origin, JPH::Vec3 size, float mass) : Object(model), _physics(physics)
+    PhysicsObject::PhysicsObject(std::string modelPath, Physics* physics, JPH::Vec3 origin, JPH::Vec3 size, float mass) : Object(modelPath), _physics(physics)
+    {
+        InitObject(physics, origin, size, mass);
+    }
+
+    PhysicsObject::PhysicsObject(Model& model, Physics* physics, JPH::Vec3 origin, JPH::Vec3 size, float mass) : Object(model), _physics(physics)
+    {
+        InitObject(physics, origin, size, mass);
+    }
+
+    void PhysicsObject::InitObject(Physics* physics, JPH::Vec3 origin, JPH::Vec3 size, float mass)
     {
         SetScale(size);
 
@@ -41,7 +51,7 @@ namespace VGF
         _physics->bodyInterface->DestroyBody(body->GetID());
     }
 
-    glm::mat4 PhysicsObject::CreateModelMatrix() const
+    glm::mat4 PhysicsObject::CreateModelMatrix(glm::mat4 cameraViewMatrix) const
     {
         JPH::RMat44 joltMat = _physics->bodyInterface->GetWorldTransform(body->GetID());
 

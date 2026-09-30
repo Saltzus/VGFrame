@@ -751,7 +751,7 @@ namespace VGF
 		if (node->mesh.rendererIndex != -1)
 		{
 			Renderer* renderer = modelRenderers[node->mesh.rendererIndex];
-			Draw(parentMatrix, renderer, mesh.materialIndex, config, camera);
+			Draw(modelMatrix, renderer, mesh.materialIndex, config, camera);
 		}
 		
 		for (const auto childNode : node->children)

@@ -10,10 +10,12 @@ namespace VGF
     class Object
     {
     public:
-        Object(Model* model) : _model(model) {}
+        Object(Model& model) : model(model) {}
+        Object(std::string modelPath) : _ownedModel(std::make_unique<Model>(modelPath)), model(*_ownedModel) {}
         ~Object() = default;
 
         std::vector<UniformBufferObject*> additionalUniformBuffers;
+        bool relativeToCamera = false;
 
         virtual void Render(const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
         void Render(const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
@@ -32,7 +34,7 @@ namespace VGF
             BatchRender(camera, config, instances.data(), instances.size(), sizeof(T), additionalUniformBuffers);
         }
 
-        void SetModel(Model* model) { _model = model; }
+        void SetModel(Model& model) { model = model; }
         //void SetConfig(const PipelineConfig& config) { _model->config = config; }
 
         virtual void SetPosition(const float x, const float y, const float z) { _position = glm::vec3(x, y, z); }
@@ -48,16 +50,17 @@ namespace VGF
         void SetScale(const glm::vec3 scale) { SetScale(scale.x, scale.y, scale.z); }
 
         void LookAt(const glm::vec3 lookingPosition, const float xOffset = 0.f, const float yOffset = 0.f);
+        virtual glm::mat4 CreateModelMatrix(glm::mat4 matrix) const;
 
     protected:
-        Model* _model;
-
+        std::unique_ptr<Model> _ownedModel;
         glm::vec3 _position = glm::vec3(0.f, 0.f, 0.f);
         glm::quat _rotation = glm::quat(0.f, 0.f, 1.f, 0.f);
         glm::vec3 _scale = glm::vec3(0.7f, 0.7f, 0.7f);
-
-        virtual glm::mat4 CreateModelMatrix() const;
     private:
+
+    public:
+        Model& model;
     };
     
 } 
