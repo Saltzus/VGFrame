@@ -27,7 +27,7 @@ jobs:
       uses: xmake-io/github-action-setup-xmake@v1
 
     - name: Xmake Config
-      run: xmake f -p runner.os -m ${{ matrix.build_type }}
+      run: xmake f -p ${{runner.os}} -m ${{ matrix.build_type }}
 
     - name: Xmake Build
       run: xmake
