@@ -10,27 +10,25 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
-
       fail-fast: false
-      
       matrix:
         os: [ubuntu-latest, windows-latest]
         build_type: [release]
-        include:
-          - os: windows-latest
-          - os: ubuntu-latest
-
+        
     steps:
     - uses: actions/checkout@v4
     
     - name: setup xmake
       uses: xmake-io/github-action-setup-xmake@v1
-
+      with:
+        build-cache: true
+        build-cache-key: ${{ matrix.os }}
+      
     - name: Xmake Config
-      run: xmake f -p ${{runner.os}} -m ${{ matrix.build_type }}
+      run: xmake f -m ${{ matrix.build_type }} -y
 
     - name: Xmake Build
-      run: xmake
+      run: xmake -y
     
     - name: Build
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
