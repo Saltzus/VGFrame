@@ -774,7 +774,7 @@ namespace VGF
 		}
 		else
 		{
-			//if (!animations.empty()) UpdateAnimation(0, VGF::Time::GetDeltaTime());
+			if (!animations.empty()) UpdateAnimation(0, VGF::Time::GetDeltaTime());
 
 			for (auto &node : linearNodes)
 			{

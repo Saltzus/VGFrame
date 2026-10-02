@@ -222,8 +222,8 @@ namespace VGF
 			{
 				static const VGF::PipelineConfig config
 				(
-					VGF::Resource::Get("Shaders/debug.vert"),
-					VGF::Resource::Get("Shaders/debug.frag"),
+					VGF::Resource::Get("Shaders/debug_vert.slang"),
+					VGF::Resource::Get("Shaders/debug_frag.slang"),
 					VGF::Topology::LINE_LIST,
 					false,
 					debugVertexBuffer,
@@ -235,8 +235,8 @@ namespace VGF
 			{
 				static const VGF::PipelineConfig config
 				(
-					VGF::Resource::Get("Shaders/debug.vert"),
-					VGF::Resource::Get("Shaders/debug.frag"),
+					VGF::Resource::Get("Shaders/debug_vert.slang"),
+					VGF::Resource::Get("Shaders/debug_frag.slang"),
 					VGF::Topology::TRIANGLE_LIST,
 					false,
 					debugVertexBuffer,

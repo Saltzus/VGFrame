@@ -66,8 +66,8 @@ namespace VGF
         {
             static const VGF::PipelineConfig config
             (
-                VGF::Resource::Get("Shaders/default.vert"),
-                VGF::Resource::Get("Shaders/default.frag"),
+                VGF::Resource::Get("Shaders/default_vert.slang"),
+                VGF::Resource::Get("Shaders/default_frag.slang"),
                 VGF::Topology::TRIANGLE_LIST
             );
             return config;

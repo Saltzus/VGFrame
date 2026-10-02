@@ -44,9 +44,11 @@ namespace VGF::Vulkan
 	VulkanGraphicsPipeline::VulkanGraphicsPipeline(const PipelineConfig& config, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline)
 	{
         std::string vulkanVertexFile = config.vertShader.data();
+        vulkanVertexFile.erase(vulkanVertexFile.length() - 6);
         vulkanVertexFile += ".spv";
 
         std::string vulkanFragmentFile = config.fragShader.data();
+        vulkanFragmentFile.erase(vulkanFragmentFile.length() - 6);
         vulkanFragmentFile += ".spv";
 
         vertShaderCode = readFile(vulkanVertexFile);
