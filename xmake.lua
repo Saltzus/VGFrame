@@ -27,7 +27,8 @@ rule("slang")
 
         local function compile()
             cprint("${dim}compiling${clear} ${bright}%s${clear}", sourcefile)
-            os.exec("slangc " .. absSourceFile .. " -target spirv -o " .. outputfile)
+            local envs = target:pkgenvs()
+            os.exec("slangc " .. absSourceFile .. " -target spirv -o " .. outputfile, {envs = envs})
         end
 
         if not os.isfile(outputfile) then
