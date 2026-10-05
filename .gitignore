@@ -11,6 +11,8 @@ build/
 *.log
 Makefile
 
+*.spv
+
 # Exclude
 !Vendor/Binaries
 
