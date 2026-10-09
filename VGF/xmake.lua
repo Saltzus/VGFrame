@@ -23,5 +23,6 @@ target("VGF")
         "nlohmann_json",
         "tracy",
         "slang",
+        "box3d",
         {public = true}
     )

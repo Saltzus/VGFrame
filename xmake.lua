@@ -8,6 +8,7 @@ add_requires("vulkan-validationlayers")
 add_requires("freetype")
 add_requires("nlohmann_json")
 add_requires("tracy")
+add_requires("box3d")
 
 package("slang")
     set_kind("binary")

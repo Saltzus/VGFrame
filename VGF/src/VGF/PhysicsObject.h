@@ -3,6 +3,10 @@
 #include "Object.h"
 #include "Physics.h"
 
+#include "Jolt/Jolt.h"
+
+#include <Jolt/Physics/Body/Body.h>
+
 namespace VGF
 {
     class PhysicsObject : public Object
@@ -27,7 +31,7 @@ namespace VGF
         void SetScale(const float x, const float y, const float z) override;
         void SetScale(const JPH::Vec3 scale) { SetScale(scale.GetX(), scale.GetY(), scale.GetZ()); }
 
-        JPH::Vec3 GetPositionJPH() { return _physics->bodyInterface->GetPosition(body->GetID()); }
+        JPH::Vec3 GetPositionJPH() { return { 1,1,1 }; }
         glm::vec3 GetPositionGlm() { JPH::Vec3 position = GetPositionJPH(); return { position.GetX(), position.GetY(), position.GetZ() }; }
 
         

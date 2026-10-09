@@ -3,33 +3,56 @@
 #include "Input.h"
 #include "Camera.h"
 
+#include "DebugShapes.h"
+
 namespace VGF
 {
-	using namespace JPH::literals;
+	static void* CreateDebugShape(const b3DebugShape* shape, void* context)
+	{
+		return static_cast<void*>(new DebugShapes::Shape(shape));
+	}
+
+	static void DestroyDebugShape(void* userShape, void* context)
+	{
+		if (userShape != nullptr) delete static_cast<DebugShapes::Shape*>(userShape);
+	}
 
 	Physics::Physics()
 	{
 		physics = this;
 
-		JPH::RegisterDefaultAllocator();	
-		JPH::Factory::sInstance = new JPH::Factory();
-		JPH::RegisterTypes();
+		b3WorldDef worldDef = b3DefaultWorldDef();
+		worldDef.createDebugShape = CreateDebugShape;
+		worldDef.destroyDebugShape = DestroyDebugShape;
+		worldDef.userDebugShapeContext = nullptr;
 
-		tempAllocator = new JPH::TempAllocatorImpl(10 * 1024 * 1024);
+		worldId = b3CreateWorld(&worldDef);
 
-		jobSystem.Init(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, std::thread::hardware_concurrency() - 1);
-		physicsSystem.Init(maxBodies, numBodyMutexes, maxBodyPairs, maxContactConstraints, broadPhaseLayerInterface, objectVsBroadphaseLayerFilter, objectVsObjectLayerFilter);
-
-		bodyInterface = &physicsSystem.GetBodyInterface();
-
-		const float deltaTime = 1.0f / 60.0f;
-		physicsSystem.OptimizeBroadPhase();
-
-		debugRenderer = new PhysicsDebugRenderer();
+		//JPH::RegisterDefaultAllocator();	
+		//JPH::Factory::sInstance = new JPH::Factory();
+		//JPH::RegisterTypes();
+		//
+		//tempAllocator = new JPH::TempAllocatorImpl(10 * 1024 * 1024);
+		//
+		//jobSystem.Init(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, std::thread::hardware_concurrency() - 1);
+		//physicsSystem.Init(maxBodies, numBodyMutexes, maxBodyPairs, maxContactConstraints, broadPhaseLayerInterface, objectVsBroadphaseLayerFilter, objectVsObjectLayerFilter);
+		//
+		//bodyInterface = &physicsSystem.GetBodyInterface();
+		//
+		//const float deltaTime = 1.0f / 60.0f;
+		//physicsSystem.OptimizeBroadPhase();
+		//
+		//debugRenderer = new PhysicsDebugRenderer();
 	}
 
 	float accumulator = 0;
 	float alpha = 0;
+
+	void Physics::Step(float deltaTime)
+	{
+		b3World_Step(worldId, deltaTime, 4);
+	}
+
 	void Physics::Update(float deltaTime)
 	{
 		accumulator += deltaTime;
@@ -37,7 +60,7 @@ namespace VGF
 
 		while (accumulator >= fixedDeltaTime)
 		{
-			physicsSystem.Update(fixedDeltaTime, 1, tempAllocator, &jobSystem);
+			Step(fixedDeltaTime);
 			accumulator -= fixedDeltaTime;
 		}
 
@@ -46,14 +69,7 @@ namespace VGF
 
 	Physics::~Physics()
 	{
-		JPH::UnregisterTypes();
-
-		delete JPH::Factory::sInstance;
-		JPH::Factory::sInstance = nullptr;
-
-		delete tempAllocator;
-		delete debugRenderer;
-
+		b3DestroyWorld(worldId);
 	}
 
 	VGF::Renderer* wireframeTriangles;
@@ -73,24 +89,24 @@ namespace VGF
 			data.view = camera.view;
 			matrixBuffer.SetData((void*)&data);
 
-			physicsSystem.DrawBodies(drawSettings, debugRenderer, &debugDrawFilter);
+			debugRenderer.Debug(worldId);
 
-			if (!debugRenderer->indices.empty() && !debugRenderer->vertices.empty())
+			if (!debugRenderer.indices.empty() && !debugRenderer.vertices.empty())
 			{
-				Triangles = new VGF::Renderer(debugRenderer->indices, debugRenderer->vertices, { MatrixBufferObject::getDefault() });
+				Triangles = new VGF::Renderer(debugRenderer.indices, debugRenderer.vertices, { MatrixBufferObject::getDefault() });
 				Triangles->Render(GetDefaultConfig(false), { &matrixBuffer });
 			}
-
-			if (!debugRenderer->wireframeIndices.empty() && !debugRenderer->wireframeVertices.empty())
+			
+			if (!debugRenderer.wireframeIndices.empty() && !debugRenderer.wireframeVertices.empty())
 			{
-				wireframeTriangles = new VGF::Renderer(debugRenderer->wireframeIndices, debugRenderer->wireframeVertices, { MatrixBufferObject::getDefault() });
+				wireframeTriangles = new VGF::Renderer(debugRenderer.wireframeIndices, debugRenderer.wireframeVertices, { MatrixBufferObject::getDefault() });
 				wireframeTriangles->Render(GetDefaultConfig(true), { &matrixBuffer });
 			}
 		}
 
-		debugRenderer->wireframeIndices.clear();
-		debugRenderer->wireframeVertices.clear();
-		debugRenderer->indices.clear();
-		debugRenderer->vertices.clear();
+		debugRenderer.wireframeIndices.clear();
+		debugRenderer.wireframeVertices.clear();
+		debugRenderer.indices.clear();
+		debugRenderer.vertices.clear();
 	}
 }

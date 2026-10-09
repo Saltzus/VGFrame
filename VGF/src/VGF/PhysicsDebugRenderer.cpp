@@ -1,116 +1,105 @@
 #include "PhysicsDebugRenderer.h"
 
+#include <glm/gtc/quaternion.hpp>
+
 #include "Physics.h"
+#include <VGF/DebugShapes.h>
 
 PhysicsDebugRenderer::PhysicsDebugRenderer()
 {
-	Initialize();
 }
 
-JPH::DebugRenderer::Batch PhysicsDebugRenderer::CreateTriangleBatch(const Triangle* inTriangles, int inTriangleCount)
+constexpr glm::vec3 HexToRGB(uint32_t hex)
 {
-	BatchImpl* batch = new BatchImpl;
-	if (inTriangles == nullptr || inTriangleCount == 0)
-		return batch;
-
-	batch->mTriangles.assign(inTriangles, inTriangles + inTriangleCount);
-	return batch;
+    return
+    {
+        ((hex >> 16) & 0xFF) / 255.0f,
+        ((hex >> 8) & 0xFF) / 255.0f,
+        (hex & 0xFF) / 255.0f
+    };
 }
 
-JPH::DebugRenderer::Batch PhysicsDebugRenderer::CreateTriangleBatch(const Vertex* inVertices, int inVertexCount, const JPH::uint32* inIndices, int inIndexCount)
+void DebugDrawSegment(b3Pos p1, b3Pos p2, b3HexColor color, void* context)
 {
-	BatchImpl* batch = new BatchImpl;
-	if (inVertices == nullptr || inVertexCount == 0 || inIndices == nullptr || inIndexCount == 0)
-		return batch;
+    auto* self = static_cast<PhysicsDebugRenderer*>(context);
+    glm::vec3 col = HexToRGB(color);
 
-	// Convert indexed triangle list to triangle list
-	batch->mTriangles.resize(inIndexCount / 3);
-	for (size_t t = 0; t < batch->mTriangles.size(); ++t)
-	{
-		Triangle& triangle = batch->mTriangles[t];
-		triangle.mV[0] = inVertices[inIndices[t * 3 + 0]];
-		triangle.mV[1] = inVertices[inIndices[t * 3 + 1]];
-		triangle.mV[2] = inVertices[inIndices[t * 3 + 2]];
-	}
+    self->wireframeVertices.insert(self->wireframeVertices.end(),
+        {
+            float(p1.x), float(p1.y), float(p1.z), col.r, col.g, col.b,
+            float(p2.x), float(p2.y), float(p2.z), col.r, col.g, col.b
+        });
 
-	return batch;
+    unsigned int base = static_cast<unsigned int>(self->wireframeVertices.size()) / 6;
+    self->wireframeIndices.push_back(base);
+    self->wireframeIndices.push_back(base + 1);
 }
 
-void PhysicsDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix, const JPH::AABox& inWorldSpaceBounds, float inLODScaleSq, JPH::ColorArg inModelColor, const GeometryRef& inGeometry, ECullMode inCullMode, ECastShadow inCastShadow, EDrawMode inDrawMode)
+void DebugDrawMeshData(MeshData data , b3HexColor color, void* context)
 {
-	// Figure out which LOD to use
-	const LOD* lod = inGeometry->mLODs.data();
-	if (mCameraPosSet)
-		lod = &inGeometry->GetLOD(JPH::Vec3(mCameraPos), inWorldSpaceBounds, inLODScaleSq);
+    auto* self = static_cast<PhysicsDebugRenderer*>(context);
+    glm::vec3 col = HexToRGB(color);
 
-	// Draw the batch
-	const BatchImpl* batch = static_cast<const BatchImpl*>(lod->mTriangleBatch.GetPtr());
-	
-	size_t triangleCount = batch->mTriangles.size();
+    unsigned int base = static_cast<unsigned int>(self->wireframeVertices.size()) / 6;
 
-	float* vertPointr = nullptr;
-	unsigned int* indxPointr = nullptr;
+    for (size_t i = 0; i < data.vertices.size(); i+=3)
+    {
+        self->wireframeVertices.insert(self->wireframeVertices.end(), { data.vertices[i], data.vertices[i + 1], data.vertices[i + 2], col.x, col.y, col.z });
+    }
+    
+    self->wireframeIndices.reserve(self->wireframeIndices.size() + data.indices.size());
+    for (unsigned int index : data.indices)
+    {
+        self->wireframeIndices.push_back(base + index);
+    }
+}
 
-	size_t oldVertexSize = 0;
-	size_t oldIndexSize = 0;
+bool DebugDrawShape(void* userShape, b3WorldTransform transform, b3HexColor color, void* context)
+{
+    if (!userShape) return false;
 
-	if (inDrawMode == EDrawMode::Wireframe)
-	{
-		oldVertexSize = wireframeVertices.size();
-		oldIndexSize = wireframeIndices.size();
+    DebugShapes::Shape* shape = static_cast<DebugShapes::Shape*>(userShape);
+    if (shape->data.vertices.empty()) return true;
 
-		wireframeVertices.resize(wireframeVertices.size() + triangleCount * 3 * 6);
-		wireframeIndices.resize(wireframeIndices.size() + triangleCount * 6);
+    std::vector<float> transformedVertices;
+    transformedVertices.reserve(shape->data.vertices.size());
 
-		vertPointr = &wireframeVertices[oldVertexSize];
-		indxPointr = &wireframeIndices[oldIndexSize];
-	}
-	else
-	{
-		oldVertexSize = vertices.size();
-		oldIndexSize = indices.size();
+    glm::vec3 position(transform.p.x, transform.p.y, transform.p.z);
+    glm::quat rotation(transform.q.s, transform.q.v.x, transform.q.v.y, transform.q.v.z);
 
-		vertices.resize(vertices.size() + triangleCount * 3 * 6);
-		indices.resize(indices.size() + triangleCount * 3);
+    for (size_t i = 0; i < shape->data.vertices.size(); i+=3)
+    {
+        glm::vec3 localVert(shape->data.vertices[i], shape->data.vertices[i + 1], shape->data.vertices[i + 2]);
+        glm::vec3 worldVert = (rotation * localVert) + position;
+        transformedVertices.insert(transformedVertices.end(), { worldVert.x, worldVert.y, worldVert.z });
+    }
 
-		vertPointr = &vertices[oldVertexSize];
-		indxPointr = &indices[oldIndexSize];
-	}
+    DebugDrawMeshData({transformedVertices, shape->data.indices}, color, context);
+    return true;
+}
 
-	unsigned int base = static_cast<unsigned int>(oldVertexSize) / 6;
+void DebugDrawBox(b3Vec3 extents, b3WorldTransform transform, b3HexColor color, void* context)
+{
+}
 
-	for (const Triangle& triangle : batch->mTriangles)
-	{
-		JPH::RVec3 v0 = inModelMatrix * JPH::Vec3(triangle.mV[0].mPosition);
-		JPH::RVec3 v1 = inModelMatrix * JPH::Vec3(triangle.mV[1].mPosition);
-		JPH::RVec3 v2 = inModelMatrix * JPH::Vec3(triangle.mV[2].mPosition);
-		
-		JPH::Color color = inModelColor * triangle.mV[0].mColor;
-		float r = color.r / 255.0f;
-		float g = color.g / 255.0f;
-		float b = color.b / 255.0f;
+void PhysicsDebugRenderer::Debug(b3WorldId world)
+{
+    b3DebugDraw debugDraw = b3DefaultDebugDraw();
+    debugDraw.context = this;
+    debugDraw.DrawSegmentFcn = DebugDrawSegment;
+    debugDraw.DrawShapeFcn = DebugDrawShape;
+    debugDraw.DrawBoxFcn = DebugDrawBox;
 
-		*vertPointr++ = (float)v0.GetX(); *vertPointr++ = (float)v0.GetY(); *vertPointr++ = (float)v0.GetZ(); *vertPointr++ = r; *vertPointr++ = g; *vertPointr++ = b;
-		*vertPointr++ = (float)v1.GetX(); *vertPointr++ = (float)v1.GetY(); *vertPointr++ = (float)v1.GetZ(); *vertPointr++ = r; *vertPointr++ = g; *vertPointr++ = b;
-		*vertPointr++ = (float)v2.GetX(); *vertPointr++ = (float)v2.GetY(); *vertPointr++ = (float)v2.GetZ(); *vertPointr++ = r; *vertPointr++ = g; *vertPointr++ = b;
-		
-		if (inDrawMode == EDrawMode::Wireframe)
-		{
-			*indxPointr++ = base;
-			*indxPointr++ = base + 1;
-			*indxPointr++ = base + 1;
-			*indxPointr++ = base + 2;
-			*indxPointr++ = base + 2;
-			*indxPointr++ = base;
-		}
-		else
-		{
-			*indxPointr++ = base;
-			*indxPointr++ = base + 1;
-			*indxPointr++ = base + 2;
-			
-		}
+    debugDraw.drawShapes = true;
+    debugDraw.drawJoints = true;
+    debugDraw.drawBounds = true;
+    debugDraw.drawContacts = true;
+    debugDraw.drawContactNormals = true;
+    debugDraw.drawAnchorA = true;
+    debugDraw.drawContactFeatures = true;
+    debugDraw.drawMass = true;
+    debugDraw.drawContactForces = true;
+    debugDraw.drawIslands = true;
 
-		base += 3;
-	}
+    b3World_Draw(world, &debugDraw, UINT64_MAX);
 }

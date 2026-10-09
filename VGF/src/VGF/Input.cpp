@@ -157,10 +157,10 @@ namespace VGF::Input
 
 
 		JPH::RRayCast raycast{ rayOrigin, rayDirection * rayDistance };
-		JPH::IgnoreSingleBodyFilter filter(ignoreBody);
+		//JPH::IgnoreSingleBodyFilter filter(ignoreBody);
 
 		JPH::RayCastResult result;
-		bool had_hit = physics.physicsSystem.GetNarrowPhaseQuery().CastRay(raycast, result, {}, {}, filter);
+		//bool had_hit = physics.physicsSystem.GetNarrowPhaseQuery().CastRay(raycast, result, {}, {}, filter);
 
 		JPH::Vec3 outPosition = raycast.GetPointOnRay(result.mFraction);
 		outHitPos = { outPosition.GetX(), outPosition.GetY(), outPosition.GetZ() };
@@ -168,11 +168,11 @@ namespace VGF::Input
 		float outFraction = result.mFraction;
 		outBodyID = result.mBodyID;
 
-		if (had_hit)
-			physics.debugRenderer->DrawMarker(outPosition, JPH::Color::sRed, 0.1f);
-		else
-			physics.debugRenderer->DrawMarker(rayOrigin + 0.1f * rayDirection, JPH::Color::sYellow, 0.001f);
+		//if (had_hit)
+		//	physics.debugRenderer->DrawMarker(outPosition, JPH::Color::sRed, 0.1f);
+		//else
+		//	physics.debugRenderer->DrawMarker(rayOrigin + 0.1f * rayDirection, JPH::Color::sYellow, 0.001f);
 
-		return had_hit;
+		return false;
 	}
 }

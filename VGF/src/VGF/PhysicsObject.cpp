@@ -18,63 +18,65 @@ namespace VGF
     {
         SetScale(size);
 
-        JPH::ObjectLayer layer = PhysicsLayers::NON_MOVING;
+        //JPH::ObjectLayer layer = PhysicsLayers::NON_MOVING;
         JPH::EMotionType motionType = JPH::EMotionType::Static;
 
         if (mass > 0)
         {
-            layer = PhysicsLayers::MOVING;
+            //layer = PhysicsLayers::MOVING;
             motionType = JPH::EMotionType::Dynamic;
         }
 
-        JPH::BoxShapeSettings bodyShapeSettings(size / 2);
-        bodyShapeSettings.SetEmbedded();
+        //JPH::BoxShapeSettings bodyShapeSettings(size / 2);
+        //bodyShapeSettings.SetEmbedded();
 
-        JPH::ShapeSettings::ShapeResult bodyShapeResult = bodyShapeSettings.Create();
-        JPH::ShapeRefC bodyShape = bodyShapeResult.Get();
-
-        JPH::BodyCreationSettings bodySettings(bodyShape, origin, JPH::Quat::sIdentity(), motionType, layer);
-
-        JPH::MassProperties msp;
-        msp.ScaleToMass(mass);
-
-        bodySettings.mMassPropertiesOverride = msp;
-        bodySettings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
-
-        body = physics->bodyInterface->CreateBody(bodySettings);
-        physics->bodyInterface->AddBody(body->GetID(), JPH::EActivation::DontActivate);
+        //JPH::ShapeSettings::ShapeResult bodyShapeResult = bodyShapeSettings.Create();
+        //JPH::ShapeRefC bodyShape = bodyShapeResult.Get();
+        //
+        //JPH::BodyCreationSettings bodySettings(bodyShape, origin, JPH::Quat::sIdentity(), motionType, layer);
+        //
+        //JPH::MassProperties msp;
+        //msp.ScaleToMass(mass);
+        //
+        //bodySettings.mMassPropertiesOverride = msp;
+        //bodySettings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
+        //
+        //body = physics->bodyInterface->CreateBody(bodySettings);
+        //physics->bodyInterface->AddBody(body->GetID(), JPH::EActivation::DontActivate);
     }
 
     PhysicsObject::~PhysicsObject()
     {
-        _physics->bodyInterface->RemoveBody(body->GetID());
-        _physics->bodyInterface->DestroyBody(body->GetID());
+        //_physics->bodyInterface->RemoveBody(body->GetID());
+        //_physics->bodyInterface->DestroyBody(body->GetID());
     }
 
     glm::mat4 PhysicsObject::CreateModelMatrix(glm::mat4 cameraViewMatrix) const
     {
-        JPH::RMat44 joltMat = _physics->bodyInterface->GetWorldTransform(body->GetID());
+        //JPH::RMat44 joltMat = _physics->bodyInterface->GetWorldTransform(body->GetID());
 
-        glm::mat4 model
-        (
-            joltMat.GetColumn4(0).GetX(), joltMat.GetColumn4(0).GetY(), joltMat.GetColumn4(0).GetZ(), joltMat.GetColumn4(0).GetW(),
-            joltMat.GetColumn4(1).GetX(), joltMat.GetColumn4(1).GetY(), joltMat.GetColumn4(1).GetZ(), joltMat.GetColumn4(1).GetW(),
-            joltMat.GetColumn4(2).GetX(), joltMat.GetColumn4(2).GetY(), joltMat.GetColumn4(2).GetZ(), joltMat.GetColumn4(2).GetW(),
-            joltMat.GetColumn4(3).GetX(), joltMat.GetColumn4(3).GetY(), joltMat.GetColumn4(3).GetZ(), joltMat.GetColumn4(3).GetW()
-        );
+        //glm::mat4 model
+        //(
+        //    joltMat.GetColumn4(0).GetX(), joltMat.GetColumn4(0).GetY(), joltMat.GetColumn4(0).GetZ(), joltMat.GetColumn4(0).GetW(),
+        //    joltMat.GetColumn4(1).GetX(), joltMat.GetColumn4(1).GetY(), joltMat.GetColumn4(1).GetZ(), joltMat.GetColumn4(1).GetW(),
+        //    joltMat.GetColumn4(2).GetX(), joltMat.GetColumn4(2).GetY(), joltMat.GetColumn4(2).GetZ(), joltMat.GetColumn4(2).GetW(),
+        //    joltMat.GetColumn4(3).GetX(), joltMat.GetColumn4(3).GetY(), joltMat.GetColumn4(3).GetZ(), joltMat.GetColumn4(3).GetW()
+        //);
 
-        return glm::scale(model, _scale);
+        //return glm::scale(model, _scale);
+
+        return glm::mat4(1.f);
     }
 
     void PhysicsObject::SetPosition(const JPH::Vec3 position)
     {
-        _physics->bodyInterface->SetPosition(body->GetID(), JPH::Vec3(position.GetX(), position.GetY(), position.GetZ()), JPH::EActivation::Activate);
-        _position = glm::vec3(position.GetX(), position.GetY(), position.GetZ());
+        //_physics->bodyInterface->SetPosition(body->GetID(), JPH::Vec3(position.GetX(), position.GetY(), position.GetZ()), JPH::EActivation::Activate);
+        //_position = glm::vec3(position.GetX(), position.GetY(), position.GetZ());
     }
 
     void PhysicsObject::SetRotation(const JPH::Quat rotation) {
-        _physics->bodyInterface->SetRotation(body->GetID(), rotation, JPH::EActivation::Activate);
-        _rotation = glm::quat(rotation.GetX(), rotation.GetY(), rotation.GetZ(), rotation.GetW());
+        //_physics->bodyInterface->SetRotation(body->GetID(), rotation, JPH::EActivation::Activate);
+        //_rotation = glm::quat(rotation.GetX(), rotation.GetY(), rotation.GetZ(), rotation.GetW());
     }
 
     void PhysicsObject::SetScale(const float x, const float y, const float z)
