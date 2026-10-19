@@ -746,8 +746,12 @@ namespace VGF
 		const glm::mat4 modelMatrix = parentMatrix * node->GetLocalMatrix();
 		const auto& mesh = node->mesh;
 
-		if (node->skin != -1) uniformBuffers[animationBuffer] = new AnimationBufferObject(skins[node->skin].buffers[0]);
-
+		if (node->skin != -1)
+		{
+			if (uniformBuffers[animationBuffer]) delete uniformBuffers[animationBuffer];
+			uniformBuffers[animationBuffer] = new AnimationBufferObject(skins[node->skin].buffers[0]);
+		}
+			
 		if (node->mesh.rendererIndex != -1)
 		{
 			Renderer* renderer = modelRenderers[node->mesh.rendererIndex];
@@ -775,13 +779,13 @@ namespace VGF
 		else
 		{
 			if (!animations.empty()) UpdateAnimation(0, VGF::Time::GetDeltaTime());
-
+	
 			for (auto &node : linearNodes)
 			{
 				if (node->parent == nullptr)
 					UpdateJoints(node);
 			}
-
+			
 			for (const auto node : linearNodes)
 			{
 				if (node->parent != nullptr) continue;
