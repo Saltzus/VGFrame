@@ -462,13 +462,6 @@ namespace VGF::Vulkan
         createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
         createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-        if (enableValidationLayers) 
-        {
-            createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-            createInfo.ppEnabledLayerNames = validationLayers.data();
-        }
-        else createInfo.enabledLayerCount = 0;
-
         if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
             VGF::Log::Error("Failed to create logical device!");
         }
@@ -1618,7 +1611,7 @@ namespace VGF::Vulkan
 
     void Vulkan::createInstance() 
     {
-        if (enableValidationLayers && !checkValidationLayerSupport()) {
+        if (!checkValidationLayerSupport() && enableValidationLayers) {
             VGF::Log::Error("Validation layers requested, but not available!");
         }
 
