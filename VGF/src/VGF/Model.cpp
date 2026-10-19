@@ -11,55 +11,65 @@ namespace VGF
 		: config(config)
 	{
 		tinygltf::Model gltfModel;
-		tinygltf::TinyGLTF loader;
-		std::string err, warn;
-
-		bool ret = false;
-		std::string extension = modelPath.substr(modelPath.find_last_of(".") + 1);
-		std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-
-		if (extension == "glb")
-			ret = loader.LoadBinaryFromFile(&gltfModel, &err, &warn, modelPath);
-		else if (extension == "gltf")
-			ret = loader.LoadASCIIFromFile(&gltfModel, &err, &warn, modelPath);
+		if (auto it = gltfModels.find(modelPath); it != gltfModels.end())
+		{
+			gltfModel = it->second;
+		}
 		else
-			err = "Unsupported file extension: " + extension + ". Expected .gltf or .glb";
+		{
+			tinygltf::TinyGLTF loader;
+			std::string err, warn;
 
-		if (!warn.empty())
-			std::cout << "glTF warning: " << warn << std::endl;
-		if (!err.empty())
-			std::cout << "glTF error: " << err << std::endl;
-		if (!ret)
-			throw std::runtime_error("Failed to load glTF model");
+			bool ret = false;
+			std::string extension = modelPath.substr(modelPath.find_last_of(".") + 1);
+			std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
 
+			if (extension == "glb")
+				ret = loader.LoadBinaryFromFile(&gltfModel, &err, &warn, modelPath);
+			else if (extension == "gltf")
+				ret = loader.LoadASCIIFromFile(&gltfModel, &err, &warn, modelPath);
+			else
+				err = "Unsupported file extension: " + extension + ". Expected .gltf or .glb";
+
+			if (!warn.empty())
+				std::cout << "glTF warning: " << warn << std::endl;
+			if (!err.empty())
+				std::cout << "glTF error: " << err << std::endl;
+			if (!ret)
+				throw std::runtime_error("Failed to load glTF model");
+		}
+		
 		_textures = createTextureObjects(gltfModel);
 
+		// add nodes.
 		for (size_t i = 0; i < gltfModel.nodes.size(); i++)
 		{
 			const auto& node = gltfModel.nodes[i];
-			linearNodes.push_back(new Node);
-			linearNodes[i]->index = static_cast<uint32_t>(i);
-			linearNodes[i]->name = node.name;
-			linearNodes[i]->skin = node.skin;
+			nodes.push_back(new Node);
+			nodes[i]->index = static_cast<uint32_t>(i);
+			nodes[i]->name = node.name;
+			nodes[i]->skin = node.skin;
 
 			if (node.translation.size() == 3)
-				linearNodes[i]->translation = glm::vec3(node.translation[0], node.translation[1], node.translation[2]);
+				nodes[i]->translation = glm::vec3(node.translation[0], node.translation[1], node.translation[2]);
 			if (node.rotation.size() == 4)
-				linearNodes[i]->rotation = glm::quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
+				nodes[i]->rotation = glm::quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
 			if (node.scale.size() == 3)
-				linearNodes[i]->scale = glm::vec3(node.scale[0], node.scale[1], node.scale[2]);
+				nodes[i]->scale = glm::vec3(node.scale[0], node.scale[1], node.scale[2]);
 		}
 
+		// add node hierarchy.
 		for (size_t i = 0; i < gltfModel.nodes.size(); i++)
 		{
 			const auto& node = gltfModel.nodes[i];
 			for (int childIdx : node.children)
 			{
-				linearNodes[childIdx]->parent = linearNodes[i];
-				linearNodes[i]->children.push_back(linearNodes[childIdx]);
+				nodes[childIdx]->parent = nodes[i];
+				nodes[i]->children.push_back(nodes[childIdx]);
 			}
 		}
 
+		// add node meshes.
 		for (size_t i = 0; i < gltfModel.nodes.size(); i++)
 		{
 			const auto& node = gltfModel.nodes[i];
@@ -72,7 +82,7 @@ namespace VGF
 					if (primitive.material >= 0) newMesh.materialIndex = primitive.material;
 
 				LoadMeshData(gltfModel, gltfModel.meshes[node.mesh], newMesh.vertices, newMesh.indices);
-				linearNodes[i]->mesh = newMesh;
+				nodes[i]->mesh = newMesh;
 			}
 		}
 
@@ -157,7 +167,7 @@ namespace VGF
 				if(channel.target_path == "weights")		animChannel.path;
 
 				animChannel.samplerIndex = channel.sampler;
-				animChannel.node         = linearNodes[channel.target_node];
+				animChannel.node         = nodes[channel.target_node];
 
 				animation.channels.push_back(animChannel);
 			}
@@ -176,11 +186,11 @@ namespace VGF
 			// Find joint nodes
 			for (int jointIndex : glTFSkin.joints)
 			{
-				Node *node = linearNodes[jointIndex];
+				Node *node = nodes[jointIndex];
 				if (node)
 				{
 					if (!node->parent || std::ranges::find(glTFSkin.joints, node->parent->index) == glTFSkin.joints.end())
-						skins[i].skeletonRoot = linearNodes[jointIndex];
+						skins[i].skeletonRoot = nodes[jointIndex];
 
 					skins[i].joints.push_back(node);
 				}
@@ -208,14 +218,12 @@ namespace VGF
 		renderUniformBuffers.insert(renderUniformBuffers.end(), uniformBuffers.begin(), uniformBuffers.end());
 		renderUniformBuffers.insert(renderUniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
 
-		for (auto& node : linearNodes)
+		for (auto& node : nodes)
 		{
 			if (node->mesh.indices.empty()) continue;
 			modelRenderers.emplace_back(new Renderer(node->mesh.indices, node->mesh.vertices, renderUniformBuffers));
 			node->mesh.rendererIndex = modelRenderers.size()-1;
 		}
-
-		std::cout << "Model Loaded Succesfully\n";
 	}
 
 	Model::Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers) 
@@ -228,10 +236,10 @@ namespace VGF
 		mesh.vertices = vertices;
 		mesh.indices = indices;
 
-		linearNodes[0] = new Node();
-		linearNodes[0]->index = static_cast<uint32_t>(0);
-		linearNodes[0]->name = "unnamed";
-		linearNodes[0]->mesh = mesh;
+		nodes[0] = new Node();
+		nodes[0]->index = static_cast<uint32_t>(0);
+		nodes[0]->name = "unnamed";
+		nodes[0]->mesh = mesh;
 
 
 		std::vector<UniformBufferObject*> renderUniformBuffers;
@@ -239,9 +247,9 @@ namespace VGF
 		renderUniformBuffers.insert(renderUniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
 
 
-		for (auto& node : linearNodes)
+		for (auto& node : nodes)
 		{
-			for (auto node : linearNodes) continue;
+			for (auto node : nodes) continue;
 			modelRenderers.emplace_back(new Renderer(node->mesh.indices, node->mesh.vertices, renderUniformBuffers));
 			node->mesh.rendererIndex = modelRenderers.size()-1;
 		}
@@ -251,7 +259,7 @@ namespace VGF
 	{
 		for (auto& uniform : uniformBuffers)	delete uniform;
 		for (auto& renderer : modelRenderers)	delete renderer;
-		for (auto& node : linearNodes)			delete node;
+		for (auto& node : nodes)			delete node;
 	}
 
 	/// Read flat floats from an accessor
@@ -360,7 +368,7 @@ namespace VGF
 		std::vector<glm::quat> originalRotations;
 		std::vector<glm::vec3> originalScales;
 
-		for (const Node* node : linearNodes)
+		for (const Node* node : nodes)
 		{
 			originalTranslations.push_back(node->translation);
 			originalRotations.push_back(node->rotation);
@@ -375,7 +383,7 @@ namespace VGF
 		std::vector<glm::quat> fromRotations;
 		std::vector<glm::vec3> fromScales;
 
-		for (const Node* node : linearNodes)
+		for (const Node* node : nodes)
 		{
 			fromTranslations.push_back(node->translation);
 			fromRotations.push_back(node->rotation);
@@ -383,22 +391,22 @@ namespace VGF
 		}
 
 		// Restore original transformations
-		for (size_t i = 0; i < linearNodes.size(); i++)
+		for (size_t i = 0; i < nodes.size(); i++)
 		{
-			linearNodes[i]->translation = originalTranslations[i];
-			linearNodes[i]->rotation = originalRotations[i];
-			linearNodes[i]->scale = originalScales[i];
+			nodes[i]->translation = originalTranslations[i];
+			nodes[i]->rotation = originalRotations[i];
+			nodes[i]->scale = originalScales[i];
 		}
 
 		// Apply second animation fully
 		UpdateAnimation(toAnimation, 0.0f);
 
 		// Blend between the two animations
-		for (size_t i = 0; i < linearNodes.size(); i++)
+		for (size_t i = 0; i < nodes.size(); i++)
 		{
-			linearNodes[i]->translation = glm::mix(fromTranslations[i], linearNodes[i]->translation, blendFactor);
-			linearNodes[i]->rotation = glm::slerp(fromRotations[i], linearNodes[i]->rotation, blendFactor);
-			linearNodes[i]->scale = glm::mix(fromScales[i], linearNodes[i]->scale, blendFactor);
+			nodes[i]->translation = glm::mix(fromTranslations[i], nodes[i]->translation, blendFactor);
+			nodes[i]->rotation = glm::slerp(fromRotations[i], nodes[i]->rotation, blendFactor);
+			nodes[i]->scale = glm::mix(fromScales[i], nodes[i]->scale, blendFactor);
 		}
 	}
 
@@ -742,7 +750,7 @@ namespace VGF
 
 	void Model::drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const PipelineConfig& config, const Camera& camera, LightBufferObject lightBufffer)
 	{
-		const auto& node = linearNodes[nodeIdx];
+		const auto& node = nodes[nodeIdx];
 		const glm::mat4 modelMatrix = parentMatrix * node->GetLocalMatrix();
 		const auto& mesh = node->mesh;
 
@@ -780,13 +788,13 @@ namespace VGF
 		{
 			if (!animations.empty()) UpdateAnimation(0, VGF::Time::GetDeltaTime());
 	
-			for (auto &node : linearNodes)
+			for (auto &node : nodes)
 			{
 				if (node->parent == nullptr)
 					UpdateJoints(node);
 			}
 			
-			for (const auto node : linearNodes)
+			for (const auto node : nodes)
 			{
 				if (node->parent != nullptr) continue;
 				drawNodes(node->index, parentMatrix, config, camera, *LightBufferObject::getDefault());

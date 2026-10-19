@@ -112,8 +112,9 @@ namespace VGF
 		PipelineConfig config;
 		//tinygltf::Model model;
 
+		static inline std::unordered_map<std::string, tinygltf::Model> gltfModels;
+
 		std::vector<Node*> nodes;
-		std::vector<Node*> linearNodes;
 
 		std::vector<tinygltf::Material> materials;
 		std::vector<tinygltf::Texture> textures;
@@ -122,11 +123,11 @@ namespace VGF
 		std::vector<Skin> skins;
 
 		Node* FindNode(const std::string& name) {
-			auto nodeIt = std::ranges::find_if(linearNodes, [&name](auto const& node)
+			auto nodeIt = std::ranges::find_if(nodes, [&name](auto const& node)
 			{
 				return node->name == name;
 			});
-			return (nodeIt != linearNodes.end()) ? *nodeIt : nullptr;
+			return (nodeIt != nodes.end()) ? *nodeIt : nullptr;
 		}
 
 		void UpdateAnimation(unsigned int index, float deltaTime);
