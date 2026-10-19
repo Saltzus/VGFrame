@@ -18,7 +18,6 @@ target("VGF")
         "tinygltf",
         "volk",
         "vulkan-headers",
-        "vulkan-validationlayers",
         "freetype",
         "nlohmann_json",
         "tracy",

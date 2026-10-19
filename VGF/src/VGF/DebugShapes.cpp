@@ -1,5 +1,7 @@
 #include "DebugShapes.h"
 
+#include <cstring>
+
 #include "glm/glm.hpp"
 
 glm::vec3 GetAnyPerpendicularUnitVector(const glm::vec3& vec)

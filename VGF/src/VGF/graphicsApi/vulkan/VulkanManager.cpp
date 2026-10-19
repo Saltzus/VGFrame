@@ -414,7 +414,10 @@ namespace VGF::Vulkan
     void Vulkan::createSurface(GLFWwindow* window) 
     {
         if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
-            VGF::Log::Error("Failed to create window surface!");
+            VGF::Log::Warn("Failed to create window surface!");
+            const char* desc = nullptr;
+            glfwGetError(&desc);
+            VGF::Log::Error("GLFWERROR : " + std::string(desc));
         }
     }
 
@@ -1678,6 +1681,12 @@ namespace VGF::Vulkan
 
     std::vector<const char*> Vulkan::getRequiredExtensions() 
     {
+        if (!glfwVulkanSupported())
+        {
+            VGF::Log::Error("vulkan not supported by glfw");
+        }
+        
+
         uint32_t glfwExtensionCount = 0;
         const char** glfwExtensions;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);

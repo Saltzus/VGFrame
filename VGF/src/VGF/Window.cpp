@@ -49,11 +49,11 @@ namespace VGF
 			glfwTerminate();
 		}
 
-		glfwMakeContextCurrent(GLFW_Window);
 		glfwSetFramebufferSizeCallback(GLFW_Window, framebuffer_size_callback);
 
 		if (Renderer::GetGraphicsApi() == GraphicsApis::OpenGL)
 		{
+			glfwMakeContextCurrent(GLFW_Window);
 			if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress))
 			{
 				std::cout << "Failed to initialize GLAD" << std::endl;
