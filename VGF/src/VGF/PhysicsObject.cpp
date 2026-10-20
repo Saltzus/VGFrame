@@ -2,96 +2,67 @@
 
 namespace VGF
 {
-    using namespace JPH::literals;
-
-    PhysicsObject::PhysicsObject(std::string modelPath, Physics* physics, JPH::Vec3 origin, JPH::Vec3 size, float mass) : Object(modelPath), _physics(physics)
+    PhysicsObject::PhysicsObject(std::string modelPath, Physics* physics, b3Vec3 origin, b3Vec3 size, b3BodyType type, float density) : Object(modelPath), _physics(physics)
     {
-        InitObject(physics, origin, size, mass);
+        InitObject(physics, origin, size, type, density);
     }
 
-    PhysicsObject::PhysicsObject(Model& model, Physics* physics, JPH::Vec3 origin, JPH::Vec3 size, float mass) : Object(model), _physics(physics)
+    PhysicsObject::PhysicsObject(Model& model, Physics* physics, b3Vec3 origin, b3Vec3 size, b3BodyType type, float density) : Object(model), _physics(physics)
     {
-        InitObject(physics, origin, size, mass);
+        InitObject(physics, origin, size, type, density);
     }
 
-    void PhysicsObject::InitObject(Physics* physics, JPH::Vec3 origin, JPH::Vec3 size, float mass)
+    void PhysicsObject::InitObject(Physics* physics, b3Vec3 origin, b3Vec3 size, b3BodyType type, float density)
     {
         SetScale(size);
 
-        //JPH::ObjectLayer layer = PhysicsLayers::NON_MOVING;
-        JPH::EMotionType motionType = JPH::EMotionType::Static;
+        b3BodyDef bodyDef = b3DefaultBodyDef();
+        bodyDef.type = type;
+        bodyDef.position = origin;
+        b3BodyId bodyId = b3CreateBody(physics->worldId, &bodyDef);
 
-        if (mass > 0)
-        {
-            //layer = PhysicsLayers::MOVING;
-            motionType = JPH::EMotionType::Dynamic;
-        }
+        b3BoxHull dynamicBox = b3MakeBoxHull(size.x/2,size.y/2,size.z/2);
 
-        //JPH::BoxShapeSettings bodyShapeSettings(size / 2);
-        //bodyShapeSettings.SetEmbedded();
+        b3ShapeDef shapeDef = b3DefaultShapeDef();
+        shapeDef.density = density;
+        shapeDef.baseMaterial.friction = 0.3f;
 
-        //JPH::ShapeSettings::ShapeResult bodyShapeResult = bodyShapeSettings.Create();
-        //JPH::ShapeRefC bodyShape = bodyShapeResult.Get();
-        //
-        //JPH::BodyCreationSettings bodySettings(bodyShape, origin, JPH::Quat::sIdentity(), motionType, layer);
-        //
-        //JPH::MassProperties msp;
-        //msp.ScaleToMass(mass);
-        //
-        //bodySettings.mMassPropertiesOverride = msp;
-        //bodySettings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
-        //
-        //body = physics->bodyInterface->CreateBody(bodySettings);
-        //physics->bodyInterface->AddBody(body->GetID(), JPH::EActivation::DontActivate);
+        b3CreateHullShape(bodyId, &shapeDef, &dynamicBox.base);
     }
 
     PhysicsObject::~PhysicsObject()
     {
-        //_physics->bodyInterface->RemoveBody(body->GetID());
-        //_physics->bodyInterface->DestroyBody(body->GetID());
+        if (b3Body_IsValid(body)) b3DestroyBody(body);
     }
 
     glm::mat4 PhysicsObject::CreateModelMatrix(glm::mat4 cameraViewMatrix) const
     {
-        //JPH::RMat44 joltMat = _physics->bodyInterface->GetWorldTransform(body->GetID());
+        const b3Vec3& b3Position = b3Body_GetPosition(body);
+        const b3Quat& b3Rotation = b3Body_GetRotation(body);
 
-        //glm::mat4 model
-        //(
-        //    joltMat.GetColumn4(0).GetX(), joltMat.GetColumn4(0).GetY(), joltMat.GetColumn4(0).GetZ(), joltMat.GetColumn4(0).GetW(),
-        //    joltMat.GetColumn4(1).GetX(), joltMat.GetColumn4(1).GetY(), joltMat.GetColumn4(1).GetZ(), joltMat.GetColumn4(1).GetW(),
-        //    joltMat.GetColumn4(2).GetX(), joltMat.GetColumn4(2).GetY(), joltMat.GetColumn4(2).GetZ(), joltMat.GetColumn4(2).GetW(),
-        //    joltMat.GetColumn4(3).GetX(), joltMat.GetColumn4(3).GetY(), joltMat.GetColumn4(3).GetZ(), joltMat.GetColumn4(3).GetW()
-        //);
+        glm::vec3 glmPosition = { b3Position.x, b3Position.y, b3Position.z };
+        glm::quat glmRotation = { b3Rotation.s, b3Rotation.v.x, b3Rotation.v.y, b3Rotation.v.z };
 
-        //return glm::scale(model, _scale);
-
-        return glm::mat4(1.f);
+        glm::mat4 transform = glm::mat4_cast(glmRotation);
+        return glm::translate(glm::mat4(1.f), glmPosition) * transform;
     }
 
-    void PhysicsObject::SetPosition(const JPH::Vec3 position)
+    void PhysicsObject::SetPosition(const b3Vec3 position)
     {
-        //_physics->bodyInterface->SetPosition(body->GetID(), JPH::Vec3(position.GetX(), position.GetY(), position.GetZ()), JPH::EActivation::Activate);
-        //_position = glm::vec3(position.GetX(), position.GetY(), position.GetZ());
+        b3Body_SetTransform(body, position, b3Body_GetRotation(body));
+        _position = glm::vec3(position.x, position.y, position.z);
     }
 
-    void PhysicsObject::SetRotation(const JPH::Quat rotation) {
-        //_physics->bodyInterface->SetRotation(body->GetID(), rotation, JPH::EActivation::Activate);
-        //_rotation = glm::quat(rotation.GetX(), rotation.GetY(), rotation.GetZ(), rotation.GetW());
+    void PhysicsObject::SetRotation(const b3Quat rotation) 
+    {
+        b3Body_SetTransform(body, b3Body_GetPosition(body), rotation);
+        _rotation = glm::quat(rotation.s, rotation.v.x, rotation.v.y, rotation.v.z);
     }
 
     void PhysicsObject::SetScale(const float x, const float y, const float z)
     {
-        JPH::Vec3 newScale(x, y, z);
-        
-        
-       //_physics->bodyInterface->SetShape(
-       //    body->GetID(),
-       //    scaledShape,
-       //    true,
-       //    JPH::EActivation::Activate
-       //);
-        
-        _scale = glm::vec3(x, y, z);
+        b3Vec3 newScale = { x, y, z };
+        _scale = { x, y, z };
     }
 
 }

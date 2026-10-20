@@ -5,15 +5,15 @@ namespace VGF::Log
 {
     void const Info(const std::string text)
     {
-        std::cout << "[INFO] " << text << "\n";
+        std::cout << "\x1B[36m[INFO]\033[0m\t" << text << "\n";
     }
     void const Warn(const std::string text)
     {
-        std::cout << "[WARNING] " << text << "\n";
+        std::cout << "\x1B[33m[WARNING]\033[0m\t" << text << "\n";
     }
     void const Error(const std::string text)
     {
-        std::cout << "[ERROR] " << text << "\n";
+        std::cout << "\x1B[31m[ERROR]\033[0m\t" << text << "\n";
         throw std::runtime_error(text);
     }
 }

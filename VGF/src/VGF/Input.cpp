@@ -4,9 +4,6 @@
 #include "Gui.h"
 #include "Physics.h"
 
-#include <Jolt/Physics/Collision/RayCast.h>
-#include <Jolt/Physics/Collision/CastResult.h>
-
 namespace VGF::Input
 {
 	void ScreenPosToWorldRay
@@ -19,13 +16,15 @@ namespace VGF::Input
 		glm::vec3& out_direction
 	)
 	{
-		glm::vec4 lRayStart_NDC(
+		glm::vec4 lRayStart_NDC
+		(
 			((float)mouseX / (float)screenWidth - 0.5f) * 2.0f,
 			((float)mouseY / (float)screenHeight - 0.5f) * 2.0f,
 			-1.0,
 			1.0f
 		);
-		glm::vec4 lRayEnd_NDC(
+		glm::vec4 lRayEnd_NDC
+		(
 			((float)mouseX / (float)screenWidth - 0.5f) * 2.0f,
 			((float)mouseY / (float)screenHeight - 0.5f) * 2.0f,
 			0.0,
@@ -142,7 +141,7 @@ namespace VGF::Input
 		posY = -posY;
 	}
 
-	bool pickObject(const Window* window, Physics& physics, Camera* camera, JPH::BodyID& outBodyID, glm::vec3& outHitPos, const JPH::BodyID& ignoreBody)
+	bool pickObject(const Window* window, Physics& physics, Camera* camera, b3BodyId& outBodyID, glm::vec3& outHitPos, const b3BodyId& ignoreBody)
 	{
 		glm::vec3 origin;
 		glm::vec3 direction;
@@ -151,28 +150,17 @@ namespace VGF::Input
 		ScreenPosToWorldRay((int)mouseX, (int)mouseY, window->width, window->height, camera->view, camera->projection, origin, direction);
 
 		float rayDistance = 1000.0f;
-		JPH::Vec3 rayOrigin = { origin.x, origin.y , origin.z };
-		JPH::Vec3 rayDirection = { direction.x, direction.y , direction.z };
-		JPH::Vec3 rayEnd = rayOrigin + rayDirection * rayDistance;
+		b3Vec3 rayOrigin = { origin.x, origin.y , origin.z };
+		b3Vec3 rayDirection = { direction.x, direction.y , direction.z };
 
+		b3QueryFilter queryFilter = b3DefaultQueryFilter();
 
-		JPH::RRayCast raycast{ rayOrigin, rayDirection * rayDistance };
-		//JPH::IgnoreSingleBodyFilter filter(ignoreBody);
+		RaycastContext context;
+		context.ignoreBody = ignoreBody;
 
-		JPH::RayCastResult result;
-		//bool had_hit = physics.physicsSystem.GetNarrowPhaseQuery().CastRay(raycast, result, {}, {}, filter);
+		b3World_CastRay(physics.worldId, rayOrigin, rayDirection, queryFilter, RayCastCallback, &context);
 
-		JPH::Vec3 outPosition = raycast.GetPointOnRay(result.mFraction);
-		outHitPos = { outPosition.GetX(), outPosition.GetY(), outPosition.GetZ() };
-
-		float outFraction = result.mFraction;
-		outBodyID = result.mBodyID;
-
-		//if (had_hit)
-		//	physics.debugRenderer->DrawMarker(outPosition, JPH::Color::sRed, 0.1f);
-		//else
-		//	physics.debugRenderer->DrawMarker(rayOrigin + 0.1f * rayDirection, JPH::Color::sYellow, 0.001f);
-
-		return false;
+		if (context.hit) return true;
+		else return false;
 	}
 }

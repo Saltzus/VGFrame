@@ -16,6 +16,35 @@
 
 namespace VGF
 {
+	struct RaycastContext
+	{
+		b3BodyId ignoreBody;
+		b3ShapeId shapeId;
+		b3Vec3 point;
+		b3Vec3 normal;
+		float fraction;
+		bool hit = false;
+	};
+
+	static float RayCastCallback(b3ShapeId shapeId, b3Pos point, b3Vec3 normal, float fraction, uint64_t usermaterialId, int triangleIndex, int childIndex, void* context)
+	{
+		RaycastContext* myContext = static_cast<RaycastContext*>(context);
+		b3BodyId bodyId = b3Shape_GetBody(shapeId);
+
+		if (bodyId.index1 == myContext->ignoreBody.index1 && bodyId.world0 == myContext->ignoreBody.world0)
+		{
+			return -1.f;
+		}
+
+		myContext->shapeId = shapeId;
+		myContext->point = point;
+		myContext->normal = normal;
+		myContext->fraction = fraction;
+		myContext->hit = true;
+
+		return fraction;
+	};
+
 	class Camera;
 	class Physics
 	{

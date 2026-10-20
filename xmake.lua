@@ -34,7 +34,6 @@ package_end()
 add_requires("slang")
 
 add_requires("imgui 1.92.9", {configs = {glfw = true, opengl3 = true, vulkan = true, volk = true}})
-add_requires("joltphysics", {configs = {rtti = true, debug_renderer = true}})
 
 add_rules("mode.debug", "mode.release")
 set_languages("c++20")
