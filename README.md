@@ -1,3 +1,11 @@
+## Build
+You will need [xmake](https://xmake.io/) to build the project for windows or linux.
+
+build command for the project is ```xmake```.
+
+## Examples
+Code examples for VGFrame can be found in [Examples](Examples) folder.
+
 ## Libraries
 - [Vulkan](https://www.vulkan.org/)
 - [Opengl](https://www.opengl.org/)
@@ -13,6 +21,3 @@
 - [box3d](https://github.com/erincatto/box3d)
 - [slang](https://github.com/shader-slang/slang)
 - [ImGui](https://github.com/ocornut/imgui)
-
-## Build
-you can build the project using xmake for windows or linux 
