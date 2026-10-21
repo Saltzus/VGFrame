@@ -1,7 +1,9 @@
 ## Build
 You will need [xmake](https://xmake.io/) to build the project for windows or linux.
 
-build command for the project is ```xmake```.
+Build command for the project is ```xmake```.
+
+Use ```xmake project -k vsxmake``` to build solution files for visual studio.
 
 ## Examples
 Code examples for VGFrame can be found in [Examples](Examples) folder.
