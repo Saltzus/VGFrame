@@ -27,12 +27,12 @@ namespace VGF
     {
         float frameSpeed = speed * 100 * static_cast<float>(deltatime);
 
-        if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) position += frameSpeed * orientation;
-        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) position += frameSpeed * -glm::normalize(glm::cross(orientation, up));
-        if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) position += frameSpeed * -orientation;
-        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) position += frameSpeed * glm::normalize(glm::cross(orientation, up));
-        if (glfwGetKey(window, GLFW_KEY_RIGHT_ALT) == GLFW_PRESS) position += frameSpeed * up;
-        if (glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS) position += frameSpeed * -up;
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) position += frameSpeed * orientation;
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) position += frameSpeed * -glm::normalize(glm::cross(orientation, up));
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) position += frameSpeed * -orientation;
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) position += frameSpeed * glm::normalize(glm::cross(orientation, up));
+        if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS) position += frameSpeed * up;
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) position += frameSpeed * -up;
 
         if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
             speed = 0.2f;
