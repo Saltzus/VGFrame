@@ -141,7 +141,7 @@ namespace VGF::Input
 		posY = -posY;
 	}
 
-	bool pickObject(const Window* window, Physics& physics, Camera* camera, b3BodyId& outBodyID, glm::vec3& outHitPos, const b3BodyId& ignoreBody)
+	RaycastContext pickObject(const Window* window, Physics& physics, Camera* camera, b3BodyId& outBodyID, glm::vec3& outHitPos, const b3BodyId* ignoreBody)
 	{
 		glm::vec3 origin;
 		glm::vec3 direction;
@@ -152,15 +152,14 @@ namespace VGF::Input
 		float rayDistance = 1000.0f;
 		b3Vec3 rayOrigin = { origin.x, origin.y , origin.z };
 		b3Vec3 rayDirection = { direction.x, direction.y , direction.z };
+		b3Vec3 rayEnd = rayDirection * rayDistance;
 
 		b3QueryFilter queryFilter = b3DefaultQueryFilter();
 
 		RaycastContext context;
-		context.ignoreBody = ignoreBody;
+		if (ignoreBody) context.ignoreBody = *ignoreBody;
 
-		b3World_CastRay(physics.worldId, rayOrigin, rayDirection, queryFilter, RayCastCallback, &context);
-
-		if (context.hit) return true;
-		else return false;
+		b3World_CastRay(physics.worldId, rayOrigin, rayEnd, queryFilter, RayCastCallback, &context);
+		return context;
 	}
 }

@@ -19,7 +19,7 @@ namespace VGF
         b3BodyDef bodyDef = b3DefaultBodyDef();
         bodyDef.type = type;
         bodyDef.position = origin;
-        b3BodyId bodyId = b3CreateBody(physics->worldId, &bodyDef);
+        body = b3CreateBody(physics->worldId, &bodyDef);
 
         b3BoxHull dynamicBox = b3MakeBoxHull(size.x/2,size.y/2,size.z/2);
 
@@ -27,7 +27,7 @@ namespace VGF
         shapeDef.density = density;
         shapeDef.baseMaterial.friction = 0.3f;
 
-        b3CreateHullShape(bodyId, &shapeDef, &dynamicBox.base);
+        b3CreateHullShape(body, &shapeDef, &dynamicBox.base);
     }
 
     PhysicsObject::~PhysicsObject()

@@ -1,3 +1,5 @@
+-- Libraries ------
+
 add_requires("miniaudio")
 add_requires("glad")
 add_requires("glm")
@@ -35,10 +37,20 @@ add_requires("slang")
 
 add_requires("imgui 1.92.9", {configs = {glfw = true, opengl3 = true, vulkan = true, volk = true}})
 
+-- ----------------
+
 add_rules("mode.debug", "mode.release")
 set_languages("c++20")
 
 add_cxxflags("-frtti", {tools = {"gcc", "clang"}})
+
+-- Options --------
+
+option("examples")
+    set_default(false)
+    set_description("Build examples")
+
+-- Rules ----------
 
 rule("slang")
     set_extensions(".slang")
@@ -74,4 +86,10 @@ rule("slang")
         os.rm(absSourceFile:gsub("%.slang$", ".spv"))
     end)
 
+-- Includes -------
+
 includes("VGF")
+
+if has_config("examples") then
+    includes("Examples/*/xmake.lua")
+end

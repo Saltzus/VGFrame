@@ -19,6 +19,7 @@ namespace VGF
 	struct RaycastContext
 	{
 		b3BodyId ignoreBody;
+		b3BodyId hitBody;
 		b3ShapeId shapeId;
 		b3Vec3 point;
 		b3Vec3 normal;
@@ -36,6 +37,7 @@ namespace VGF
 			return -1.f;
 		}
 
+		myContext->hitBody = bodyId;
 		myContext->shapeId = shapeId;
 		myContext->point = point;
 		myContext->normal = normal;

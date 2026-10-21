@@ -93,20 +93,24 @@ float4 toLinear(float4 sRGB)
 
 float3 getNormal(FragmentIn fragmentIn)
 {
-    // Retrieve the tangent space matrix
-    float3 pos_dx = ddx(fragmentIn.position);
-    float3 pos_dy = ddy(fragmentIn.position);
-    float3 tex_dx = ddx(float3(fragmentIn.texCoord, 0.0));
-    float3 tex_dy = ddy(float3(fragmentIn.texCoord, 0.0));
-    float3 tangent = (tex_dy.y * pos_dx - tex_dx.y * pos_dy) / (tex_dx.x * tex_dy.y - tex_dy.x * tex_dx.y);
+    float3 tangentNormal = normalSampler.Sample(fragmentIn.texCoord).xyz * 2.0 - 1.0;
 
     float3 ng = normalize(fragmentIn.normal);
+    float3 dpdx = ddx(fragmentIn.position);
+    float3 dpdy = ddy(fragmentIn.position);
+    float2 duvdx = ddx(fragmentIn.texCoord);
+    float2 duvdy = ddy(fragmentIn.texCoord);
 
-    tangent = normalize(tangent - ng * dot(ng, tangent));
-    float3 b = normalize(cross(ng, tangent));
-    float3x3 tbn = transpose(float3x3(tangent, b, ng));
+    float3 dp2perp = cross(dpdy, ng);
+    float3 dp1perp = cross(ng, dpdx);
 
-    float3 normal = normalize(tbn[2].xyz);
+    float3 T = dp2perp * duvdx.x + dp1perp * duvdy.x;
+    float3 B = dp2perp * duvdx.y + dp1perp * duvdy.y;
+
+    float invmax = rsqrt(max(dot(T, T), dot(B, B)));
+    float3x3 tbn = float3x3(T * invmax, B * invmax, ng);
+
+    float3 normal = normalize(mul(tangentNormal, tbn));
     normal *= (2.0 * float(fragmentIn.isFrontFacing) - 1.0);
 
     return normal;
@@ -247,7 +251,7 @@ FragmentOut main(FragmentIn fragmentIn)
 
     color += ambientLightColor * ambientLightIntensity * baseColor.xyz;
 
-    float ao = occulsionSampler.Sample(fragmentIn.texCoord).a;
+    float ao = occulsionSampler.Sample(fragmentIn.texCoord).r;
     color = lerp(color, color * ao, occlusionStrength);
 
     float3 emissive = emissiveSampler.Sample(fragmentIn.texCoord).rgb * emissiveFactor;

@@ -1,5 +1,6 @@
 #include "Window.h"
 #include "Renderer.h"
+#include "Material.h"
 
 #include "graphicsApi/opengl/OpenGlManager.h"
 
@@ -68,6 +69,7 @@ namespace VGF
 		}
 
 		Renderer::InitGraphics(GLFW_Window);
+		Material::getDefaultMaterial()->Bind();
 	}
 
 	void Window::framebuffer_size_callback(GLFWwindow* window, int width, int height)

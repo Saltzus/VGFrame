@@ -236,7 +236,7 @@ namespace VGF
 		mesh.vertices = vertices;
 		mesh.indices = indices;
 
-		nodes[0] = new Node();
+		nodes.push_back(new Node());
 		nodes[0]->index = static_cast<uint32_t>(0);
 		nodes[0]->name = "unnamed";
 		nodes[0]->mesh = mesh;
@@ -578,75 +578,98 @@ namespace VGF
 			uint32_t indexCount = 0;
 			bool hasSkin = false;
 
-			const float* positionBuffer = nullptr;
-			const float* normalsBuffer = nullptr;
-			const float* texCoordsBuffer = nullptr;
+			const uint8_t* positionBuffer = nullptr;
+			const uint8_t* normalsBuffer = nullptr;
+			const uint8_t* texCoordsBuffer = nullptr;
 			const uint8_t* jointIndicesBuffer = nullptr;
-			const float* jointWeightsBuffer = nullptr;
+			const uint8_t* jointWeightsBuffer = nullptr;
+
+			size_t posStride = 0, normStride = 0, texStride = 0, jointStride = 0, weightStride = 0;
 			size_t vertexCount = 0;
 
 			// Get buffer data for vertex normals
 			if (prim.attributes.contains("POSITION"))
 			{
-				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("POSITION")->second];
-				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
-				positionBuffer                       = reinterpret_cast<const float *>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
-				vertexCount                          = accessor.count;
+				const tinygltf::Accessor &  accessor	= model.accessors[prim.attributes.find("POSITION")->second];
+				const tinygltf::BufferView &view		= model.bufferViews[accessor.bufferView];
+				positionBuffer							= &(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]);
+				vertexCount								= accessor.count;
+				posStride								= view.byteStride > 0 ? view.byteStride : sizeof(float) * 3;
 			}
 			// Get buffer data for vertex normals
 			if (prim.attributes.contains("NORMAL"))
 			{
-				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("NORMAL")->second];
-				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
-				normalsBuffer                        = reinterpret_cast<const float *>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+				const tinygltf::Accessor &  accessor	= model.accessors[prim.attributes.find("NORMAL")->second];
+				const tinygltf::BufferView &view		= model.bufferViews[accessor.bufferView];
+				normalsBuffer							= &(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]);
+				normStride								= view.byteStride > 0 ? view.byteStride : sizeof(float) * 3;
 			}
 			// Get buffer data for vertex texture coordinates
 			if (prim.attributes.contains("TEXCOORD_0"))
 			{
-				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("TEXCOORD_0")->second];
-				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
-				texCoordsBuffer                      = reinterpret_cast<const float *>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+				const tinygltf::Accessor &  accessor	= model.accessors[prim.attributes.find("TEXCOORD_0")->second];
+				const tinygltf::BufferView &view		= model.bufferViews[accessor.bufferView];
+				texCoordsBuffer							= &(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]);
+				texStride								= view.byteStride > 0 ? view.byteStride : sizeof(float) * 2;
 			}
 
 			// Get vertex joint indices
 			if (prim.attributes.contains("JOINTS_0"))
 			{
-				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("JOINTS_0")->second];
-				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
-				jointIndicesBuffer                   = &(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]);
+				const tinygltf::Accessor &  accessor	= model.accessors[prim.attributes.find("JOINTS_0")->second];
+				const tinygltf::BufferView &view		= model.bufferViews[accessor.bufferView];
+				jointIndicesBuffer						= &(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]);
+				jointStride								= view.byteStride > 0 ? view.byteStride : sizeof(float) * 4;
 			}
 			// Get vertex joint weights
 			if (prim.attributes.contains("WEIGHTS_0"))
 			{
-				const tinygltf::Accessor &  accessor = model.accessors[prim.attributes.find("WEIGHTS_0")->second];
-				const tinygltf::BufferView &view     = model.bufferViews[accessor.bufferView];
-				jointWeightsBuffer                   = reinterpret_cast<const float *>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+				const tinygltf::Accessor &  accessor	= model.accessors[prim.attributes.find("WEIGHTS_0")->second];
+				const tinygltf::BufferView &view		= model.bufferViews[accessor.bufferView];
+				jointWeightsBuffer						= &(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]);
+				weightStride							= view.byteStride > 0 ? view.byteStride : sizeof(float) * 4;
 			}
 
 			hasSkin = (jointIndicesBuffer && jointWeightsBuffer);
 
 			// Append data to model's vertex buffer
 			std::vector<DefaultVertex> vertices;
+			vertices.reserve(vertexCount);
+
 			for (size_t v = 0; v < vertexCount; v++)
 			{
 				DefaultVertex vert{};
-				vert.position     = glm::make_vec3(&positionBuffer[v * 3]);
-				vert.normal       = glm::normalize(glm::vec3(normalsBuffer ? glm::make_vec3(&normalsBuffer[v * 3]) : glm::vec3(0.0f)));
-				vert.texCoord     = texCoordsBuffer ? glm::make_vec2(&texCoordsBuffer[v * 2]) : glm::vec2(0.0f);
-				vert.color        = glm::vec3(1.0f);
-				vert.jointIndices = hasSkin ? glm::vec4
-				(
-					(float)jointIndicesBuffer[v * 4 + 0],
-					(float)jointIndicesBuffer[v * 4 + 1],
-					(float)jointIndicesBuffer[v * 4 + 2],
-					(float)jointIndicesBuffer[v * 4 + 3]
-				) :			glm::vec4(0.0f);
-				vert.jointWeights = hasSkin ? glm::make_vec4(&jointWeightsBuffer[v * 4]) : glm::vec4(0.0f);
+				vert.position = positionBuffer ?
+					glm::make_vec3(reinterpret_cast<const float*>(positionBuffer + (v * posStride))) :
+					glm::vec3(0.f);
+				vert.normal	= normalsBuffer ?
+					glm::normalize(glm::make_vec3(reinterpret_cast<const float*>(normalsBuffer + (v * normStride)))) :
+					glm::vec3(0.f);
+				vert.texCoord = texCoordsBuffer ?
+					glm::make_vec2(reinterpret_cast<const float*>(texCoordsBuffer + (v * texStride))) :
+					glm::vec2(0.f);
+
+				vert.color        = glm::vec3(1.f);
+
+				if (hasSkin)
+				{
+					const uint8_t* indicesBuffer = jointIndicesBuffer + (v * jointStride);
+					vert.jointIndices = glm::vec4((float)indicesBuffer[0], (float)indicesBuffer[1], (float)indicesBuffer[2], (float)indicesBuffer[3]);
+
+					const float* weightBuffer = reinterpret_cast<const float*>(jointWeightsBuffer + (v * weightStride));
+					vert.jointWeights = glm::make_vec4(weightBuffer);
+				}
+				else
+				{
+					vert.jointIndices = glm::vec4(0.f);
+					vert.jointWeights = glm::vec4(0.f);
+				}
+
 				vertices.push_back(vert);
 			}
 
 			const float* raw = reinterpret_cast<const float*>(vertices.data());
-			outVertices = std::vector<float>(raw, raw + vertices.size() * 19);
+			outVertices.insert(outVertices.end(), raw, raw + vertices.size() * 19);
 
 			// Indices
 

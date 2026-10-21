@@ -7,8 +7,8 @@ namespace VGF
 	{
 		static std::vector<std::string> paths = 
 		{ 
-			"../../VGFrame/VGF/",
-			"./",
+			"VGF/",
+			"VGFrame/VGF/",
 		};
 		return paths;
 	}

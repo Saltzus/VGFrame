@@ -29,6 +29,6 @@ namespace VGF::Input
 
 	bool getDebugDrawerOn();
 
-	bool pickObject(const Window* window, Physics& physics, Camera* camera, b3BodyId& outBodyID, glm::vec3& outHitPos, const b3BodyId& ignoreBody);
+	RaycastContext pickObject(const Window* window, Physics& physics, Camera* camera, b3BodyId& outBodyID, glm::vec3& outHitPos, const b3BodyId* ignoreBody);
 }
 

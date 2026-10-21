@@ -1,5 +1,5 @@
 #include <iostream>
-#include <VGF/src/VGF.h>
+#include <VGF/VGF.h>
 
 #include <tiny_gltf.h>
 
@@ -11,19 +11,16 @@ int main(int argc, char** argv)
 {
     // Creating window and adding resourcepaths for project
 
-    VGF::Window window("VGF - Test", SCR_WIDTH, SCR_HEIGHT);
+    VGF::Window window("VGF - HelloWorld", SCR_WIDTH, SCR_HEIGHT);
 
-    VGF::Resource::AddResourcePath("../../../../VGFrame/VGF/");
-    VGF::Resource::AddResourcePath("../../../../../VGFrame/VGF/");
-    VGF::Resource::AddResourcePath("../../../../VGFrame/Examples/HelloWorld/");
-    VGF::Resource::AddResourcePath("../../../../../VGFrame/Examples/HelloWorld/");
+    VGF::Resource::AddResourcePath("Examples/HelloWorld/");
 
     // Creating a shader pipeline
 
     VGF::PipelineConfig depthPipeline
     (
-        VGF::Resource::Get("Shaders/depth.vert"),
-        VGF::Resource::Get("Shaders/depth.frag"),
+        VGF::Resource::Get("Shaders/depth_vert.slang"),
+        VGF::Resource::Get("Shaders/depth_frag.slang"),
         VGF::Topology::TRIANGLE_LIST
     );
 
@@ -43,11 +40,11 @@ int main(int argc, char** argv)
 
     std::vector<float> vertices =
     {
-//      Position          Normal                     VertexColor    UV
+//      Position          Normal                     VertexColor    UV      JointIndices    JointWeights
 
-        0, 0.5, -0.1,     0.0f, 0.0995f, 0.9950f,    1,0,1,         0.5,0,
-        0.5, -0.5 ,0,     0.0f, 0.0995f, 0.9950f,    1,1,0,         1,1,
-        -0.5, -0.5, 0,    0.0f, 0.0995f, 0.9950f,    0,1,1,         0,1
+        0, 0.5, -0.1,     0.0f, 0.0995f, 0.9950f,    1,0,1,         0.5,0,  0,0,0,0,        0,0,0,0,
+        0.5, -0.5 ,0,     0.0f, 0.0995f, 0.9950f,    1,1,0,         1,1,    0,0,0,0,        0,0,0,0,
+        -0.5, -0.5, 0,    0.0f, 0.0995f, 0.9950f,    0,1,1,         0,1,    0,0,0,0,        0,0,0,0
     };
 
     std::vector<unsigned int> indices =
@@ -58,40 +55,38 @@ int main(int argc, char** argv)
     // Creating a texture where framebuffer renders
 
     const unsigned char data[4 * 125 * 125] = { 120 };
-    VGF::Texture text(data, 0, 125, 125);
+    VGF::Texture framebufferTexture(data, 0, 125, 125);
 
-    VGF::FrameBuffer framebuffer(text);
+    VGF::FrameBuffer framebuffer(framebufferTexture);
 
     // Using the texture that framebuffer renders and putting it on a triangle
 
-    VGF::Material mat = *VGF::Material::getDefaultMaterial();
-    mat.color = &text;
+    VGF::Material material = *VGF::Material::getDefaultMaterial();
+    material.color = &framebufferTexture;
 
     // Create model with custom material, vertices and indices
 
-    VGF::Model triangle(vertices, indices, &mat);
+    VGF::Model triangle(vertices, indices, &material);
 
     VGF::Physics physics;
     VGF::Camera camera(glm::vec3(0.f, 29.f, -10.f));
-    VGF::Camera camera2(glm::vec3(0.f, -0.5f, -10.f));
+    VGF::Camera camera2(glm::vec3(0.f, 0.f, -10.f));
 
     // You can create physics or normal objects
 
-    VGF::PhysicsObject physicsObject(&duckModel, &physics, { 0.5,5,0 }, { 2,2,2 }, 1.f);
-    physics.bodyInterface->SetLinearVelocity(physicsObject.body->GetID(), JPH::Vec3(0.0f, -5.0f, 0.0f));
+    VGF::PhysicsObject physicsObject(duckModel, &physics, { 0.5,5,0 }, { 2,2,2 });
+    VGF::PhysicsObject physicsObject1(triangle, &physics, {-0.5,5,0}, {2,2,2});
 
-    VGF::PhysicsObject physicsObject1(&triangle, &physics, {-0.5,5,0}, {2,2,2}, 1.f);
-    VGF::PhysicsObject groundObject(&cubeModel, &physics, { 0,-56,0 }, { 50,50,50 }, 0.f);
+    VGF::PhysicsObject groundObject(cubeModel, &physics, { 0,-56,0 }, { 50,50,50 }, b3_staticBody);
 
-    VGF::Object duck(&duckModel2);
+    VGF::Object duck(duckModel2);
 
     // Audio not implemented fully
 
     VGF::Audio audio;
     //audio.PlayAudio(VGF::Resource::Get("Audio/"));
 
-    float z = 0;
-
+    float time = 0;
     while (!glfwWindowShouldClose(window))
     {
         VGF::Time::UpdateDeltatime();
@@ -100,11 +95,11 @@ int main(int argc, char** argv)
         camera.Inputs(window, VGF::Time::GetDeltaTime());
         camera2.updateMatrix(window, 45.0f, 0.01f, 100.0f);
 
-        z += VGF::Time::GetDeltaTime();
-        camera2.position.z = 10 - std::sin(z) * 7;
+        time += VGF::Time::GetDeltaTime();
+        camera2.position.z = 10 - std::sin(time) * 7;
 
         framebuffer.Bind();
-        // Needst to have different VGF::Model to be able to use different camera (atleast for now)
+        // Needs to have different VGF::Model to be able to use different camera (atleast for now)
         duck.Render(camera2, depthPipeline);
         framebuffer.UnBind();
 
@@ -115,16 +110,17 @@ int main(int argc, char** argv)
 
         // Selecting physics bodies from physics
 
-        JPH::BodyID body;
+        b3BodyId body;
         glm::vec3 hitPos;
 
-        if (VGF::Input::pickObject(&window, physics, &camera, body, hitPos, JPH::BodyID()) && VGF::Input::pressingMouseButton(window, GLFW_MOUSE_BUTTON_1))
+        VGF::RaycastContext context = VGF::Input::pickObject(&window, physics, &camera, body, hitPos, nullptr);
+        if (context.hit && VGF::Input::pressingMouseButton(window, GLFW_MOUSE_BUTTON_1))
         {
-            physics.bodyInterface->SetAngularVelocity(body, JPH::Vec3(0.0f, -5.0f, 0.0f));
+            b3Body_SetAngularVelocity(context.hitBody, { 0.f,5.f,0.f });
         }
 
 
-        physics.Update();
+        physics.Update(VGF::Time::GetDeltaTime());
 
         VGF::Input::processInput(window);
 
