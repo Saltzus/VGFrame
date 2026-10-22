@@ -89,6 +89,8 @@ namespace VGF
 		float start = std::numeric_limits<float>::max();
 		float end = std::numeric_limits<float>::min();
 		float currentTime = 0.0f;
+		bool looping = false;
+		float speed = 1.f;
 	};
 
 
@@ -130,10 +132,20 @@ namespace VGF
 			return (nodeIt != nodes.end()) ? *nodeIt : nullptr;
 		}
 
-		void UpdateAnimation(unsigned int index, float deltaTime);
-		void UpdateJoints(Node* node);
+		void PlayAnimation(size_t index, float speed = 1);
+		void PlayAnimation(std::string name, float speed = 1)
+		{
+			size_t index = 0;
+			for (index < animations.size(); index++;)
+				if (animations[index].name == name) break;
 
-		void BlendAnimations(uint32_t fromAnimation, uint32_t toAnimation, float blendFactor);
+			if (index == animations.size()) 
+				Log::Error("Could not find animation = " + name);
+
+			PlayAnimation(index, speed);
+		};
+
+		void BlendAnimations(Animation& fromAnimation, Animation& toAnimation, float blendFactor);
 
 		static bool SolveTwoBoneIK
 		(
@@ -146,7 +158,7 @@ namespace VGF
 		);
 
 		static void ApplyJointConstraints(Node* node, const glm::vec3& minAngles, const glm::vec3& maxAngles);
-		void ApplyIKToAnimation(uint32_t animationIndex, float deltaTime, Node* endEffector, const glm::vec3& targetPosition, float ikWeight = 1.0f);
+		void ApplyIKToAnimation(Animation& animation, float deltaTime, Node* endEffector, const glm::vec3& targetPosition, float ikWeight = 1.0f);
 
 		void Render(const glm::mat4& parentMatrix, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {}) { Render(parentMatrix, camera, config, additionalUniformBuffers); }
 		void Render(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
@@ -202,6 +214,7 @@ namespace VGF
 		};
 
 		std::vector <Texture*> _textures;
+		Animation* selectedAnimation = nullptr;
 
 		unsigned int uLightDirectionLocation;
 		unsigned int uLightIntensity;
@@ -227,6 +240,8 @@ namespace VGF
 		std::vector<unsigned int> vertexArrayObjects;
 		std::vector<VaoRange> meshToVertexArrays;
 
+		void UpdateJoints(Node* node);
+		void UpdateAnimation(Animation& animation, float deltaTime);
 		void Draw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 		void BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const PipelineConfig& config, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 		void drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const PipelineConfig& config, const Camera& camera, LightBufferObject lightBuffer);

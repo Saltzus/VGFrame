@@ -288,15 +288,12 @@ namespace VGF
 		);
 	}
 
-	void Model::UpdateAnimation(unsigned int index, float deltaTime)
+	void Model::UpdateAnimation(Animation& animation, float deltaTime)
 	{
-		if (animations.empty() || index >= animations.size()) return;
-
-		Animation& animation = animations[index];
-        animation.currentTime += deltaTime;
+        animation.currentTime += deltaTime * animation.speed;
 
         if (animation.currentTime > animation.end)
-			animation.currentTime = animation.start;
+			if (animation.looping) animation.currentTime = animation.start;
 
         for (auto& channel : animation.channels)
         {
@@ -362,7 +359,14 @@ namespace VGF
 		}
 	}
 
-	void Model::BlendAnimations(uint32_t fromAnimation, uint32_t toAnimation, float blendFactor) {
+	void Model::PlayAnimation(size_t index, float speed)
+	{
+		selectedAnimation = &animations[index];
+		selectedAnimation->speed = speed;
+		selectedAnimation->currentTime = 0.f;
+	}
+
+	void Model::BlendAnimations(Animation& fromAnimation, Animation& toAnimation, float blendFactor) {
 		// Store original node transformations
 		std::vector<glm::vec3> originalTranslations;
 		std::vector<glm::quat> originalRotations;
@@ -495,12 +499,6 @@ namespace VGF
 
 		midNode->rotation = glm::normalize(glm::inverse(rootWorldNew) * midWorldNew);
 
-		//std::cout << rootNode->rotation.w << "\n";
-		//std::cout << rootNode->rotation.x << "\n";
-		//std::cout << rootNode->rotation.y << "\n";
-		//std::cout << rootNode->rotation.z << "\n";
-		//std::cout  << "\n\n";
-
 		return true;
 	}
 
@@ -522,9 +520,9 @@ namespace VGF
 	}
 
 	// Apply IK on top of an animation
-	void Model::ApplyIKToAnimation(uint32_t animationIndex, float deltaTime, Node* endEffector, const glm::vec3& targetPosition, float ikWeight) {
+	void Model::ApplyIKToAnimation(Animation& animation, float deltaTime, Node* endEffector, const glm::vec3& targetPosition, float ikWeight) {
 		// First, update the animation normally
-		UpdateAnimation(animationIndex, deltaTime);
+		UpdateAnimation(animation, deltaTime);
 
 		// If IK weight is zero, we're done
 		if (ikWeight <= 0.0f) return;
@@ -789,7 +787,7 @@ namespace VGF
 		}
 		else
 		{
-			if (!animations.empty()) UpdateAnimation(0, VGF::Time::GetDeltaTime());
+			if (selectedAnimation) UpdateAnimation(*selectedAnimation, VGF::Time::GetDeltaTime());
 	
 			for (auto &node : nodes)
 			{
