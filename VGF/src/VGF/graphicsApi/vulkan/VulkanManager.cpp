@@ -1724,8 +1724,7 @@ namespace VGF::Vulkan
 
     VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) 
     {
-        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
-
+        std::cerr << "\x1B[35m[Vulkan]\033[0m " << pCallbackData->pMessage << std::endl;
         return VK_FALSE;
     }
 
