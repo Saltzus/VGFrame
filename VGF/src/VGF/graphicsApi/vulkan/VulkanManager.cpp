@@ -123,6 +123,7 @@ namespace VGF::Vulkan
     VulkanTexture::~VulkanTexture()
     {
         VkDevice& device = Vulkan::vulkan->device;
+        vkDeviceWaitIdle(device);
 
         if (textureId)
         {
@@ -232,6 +233,7 @@ namespace VGF::Vulkan
         vkDeviceWaitIdle(device);
 
         //cleanup -----------------------
+        VulkanGui::Destroy();
         cleanupSwapChain();
 
         vkDestroyRenderPass(device, renderPass, nullptr);

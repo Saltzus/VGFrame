@@ -4,6 +4,8 @@
 #include "RenderImpl.h"
 #include "Renderer.h"
 
+#include <unordered_set>
+
 namespace VGF
 {
     class Texture
@@ -11,6 +13,7 @@ namespace VGF
     private:
         TextureImpl* _impl = nullptr;
         unsigned int _width{}, _height{};
+        static inline std::unordered_set<Texture*> textures;
     public:
         Texture(const std::string &filePath);
         Texture(const unsigned char* data, int format, unsigned int width, unsigned int height);
@@ -31,6 +34,8 @@ namespace VGF
             if (Renderer::GetGraphicsApi() == GraphicsApis::OpenGL) return ImVec2(1.0f, 0.0f);
             return ImVec2(1.0f, 1.0f);
         }
+
+        static void DestroyTextures();
 
         virtual void Bind(textureType type = textureType::color) const;
         virtual void* GetNativeImage() { return _impl->GetNativeImage(); }

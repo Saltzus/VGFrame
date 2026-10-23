@@ -124,15 +124,17 @@ namespace VGF::Vulkan
         ImGui_ImplVulkan_Init(&init_info);
 	}
 
-	VulkanGui::~VulkanGui()
-	{
+	VulkanGui::~VulkanGui() {}
+
+    void VulkanGui::Destroy()
+    {
         ImGui_ImplGlfw_Shutdown();
         ImGui_ImplVulkan_Shutdown();
 
         vkDestroyDescriptorPool(Vulkan::vulkan->device, descriptorPool, nullptr);
         vkDestroyRenderPass(Vulkan::vulkan->device, renderPass, nullptr);
         Vulkan::vulkan->vulkanGui = false;
-	}
+    }
 
     void VulkanGui::NewFrame()
     {

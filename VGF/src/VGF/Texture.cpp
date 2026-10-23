@@ -11,15 +11,17 @@ namespace VGF
         switch (Renderer::GetGraphicsApi())
         {
         case GraphicsApis::OpenGL:
-            this->_impl = new VGF::Opengl::OpenglTexture(filePath);
+            _impl = new VGF::Opengl::OpenglTexture(filePath);
             break;
         case GraphicsApis::Vulkan:
-            this->_impl = new VGF::Vulkan::VulkanTexture(filePath);
+            _impl = new VGF::Vulkan::VulkanTexture(filePath);
             break;
         default:
-            this->_impl = new VGF::Opengl::OpenglTexture(filePath);
+            _impl = new VGF::Opengl::OpenglTexture(filePath);
             break;
         }
+
+        textures.insert(this);
     }
     Texture::Texture(const unsigned char* data, int format, unsigned int width, unsigned int height) : _width(width), _height(height)
     {
@@ -35,11 +37,28 @@ namespace VGF
             _impl = new VGF::Opengl::OpenglTexture(data, format, width, height);
             break;
         }
+
+        textures.insert(this);
     }
     
     Texture::~Texture()
     {
-        delete _impl;
+        if (_impl) delete _impl;
+        textures.erase(this);
+    }
+
+    void Texture::DestroyTextures()
+    {
+        for (Texture* texture : textures)
+        {
+            if (texture && texture->_impl) 
+            {
+                delete texture->_impl;
+                texture->_impl = nullptr;
+            }
+        }
+            
+        textures.clear();
     }
 
     void Texture::Bind(const textureType type) const

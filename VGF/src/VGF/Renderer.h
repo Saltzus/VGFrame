@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <map>
-#include <unordered_map>
+#include <unordered_set>
 #include <optional>
 #include <set>
 #include <chrono>
@@ -35,9 +35,10 @@ namespace VGF
     class Renderer
     {
     private:
-        inline static ApiImpl* graphics = nullptr;
+        static inline ApiImpl* graphics = nullptr;
         RendererImpl* _impl = nullptr;
         const static GraphicsApis graphicApi;
+        static inline std::unordered_set<Renderer*> renderers;
     public:
         Renderer(std::vector<unsigned int>& indices, std::vector<float>& vertices, std::vector<UniformBufferObject*> uniformBuffers);
        
@@ -45,6 +46,7 @@ namespace VGF
         Renderer& operator=(const Renderer&) = delete;
         
         ~Renderer();
+        static void DestroyRenderers();
 
         void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) const;
         

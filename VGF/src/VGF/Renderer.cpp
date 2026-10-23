@@ -4,6 +4,7 @@
 #include "graphicsApi/vulkan/VulkanManager.h"
 
 #include "Physics.h"
+#include "Texture.h"
 
 namespace VGF
 {
@@ -23,11 +24,28 @@ namespace VGF
             this->_impl = new VGF::Opengl::OpenglRenderer(indices, vertices, uniformBuffers);
             break;
         }
+
+        renderers.insert(this);
     }
     
     Renderer::~Renderer()
     {
-        delete this->_impl;
+        if (_impl) delete _impl;
+        renderers.erase(this);
+    }
+
+    void Renderer::DestroyRenderers()
+    {
+        for (Renderer* renderer : renderers)
+        {
+            if (renderer && renderer->_impl)
+            {
+                delete renderer->_impl;
+                renderer->_impl = nullptr;
+            }
+        }
+
+        renderers.clear();
     }
 
     void Renderer::Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) const
@@ -64,6 +82,8 @@ namespace VGF
 
     void Renderer::DeleteGraphics()
     {
+        Texture::DestroyTextures();
+        DestroyRenderers();
         if (graphics) delete graphics;
     }
 

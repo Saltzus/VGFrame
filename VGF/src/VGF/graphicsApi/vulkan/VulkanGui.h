@@ -17,12 +17,13 @@ namespace VGF::Vulkan
 		~VulkanGui();
 
 		static void Render(VkCommandBuffer commandBuffer);
+		static void Destroy();
 
 		void NewFrame() override;
 		void Render() override;
 
 	private:
-		VkDescriptorPool descriptorPool;
-		VkRenderPass renderPass;
+		static inline VkDescriptorPool descriptorPool;
+		static inline VkRenderPass renderPass;
 	};
 }
