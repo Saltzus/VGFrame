@@ -97,26 +97,27 @@ namespace VGF
 	class Model
 	{
 	public:
-		Model(const std::string& modelPath, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
-		Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+		Model(const std::string& modelPath, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+		Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 
 		Model(const std::string modelPath, const std::vector<UniformBufferObject*> additionalUniformBuffers = {})
-			: Model(modelPath, VGF::PipelineConfig::GetDefault(), additionalUniformBuffers) {}
+			: Model(modelPath, VGF::Shader::GetDefault(), additionalUniformBuffers) {}
 
 		Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, const std::vector<UniformBufferObject*> additionalUniformBuffers = {})
-			: Model(vertices, indices, material, VGF::PipelineConfig::GetDefault(), additionalUniformBuffers) {
+			: Model(vertices, indices, material, VGF::Shader::GetDefault(), additionalUniformBuffers) {
 		}
 		Model(std::vector <float> vertices, std::vector <unsigned int> indices, const std::vector<UniformBufferObject*> additionalUniformBuffers = {})
 			: Model(vertices, indices, VGF::Material::getDefaultMaterial(), additionalUniformBuffers) {}
 
 		~Model();
 
-		PipelineConfig config;
+		Shader config;
 		//tinygltf::Model model;
 
 		static inline std::unordered_map<std::string, tinygltf::Model> gltfModels;
 
 		std::vector<Node*> nodes;
+		RenderData renderData = RenderData(config);
 
 		std::vector<tinygltf::Material> materials;
 		std::vector<tinygltf::Texture> textures;
@@ -161,9 +162,9 @@ namespace VGF
 		void ApplyIKToAnimation(Animation& animation, float deltaTime, Node* endEffector, const glm::vec3& targetPosition, float ikWeight = 1.0f);
 
 		void Render(const glm::mat4& parentMatrix, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {}) { Render(parentMatrix, camera, config, additionalUniformBuffers); }
-		void Render(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+		void Render(const glm::mat4& parentMatrix, const Camera& camera, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 		
-		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers);
+		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const Shader& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers);
 
 		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers)
 		{
@@ -171,7 +172,7 @@ namespace VGF
 		}
 
 		template<typename T>
-		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const std::vector<T> instances, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const Shader& config, const std::vector<T> instances, const std::vector<UniformBufferObject*> additionalUniformBuffers)
 		{
 			BatchRender(parentMatrix, camera, config, instances.data(), instances.size(), sizeof(T), additionalUniformBuffers);
 		}
@@ -242,11 +243,11 @@ namespace VGF
 
 		void UpdateJoints(Node* node);
 		void UpdateAnimation(Animation& animation, float deltaTime);
-		void Draw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
-		void BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const PipelineConfig& config, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers = {});
-		void drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const PipelineConfig& config, const Camera& camera, LightBufferObject lightBuffer);
+		void Draw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const Shader& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+		void BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const Shader& config, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+		void drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const Shader& config, const Camera& camera, LightBufferObject lightBuffer);
 
-		std::vector<UniformBufferObject*> AddUniformBuffers(const glm::mat4& parentMatrix, const int bindId, const Camera& camera, std::vector<UniformBufferObject*> additionalUniformBuffers);
+		void AddRenderData(const glm::mat4& parentMatrix, const int bindId, const Camera& camera, std::vector<UniformBufferObject*> additionalUniformBuffers);
 
 		static void LoadMeshData
 		(
@@ -258,7 +259,7 @@ namespace VGF
 
 		std::vector<Texture*> createTextureObjects(const tinygltf::Model& model) const;
 		glm::mat4 getLocalToWorldMatrix(const Node& node, const glm::mat4& parentMatrix);
-		UniformBufferObject* bindMaterial(const Camera& camera, const int materialIndex);
+		void bindMaterial(const Camera& camera, const int materialIndex);
 
 	};
 } 

@@ -15,7 +15,7 @@ namespace VGF
 			Resource::Get("Fonts/Gabarito.ttf")
 		);
 
-		_defaultTextConfig = new PipelineConfig
+		_defaultTextConfig = new Shader
 		(
 			Resource::Get("Shaders/default_text.vert"),
 			Resource::Get("Shaders/default_text.frag"),

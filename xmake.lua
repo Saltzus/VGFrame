@@ -11,28 +11,6 @@ add_requires("nlohmann_json")
 add_requires("tracy")
 add_requires("box3d")
 
-package("slang")
-    set_kind("binary")
-    set_homepage("https://shader-slang.com/")
-    set_description("Slang shader compiler (official prebuilt release)")
-
-    if is_host("windows") then
-        add_urls("https://github.com/shader-slang/slang/releases/download/v$(version)/slang-$(version)-windows-x86_64.zip")
-        add_versions("2026.19", "fc922f214b5d115f663932e59e80e0f6b6cc6fae140979cf307da6459b6f8f33")
-    elseif is_host("linux") then
-        add_urls("https://github.com/shader-slang/slang/releases/download/v$(version)/slang-$(version)-linux-x86_64.tar.gz")
-        add_versions("2026.19", "bd6cfc47b7353b2cffa36a866b1584749f76f4b2dbebf6dda26bc3fb40dc3c0e")
-    end
-
-    on_install("windows|x64", "linux|x86_64", function (package)
-        os.cp("*", package:installdir())
-    end)
-
-    on_test(function (package)
-        os.vrun("slangc -v")
-    end)
-package_end()
-
 add_requires("slang")
 
 add_requires("imgui 1.92.9", {configs = {glfw = true, opengl3 = true, vulkan = true, volk = true}})

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "PipelineConfig.h"
+#include "Shader.h"
 #include "Font.h"
 
 #include <ft2build.h>
@@ -20,7 +20,7 @@ namespace VGF
 
 
 		static Font* GetDefaultFont() { return &_fonts.at("default"); }
-		static PipelineConfig* GetDefaultConfig() { return _defaultTextConfig; }
+		static Shader* GetDefaultShader() { return _defaultTextConfig; }
 
 		static inline FT_Library FTLib;
 
@@ -30,6 +30,6 @@ namespace VGF
 		static inline std::map<std::string, Font> _fonts;
 		
 		static inline bool _initialized = false;
-		static inline PipelineConfig* _defaultTextConfig = nullptr;
+		static inline Shader* _defaultTextConfig = nullptr;
 	};
 } 

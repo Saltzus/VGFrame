@@ -18,10 +18,10 @@ namespace VGF
         bool relativeToCamera = false;
 
         virtual void Render(const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
-        void Render(const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+        void Render(const Camera& camera, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 
         virtual void BatchRender(const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers) const;
-        void BatchRender(const Camera& camera, const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers) const;
+        void BatchRender(const Camera& camera, const Shader& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers) const;
 
         template<typename T>
         void BatchRender(const Camera& camera, const std::vector<T> instances, const std::vector<UniformBufferObject*> additionalUniformBuffers = {}) const
@@ -29,13 +29,13 @@ namespace VGF
             BatchRender(camera, instances.data(), instances.size(), sizeof(T), additionalUniformBuffers);
         }
         template<typename T>
-        void BatchRender(const Camera& camera, const PipelineConfig& config, const std::vector<T> instances, const std::vector<UniformBufferObject*> additionalUniformBuffers = {}) const
+        void BatchRender(const Camera& camera, const Shader& config, const std::vector<T> instances, const std::vector<UniformBufferObject*> additionalUniformBuffers = {}) const
         {
             BatchRender(camera, config, instances.data(), instances.size(), sizeof(T), additionalUniformBuffers);
         }
 
-        void SetModel(Model& model) { model = model; }
-        //void SetConfig(const PipelineConfig& config) { _model->config = config; }
+        //void SetModel(Model& model) { model = model; }
+        //void SetConfig(const Shader& config) { _model->config = config; }
 
         virtual void SetPosition(const float x, const float y, const float z) { _position = glm::vec3(x, y, z); }
         void SetPosition(const glm::vec3 position) { SetPosition(position.x, position.y, position.z); }

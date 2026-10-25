@@ -8,7 +8,6 @@
 #include "Object.h"
 #include "PhysicsObject.h"
 #include "Audio.h"
-#include "PipelineConfig.h"
 #include "FrameBuffer.h"
 #include "Text.h"
 #include "VGFTime.h"

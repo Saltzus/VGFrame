@@ -24,7 +24,7 @@ struct VertexOut
 VertexOut main(VertexIn vertexIn)
 {
     VertexOut outVertex;
-    outVertex.sv_position = mul(proj, mul(view, mul(vertexIn.model, float4(vertexIn.position, 1.f))));
+    outVertex.sv_position = mul(proj, mul(view, mul(model, float4(vertexIn.position, 1.f))));
     outVertex.color = vertexIn.color;
 
     return outVertex;

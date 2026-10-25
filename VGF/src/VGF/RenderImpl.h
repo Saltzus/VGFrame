@@ -7,6 +7,7 @@
 
 #include "imgui.h"
 #include "UniformBuffers/UniformBuffer.h"
+#include "RenderData.h"
 
 namespace VGF
 {
@@ -19,7 +20,7 @@ namespace VGF
         occulsion
     };
 
-    class PipelineConfig;
+    class Shader;
     class Shader;
     class Camera;
     class Window;
@@ -27,8 +28,8 @@ namespace VGF
     struct RendererImpl
     {
         virtual ~RendererImpl() {}
-        virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) = 0;
-        virtual void BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers) = 0;
+        virtual void Render(const RenderData& renderData, const Shader& shader) = 0;
+        virtual void BatchRender(const RenderData& renderData, const Shader& shader) = 0;
     };
 
     struct ApiImpl
@@ -48,7 +49,7 @@ namespace VGF
 	struct ShaderImpl
 	{
         virtual ~ShaderImpl() {}
-        virtual void Activate() = 0;
+        virtual void Bind() = 0;
         virtual void Delete() = 0;
         virtual unsigned int& Id() = 0;
 	};

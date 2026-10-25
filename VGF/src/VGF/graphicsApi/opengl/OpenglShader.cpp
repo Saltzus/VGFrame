@@ -54,7 +54,7 @@ namespace VGF::Opengl
 	}
 
 
-	void OpenglShader::Activate() {
+	void OpenglShader::Bind() {
 		glUseProgram(ID);
 	}
 

@@ -2,7 +2,7 @@
 #include "../../Camera.h"
 #include "../../Log.h"
 
-#include "../../PipelineConfig.h"
+#include "../../Shader.h"
 
 #include <array>
 
@@ -60,7 +60,7 @@ namespace VGF::Opengl
                 data);
             glGenerateMipmap(GL_TEXTURE_2D);
         }
-        else std::cout << "Failed to load texture" << std::endl;
+        //else std::cout << "Failed to load texture" << std::endl;
 
         stbi_image_free(data);
     }
@@ -158,7 +158,7 @@ namespace VGF::Opengl
 
 
 
-    OpenglRenderer::OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, std::vector<UniformBufferObject*> uniformBuffers) : opengl(Opengl::openglInstance)
+    OpenglRenderer::OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices) : opengl(Opengl::openglInstance)
     {
         _indices = indices;
         _vertices = vertices;
@@ -187,22 +187,22 @@ namespace VGF::Opengl
             GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
             glDrawBuffers(1, drawBuffers);
 
-            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-                std::cout << "Framebuffer is not complete!\n";
+            //if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                //std::cout << "Framebuffer is not complete!\n";
 
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
-        for (size_t i = 0; i < uniformBuffers.size(); i++)
-        {
-            GLuint openglBuffer;
-            glGenBuffers(1, &openglBuffer);
-            glBindBuffer(GL_UNIFORM_BUFFER, openglBuffer);
-            glBufferData(GL_UNIFORM_BUFFER, uniformBuffers[i]->SizeOf(), NULL, GL_STATIC_DRAW);
-            glBindBufferRange(GL_UNIFORM_BUFFER, i, openglBuffer, 0, uniformBuffers[i]->SizeOf());
-
-            openglUniformBuffers.push_back(openglBuffer);
-        }
+        //for (size_t i = 0; i < uniformBuffers.size(); i++)
+        //{
+        //    GLuint openglBuffer;
+        //    glGenBuffers(1, &openglBuffer);
+        //    glBindBuffer(GL_UNIFORM_BUFFER, openglBuffer);
+        //    glBufferData(GL_UNIFORM_BUFFER, uniformBuffers[i]->SizeOf(), NULL, GL_STATIC_DRAW);
+        //    glBindBufferRange(GL_UNIFORM_BUFFER, i, openglBuffer, 0, uniformBuffers[i]->SizeOf());
+        //
+        //    openglUniformBuffers.push_back(openglBuffer);
+        //}
 
         indicesSize = indices.size();
     }
@@ -216,77 +216,77 @@ namespace VGF::Opengl
         glDeleteBuffers(1, &EBO);
     }
 
-    void OpenglRenderer::Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
+    void OpenglRenderer::Render(const RenderData& data, const Shader& config)
     {
-        std::vector<DefaultInstance> instances;
-
-        for (UniformBufferObject* buffer : uniformBuffers)
-        {
-            if (buffer->getType() == "matrix")
-            {
-                MatrixBufferObject* mBuffer = (MatrixBufferObject*)buffer;
-                instances.emplace_back(DefaultInstance{mBuffer->GetData().model, 0 });
-            }
-                
-        }
-
-        BatchRender(config, instances.data(), 1, sizeof(DefaultInstance), uniformBuffers);
+        //std::vector<DefaultInstance> instances;
+        //
+        //for (UniformBufferObject* buffer : uniformBuffers)
+        //{
+        //    if (buffer->getType() == "matrix")
+        //    {
+        //        MatrixBufferObject* mBuffer = (MatrixBufferObject*)buffer;
+        //        instances.emplace_back(DefaultInstance{mBuffer->GetData().model, 0 });
+        //    }
+        //        
+        //}
+        //
+        //BatchRender(config, instances.data(), 1, sizeof(DefaultInstance), uniformBuffers);
     }
 
 
-    void OpenglRenderer::BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers)
+    void OpenglRenderer::BatchRender(const RenderData& data, const Shader& config)
     {
-        if (_createdVao == false) CreateVAO(config);
-
-        int topology = GetTopology(config);
-
-        glBindVertexArray(VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, IBO);
-
-        if (lastSize != instanceCount)
-        {
-            glBufferData(GL_ARRAY_BUFFER, instanceCount * config.GetInstanceBuffer()->GetSize(), instanceData, GL_DYNAMIC_DRAW);
-            lastSize = instanceCount;
-
-            if (!_configuredInstanceAttributes)
-            {
-                uint32_t location = lastLocation;
-                config.GetInstanceBuffer()->GetOpenGLAttributeDescriptions(location);
-                _configuredInstanceAttributes = true;
-            }
-        }
-        else if (instanceCount > 0)
-        {
-            glBufferSubData(GL_ARRAY_BUFFER, 0, instanceCount * config.GetInstanceBuffer()->GetSize(), instanceData);
-        }
-
-        for (size_t i = 0; i < uniformBuffers.size(); i++)
-        {
-            glBindBuffer(GL_UNIFORM_BUFFER, openglUniformBuffers[i]);
-            glBindBufferBase(GL_UNIFORM_BUFFER, i, openglUniformBuffers[i]);
-            glBufferSubData(GL_UNIFORM_BUFFER, 0, uniformBuffers[i]->SizeOf(), uniformBuffers[i]->Data());
-        }
-
-        std::array<const char*, 5> samplers =
-        {
-            "colorSampler",
-            "metallicRoughnessSampler",
-            "emissiveSampler",
-            "occulsionSampler",
-            "normalSampler"
-        };
-
-        for (size_t binding = 0; binding < samplers.size(); binding++)
-        {
-            GLint location = glGetUniformLocation(config.ID(), samplers[binding]);
-            glUniform1i(location, binding + 2);
-        }
-        glDrawElementsInstanced(topology, indicesSize, GL_UNSIGNED_INT, 0, instanceCount);
-
-        int error = glGetError();
+        //if (_createdVao == false) CreateVAO(shader);
+        //
+        //int topology = GetTopology(shader);
+        //
+        //glBindVertexArray(VAO);
+        //glBindBuffer(GL_ARRAY_BUFFER, IBO);
+        //
+        //if (lastSize != instanceCount)
+        //{
+        //    glBufferData(GL_ARRAY_BUFFER, instanceCount * config.GetInstanceBuffer()->GetSize(), instanceData, GL_DYNAMIC_DRAW);
+        //    lastSize = instanceCount;
+        //
+        //    if (!_configuredInstanceAttributes)
+        //    {
+        //        uint32_t location = lastLocation;
+        //        config.GetInstanceBuffer()->GetOpenGLAttributeDescriptions(location);
+        //        _configuredInstanceAttributes = true;
+        //    }
+        //}
+        //else if (instanceCount > 0)
+        //{
+        //    glBufferSubData(GL_ARRAY_BUFFER, 0, instanceCount * config.GetInstanceBuffer()->GetSize(), instanceData);
+        //}
+        //
+        ////for (size_t i = 0; i < uniformBuffers.size(); i++)
+        ////{
+        ////    glBindBuffer(GL_UNIFORM_BUFFER, openglUniformBuffers[i]);
+        ////    glBindBufferBase(GL_UNIFORM_BUFFER, i, openglUniformBuffers[i]);
+        ////    glBufferSubData(GL_UNIFORM_BUFFER, 0, uniformBuffers[i]->SizeOf(), uniformBuffers[i]->Data());
+        ////}
+        //
+        //std::array<const char*, 5> samplers =
+        //{
+        //    "colorSampler",
+        //    "metallicRoughnessSampler",
+        //    "emissiveSampler",
+        //    "occulsionSampler",
+        //    "normalSampler"
+        //};
+        //
+        //for (size_t binding = 0; binding < samplers.size(); binding++)
+        //{
+        //    GLint location = glGetUniformLocation(config.ID(), samplers[binding]);
+        //    glUniform1i(location, binding + 2);
+        //}
+        //glDrawElementsInstanced(topology, indicesSize, GL_UNSIGNED_INT, 0, instanceCount);
+        //
+        //int error = glGetError();
     }
 
-    const int OpenglRenderer::GetTopology(const PipelineConfig& config) const
+    const int OpenglRenderer::GetTopology(const Shader& config) const
     {
         int topology;
 
@@ -306,7 +306,7 @@ namespace VGF::Opengl
         return topology;
     }
 
-    void OpenglRenderer::CreateVAO(const PipelineConfig& config)
+    void OpenglRenderer::CreateVAO(const Shader& config)
     {
         glGenVertexArrays(1, &VAO);
 

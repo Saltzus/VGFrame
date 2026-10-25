@@ -7,14 +7,14 @@
 #include <cerrno>
 #include <vector>
 
-#include "../../PipelineConfig.h"
+#include "../../Shader.h"
 
 namespace VGF::Vulkan
 {
     class VulkanGraphicsPipeline
     {
     public:
-        VulkanGraphicsPipeline(const PipelineConfig& config, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline);
+        VulkanGraphicsPipeline(const Shader& config, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline);
 
         void Bind();
         void Delete();

@@ -9,7 +9,7 @@ PhysicsDebugRenderer::PhysicsDebugRenderer()
 {
 }
 
-constexpr glm::vec3 HexToRGB(uint32_t hex)
+const glm::vec3 HexToRGB(uint32_t hex)
 {
     return
     {

@@ -19,7 +19,7 @@ namespace VGF::Opengl
     public:
         OpenglShader(std::string_view vertexFile, std::string_view fragmentFile);
 
-        void Activate() override;
+        void Bind() override;
         void Delete() override;
         unsigned int& Id() override { return ID; };
 

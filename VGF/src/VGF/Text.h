@@ -18,8 +18,8 @@ namespace VGF
         Text(TextEffect effect) : Text() { _effect = effect; }
         ~Text();
 
-        void Render(const Window& window, const std::string text) { Render(*TextManager::GetDefaultConfig(), window, text); };
-        void Render(PipelineConfig& config, const Window& window, const std::string text);
+        void Render(const Window& window, const std::string text) { Render(*TextManager::GetDefaultShader(), window, text); };
+        void Render(Shader& config, const Window& window, const std::string text);
 
         void SetEffect(TextEffect effect) { _effect = effect; }
 

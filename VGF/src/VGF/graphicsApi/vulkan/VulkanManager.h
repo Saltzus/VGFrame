@@ -27,13 +27,16 @@
 #include <glm/gtx/rotate_vector.hpp>
 
 
-#include "../../PipelineConfig.h"
+#include "../../Shader.h"
 #include "../../UniformBuffers/UniformBuffer.h"
 
 #include "../../RenderImpl.h"
 #include "../../Window.h"
 
 #include "../../Log.h"
+
+#include "../../ShaderCompiler.h"
+#include "../../RenderData.h"
 
 #include "VulkanGraphicsPipeline.h"
 #include "VulkanFrameBuffer.h"
@@ -43,39 +46,15 @@ namespace VGF::Vulkan
 {
     inline static const int MAX_FRAMES_IN_FLIGHT = 2;
 
-    struct InstanceData
-    {
-        std::vector<std::byte> data;
-        size_t count;
-        size_t stride;
-
-        InstanceData(const void* data, size_t count, size_t stride)
-            : data(static_cast<const std::byte*>(data), static_cast<const std::byte*>(data) + count * stride)
-            , count(count)
-            , stride(stride)
-        { }
-
-        void Append(const void* data, size_t count, size_t stride)
-        {
-            this->stride = stride;
-
-            const std::byte* src = static_cast<const std::byte*>(data);
-            this->data.insert(this->data.end(), src, src + count * stride);
-            count += count;
-        }
-
-        const void* Data() { return data.data(); }
-    };
-
-    struct RenderData
+    struct RenderingData
     {
         unsigned int pipelineId;
         VulkanRenderer* renderer;
         VulkanFrameBuffer* framebuffer;
 
-        std::array<VkImageView, 5> imageViews;
+        std::array<std::pair<uint32_t, VkImageView>, 5> imageViews;
 
-        InstanceData instanceData;
+        RenderData data;
     };
 
     struct PipelineData
@@ -89,8 +68,8 @@ namespace VGF::Vulkan
 
     struct VulkanUniformBuffer
     {
-        UniformBufferObject* uniformBufferObject;
-        std::vector<unsigned int> data;
+        size_t size = 0;
+        std::vector<std::byte> data;
         std::vector<VkBuffer> uniformBuffers;
         std::vector<void*> uniformBuffersMapped;
         std::vector<VkDeviceMemory> uniformBuffersMemory;
@@ -99,10 +78,7 @@ namespace VGF::Vulkan
     struct VulkanImageSampler
     {
         std::vector<VkImageView> imageViews;
-        VkSampler& textureSampler;
-
-        VulkanImageSampler(const std::vector<VkImageView>& views, VkSampler& sampler) 
-            : imageViews(views), textureSampler(sampler) {}
+        VkSampler* textureSampler;
     };
 
     class VulkanRenderer;
@@ -181,8 +157,8 @@ namespace VGF::Vulkan
 
         QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 
-        unsigned int getOrCreatePipeline(VulkanRenderer* object, const PipelineConfig& config, const bool offscreen);
-        PipelineData createGraphicsPipeline(VulkanRenderer* object, const PipelineConfig& config, VkRenderPass& renderPass);
+        unsigned int getOrCreatePipeline(VulkanRenderer* object, const Shader& config, const bool offscreen);
+        PipelineData createGraphicsPipeline(VulkanRenderer* object, const Shader& config, VkRenderPass& renderPass);
 
         VkPipeline& GetPipeline(unsigned int pipelineID);
         VkPipelineLayout& GetPipelineLayout(unsigned int pipelineID);
@@ -218,9 +194,18 @@ namespace VGF::Vulkan
             size_t typeSize
         );
 
-        void createDescriptorSetLayout(VkDescriptorSetLayout& descriptorsetLayout, std::vector<VulkanUniformBuffer>& uniformBuffers, std::vector<VulkanImageSampler>& imageSamplers);
-        VkDescriptorPool createDescriptorPool(VkDescriptorPool& descriptorPool, size_t uniformBufferCount, size_t imageSamplerCount, unsigned int maxSets);
-        void createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSets, VkDescriptorSetLayout layout, VkDescriptorPool descriptorPool, std::vector<VulkanUniformBuffer>& uniformBuffers, std::vector<VulkanImageSampler>& imageSamplers);
+        void createDescriptorSetLayout(const std::unordered_map<std::string, BindingReflection>& reflect, VkDescriptorSetLayout& descriptorsetLayout);
+        VkDescriptorPool createDescriptorPool(const std::unordered_map<std::string, BindingReflection>& reflect, VkDescriptorPool& descriptorPool, unsigned int maxSets);
+        
+        void createDescriptorSets
+        (
+            const std::unordered_map<std::string, BindingReflection>& reflect,
+            const std::unordered_map<std::string, VulkanUniformBuffer>& uniformBuffers,
+            const std::unordered_map<std::string, VulkanImageSampler>& imageSamplers,
+            std::vector<VkDescriptorSet>& descriptorSets,
+            VkDescriptorSetLayout layout,
+            VkDescriptorPool descriptorPool
+        );
 
         uint32_t getCurrentFrame() { return currentFrame; }
 
@@ -313,7 +298,7 @@ namespace VGF::Vulkan
     public:
         int indicesSize = 0;
 
-        VulkanRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, std::vector<UniformBufferObject*> uniformBuffers);
+        VulkanRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, const Shader& shader);
         ~VulkanRenderer();
 
         VkBuffer indexBuffer = VK_NULL_HANDLE;
@@ -325,18 +310,18 @@ namespace VGF::Vulkan
         VkBuffer instanceBuffer = VK_NULL_HANDLE;
         VkDeviceMemory instanceBufferMemory = VK_NULL_HANDLE;
 
-        std::vector<VulkanUniformBuffer> vulkanUniformBuffers;
+        std::unordered_map<std::string,VulkanUniformBuffer> vulkanUniformBuffers;
 
         VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
         VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
         std::vector<VkDescriptorSet> descriptorSet;
         
-        virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override;
-        virtual void BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers) override;
+        virtual void Render(const RenderData& renderData, const Shader& shader) override;
+        virtual void BatchRender(const RenderData& renderData, const Shader& shader) override;
 
-        void Draw(VkCommandBuffer& commandBuffer, uint32_t currentFrame, RenderData data);
+        void Draw(VkCommandBuffer& commandBuffer, uint32_t currentFrame, RenderingData data);
     private:
-        void CheckTextureChange(std::array<VkImageView, 5> imageViews);
+        void CheckTextureChange(std::array<std::pair<uint32_t, VkImageView>, 5> imageViews);
         void UpdateUniformBuffer(uint32_t currentImage, unsigned int usedIndex);
 
         size_t _instanceBufferCapasity = 0;

@@ -57,18 +57,18 @@ namespace VGF::Opengl
     class OpenglRenderer : public RendererImpl
     {
     public:
-        OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, std::vector<UniformBufferObject*> uniformBuffers);
+        OpenglRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices);
         ~OpenglRenderer();    
 
-        virtual void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) override; // Declare draw
-        virtual void BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers) override;
+        virtual void Render(const RenderData& data, const Shader& config) override; // Declare draw
+        virtual void BatchRender(const RenderData& data, const Shader& config) override;
     private:
-        const int GetTopology(const PipelineConfig& config) const;
+        const int GetTopology(const Shader& config) const;
 
         std::vector<GLuint> _indices;
         std::vector<GLfloat> _vertices;
 
-        void CreateVAO(const PipelineConfig& config);
+        void CreateVAO(const Shader& config);
         bool _createdVao = false;
         bool _configuredInstanceAttributes = false;
 

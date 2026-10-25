@@ -11,7 +11,7 @@ namespace VGF
         }
 
         font = TextManager::GetDefaultFont();
-        _renderer = new Renderer(VGF::Spapes::Quad::quadIndices, VGF::Spapes::Quad::quadVertices, {TextBufferObject::getDefault()});
+        _renderer = new Renderer(Shader::GetDefault(), VGF::Spapes::Quad::quadIndices, VGF::Spapes::Quad::quadVertices);
     }
     
     Text::~Text()
@@ -19,7 +19,9 @@ namespace VGF
         delete _renderer;
     }
 
-    void Text::Render(PipelineConfig& config, const Window& window, const std::string tex)
+    RenderData remderData(Shader::GetDefault());
+
+    void Text::Render(Shader& shader, const Window& window, const std::string tex)
     {
         std::string text = _effect.runEffect(tex);
 
@@ -59,7 +61,7 @@ namespace VGF
                 _textBuffer.SetData((void*)&data);
 
                 font->GetCharacter(text[ch])->texture->Bind();
-                _renderer->Render(config, { &_textBuffer });
+                _renderer->Render(remderData, shader);
             }
 
             xCursor += (chr.advance >> 6) * size;

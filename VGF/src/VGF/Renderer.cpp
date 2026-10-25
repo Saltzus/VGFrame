@@ -10,18 +10,18 @@ namespace VGF
 {
     const GraphicsApis Renderer::graphicApi = GraphicsApis::Vulkan;// TODO: add to a config file using YAML or something like that.
 
-    Renderer::Renderer(std::vector<unsigned int>& indices, std::vector<float>& vertices, std::vector<UniformBufferObject*> uniformBuffers)
+    Renderer::Renderer(const Shader& shader, std::vector<unsigned int>& indices, std::vector<float>& vertices)
     {
         switch (this->graphicApi)
         {
         case GraphicsApis::OpenGL:
-            this->_impl = new VGF::Opengl::OpenglRenderer(indices, vertices, uniformBuffers);
+            this->_impl = new VGF::Opengl::OpenglRenderer(indices, vertices);
             break;
         case GraphicsApis::Vulkan:
-            this->_impl = new VGF::Vulkan::VulkanRenderer(indices, vertices, uniformBuffers);
+            this->_impl = new VGF::Vulkan::VulkanRenderer(indices, vertices, shader);
             break;
         default:
-            this->_impl = new VGF::Opengl::OpenglRenderer(indices, vertices, uniformBuffers);
+            this->_impl = new VGF::Opengl::OpenglRenderer(indices, vertices);
             break;
         }
 
@@ -48,20 +48,20 @@ namespace VGF
         renderers.clear();
     }
 
-    void Renderer::Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) const
+    void Renderer::Render(const RenderData& data, const Shader& shader) const
     {
-        if (config.vertShader == "" || config.fragShader == "") VGF::Log::Error("Config is null");
+        if (shader.vertShader == "" || shader.fragShader == "") VGF::Log::Error("Shader is null");
 
-        config.Activate();
-        this->_impl->Render(config, uniformBuffers);
+        shader.Bind();
+        this->_impl->Render(data, shader);
     }
 
-    void Renderer::BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers) const
+    void Renderer::BatchRender(const RenderData& data, const Shader& shader) const
     {
-        if (config.vertShader == "" || config.fragShader == "") VGF::Log::Error("Config is null");
+        if (shader.vertShader == "" || shader.fragShader == "") VGF::Log::Error("Shader is null");
 
-        config.Activate();
-        this->_impl->BatchRender(config, instanceData, instanceCount, instanceStride, uniformBuffers);
+        shader.Bind();
+        this->_impl->BatchRender(data, shader);
     }
 
     void Renderer::InitGraphics(GLFWwindow* window)

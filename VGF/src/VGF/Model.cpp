@@ -7,7 +7,7 @@
 
 namespace VGF
 {
-	Model::Model(const std::string& modelPath, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+	Model::Model(const std::string& modelPath, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
 		: config(config)
 	{
 		tinygltf::Model gltfModel;
@@ -206,8 +206,7 @@ namespace VGF
 
 				AnimationData data;
 				std::copy(skins[i].inverseBindMatrices.begin(), skins[i].inverseBindMatrices.end(), data.jointMatrices);
-
-				for (auto& buff : skins[i].buffers) buff.SetData(data);
+				renderData.Set("AnimationBuffer.jointMatrices", data.jointMatrices);
 			}
 		}
 
@@ -221,12 +220,12 @@ namespace VGF
 		for (auto& node : nodes)
 		{
 			if (node->mesh.indices.empty()) continue;
-			modelRenderers.emplace_back(new Renderer(node->mesh.indices, node->mesh.vertices, renderUniformBuffers));
+			modelRenderers.emplace_back(new Renderer(Shader::GetDefault(), node->mesh.indices, node->mesh.vertices));
 			node->mesh.rendererIndex = modelRenderers.size()-1;
 		}
 	}
 
-	Model::Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers) 
+	Model::Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers) 
 		: config(config)
 	{
 		_material = material;
@@ -250,7 +249,7 @@ namespace VGF
 		for (auto& node : nodes)
 		{
 			for (auto node : nodes) continue;
-			modelRenderers.emplace_back(new Renderer(node->mesh.indices, node->mesh.vertices, renderUniformBuffers));
+			modelRenderers.emplace_back(new Renderer(Shader::GetDefault(), node->mesh.indices, node->mesh.vertices));
 			node->mesh.rendererIndex = modelRenderers.size()-1;
 		}
 	}
@@ -350,7 +349,7 @@ namespace VGF
 			AnimationData data;
 			std::copy(jointMatrices.begin(), jointMatrices.end(), data.jointMatrices);
 
-			skin.buffers[0].SetData(data);
+			renderData.Set("AnimationBuffer.jointMatrices", data.jointMatrices);
 		}
 
 		for (auto &child : node->children)
@@ -694,13 +693,6 @@ namespace VGF
 	{
 		std::vector<Texture*> textureObjects;
 
-		//tinygltf::Sampler defaultSampler;
-		//defaultSampler.minFilter = GL_LINEAR;
-		//defaultSampler.magFilter = GL_LINEAR;
-		//defaultSampler.wrapS = GL_REPEAT;
-		//defaultSampler.wrapT = GL_REPEAT;
-		////defaultSampler.wrapR = GL_REPEAT;
-
 		for (size_t i = 0; i < model.textures.size(); i++)
 		{
 			const auto& texture = model.textures[i];
@@ -718,38 +710,69 @@ namespace VGF
 		return glm::mat4(1.f);
 	};
 
-	std::vector<UniformBufferObject*> Model::AddUniformBuffers(const glm::mat4& parentMatrix, const int bindId, const Camera& camera, std::vector<UniformBufferObject*> additionalUniformBuffers)
+	void Model::AddRenderData(const glm::mat4& parentMatrix, const int bindId, const Camera& camera, std::vector<UniformBufferObject*> additionalUniformBuffers)
 	{
-		MatrixData data;
-		data.model = parentMatrix;
-		data.proj = camera.projection;
-		data.view = camera.view;
-		uniformBuffers[matrixBuffer]->SetData((void*)&data);
+		renderData.Set("MatrixBuffer.model", parentMatrix);
+		renderData.Set("MatrixBuffer.proj", camera.projection);
+		renderData.Set("MatrixBuffer.view", camera.view);
 
-		std::vector<UniformBufferObject*> renderUniformBuffers;
-		renderUniformBuffers.push_back(uniformBuffers[matrixBuffer]);
-		renderUniformBuffers.push_back(bindMaterial(camera, bindId));
-		renderUniformBuffers.push_back(LightBufferObject::getDefault());
-		renderUniformBuffers.push_back(uniformBuffers[animationBuffer]);
+		renderData.Set("LightBuffer.ambientLightColor", glm::vec3(1.f, 1.f, 1.f));
+		renderData.Set("LightBuffer.ambientLightIntensity", 0.5f);
 
-		renderUniformBuffers.insert(renderUniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
+		struct DirectionalLight
+		{
+			alignas(16)glm::vec3 direction;
+			alignas(16)glm::vec3 color;
+		};
 
-		return renderUniformBuffers;
+		struct PointLight
+		{
+			alignas(16)glm::vec3 position;
+			alignas(16)glm::vec3 color;
+		};
+
+		std::vector<DirectionalLight> directionalLights;
+		directionalLights.resize(30);
+		
+		directionalLights[0].direction = glm::vec3(0, 0.5f, 0.5f);
+		directionalLights[0].color = glm::vec3(5, 0, 0);
+		directionalLights[1].direction = glm::vec3(0, -0.5f, -0.5f);
+		directionalLights[1].color = glm::vec3(0, 0, 5);
+
+		renderData.Set("LightBuffer.directionalLights", directionalLights);
+		renderData.Set("LightBuffer.directionLightAmount", 2);
+
+		std::vector<PointLight> pointLights;
+		pointLights.resize(30);
+
+		pointLights[0].position = glm::vec3(0, 10, 0);
+		pointLights[0].color = glm::vec3(0.9, 0.9, 1);
+
+		renderData.Set("LightBuffer.pointLights", pointLights);
+		renderData.Set("LightBuffer.pointLightAmount", 1);
+
+		bindMaterial(camera, bindId);
+		
+		DefaultInstance instance;
+		instance.model = parentMatrix;
+		instance.textureID = 1;
+
+		renderData.instanceData.Append(&instance, 1, sizeof(DefaultInstance));
 	}
 
-	void Model::Draw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindId, const PipelineConfig& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+	void Model::Draw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindId, const Shader& shader, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers)
 	{
-		std::vector<UniformBufferObject*> renderUniformBuffers = AddUniformBuffers(parentMatrix, bindId, camera, additionalUniformBuffers);
-		renderer->Render(config, renderUniformBuffers);
+		AddRenderData(parentMatrix, bindId, camera, additionalUniformBuffers);
+		renderer->Render(renderData, shader);
 	}
 
-	void Model::BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindId, const PipelineConfig& config, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers)
+	void Model::BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindId, const Shader& shader, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers)
 	{
-		std::vector<UniformBufferObject*> renderUniformBuffers = AddUniformBuffers(parentMatrix, bindId, camera, additionalUniformBuffers);
-		renderer->BatchRender(config, instanceData, instanceCount, instanceStride, renderUniformBuffers);
+		AddRenderData(parentMatrix, bindId, camera, additionalUniformBuffers);
+		renderer->BatchRender(renderData, shader);
 	}
 
-	void Model::drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const PipelineConfig& config, const Camera& camera, LightBufferObject lightBufffer)
+	void Model::drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const Shader& shader, const Camera& camera, LightBufferObject lightBufffer)
 	{
 		const auto& node = nodes[nodeIdx];
 		const glm::mat4 modelMatrix = parentMatrix * node->GetLocalMatrix();
@@ -776,7 +799,7 @@ namespace VGF
 
 
 
-	void Model::Render(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+	void Model::Render(const glm::mat4& parentMatrix, const Camera& camera, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
 	{
 		if (customModel)
 		{
@@ -803,7 +826,7 @@ namespace VGF
 		}
 	}
 
-	void Model::BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers)
+	void Model::BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const Shader& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers)
 	{
 		if (!customModel) return;
 		for (size_t i = 0; i < nodes.size(); i++)
@@ -813,10 +836,14 @@ namespace VGF
 	}
 
 
-	UniformBufferObject* Model::bindMaterial(const Camera& camera, const int materialIndex)
+	void Model::bindMaterial(const Camera& camera, const int materialIndex)
 	{
-		PBRData pbrBufferData = *(static_cast<const PBRData*>(uniformBuffers[pbrBuffer]->Data()));
-		pbrBufferData.cameraPosition = camera.position;
+		renderData.Set("PBRBuffer.cameraPosition", camera.position);
+		renderData.Set("PBRBuffer.baseColorFactor", glm::vec4(1.f));
+		renderData.Set("PBRBuffer.metallicFactor", 1.f);
+		renderData.Set("PBRBuffer.roughnessFactor", 1.f);
+		renderData.Set("PBRBuffer.emissiveFactor", glm::vec3(0.f));
+		renderData.Set("PBRBuffer.occlusionStrength", 1.f);
 
 		if (_material != nullptr) _material->Bind();
 		else if (materialIndex >= 0)
@@ -824,13 +851,13 @@ namespace VGF
 			const auto& modelMaterial = materials[materialIndex];
 			const auto& pbrMetallicRoughness = modelMaterial.pbrMetallicRoughness;
 
-			pbrBufferData.baseColorFactor =
-			{
-				(float)pbrMetallicRoughness.baseColorFactor[0],
-				(float)pbrMetallicRoughness.baseColorFactor[1],
-				(float)pbrMetallicRoughness.baseColorFactor[2],
-				(float)pbrMetallicRoughness.baseColorFactor[3]
-			};
+			glm::vec4 colorFactor;
+			colorFactor.x = pbrMetallicRoughness.baseColorFactor[0];
+			colorFactor.y = pbrMetallicRoughness.baseColorFactor[1];
+			colorFactor.z = pbrMetallicRoughness.baseColorFactor[2];
+			colorFactor.w = pbrMetallicRoughness.baseColorFactor[3];
+
+			renderData.Set("PBRBuffer.baseColorFactor", colorFactor);
 
 			const Texture* textureObject = Texture::GetWhiteTexture();
 
@@ -844,11 +871,8 @@ namespace VGF
 			}
 			textureObject->Bind(textureType::color);
 
-
-			pbrBufferData.metallicFactor = (float)pbrMetallicRoughness.metallicFactor;
-
-			pbrBufferData.roughnessFactor = (float)pbrMetallicRoughness.roughnessFactor;
-
+			renderData.Set("PBRBuffer.metallicFactor", (float)pbrMetallicRoughness.metallicFactor);
+			renderData.Set("PBRBuffer.roughnessFactor", (float)pbrMetallicRoughness.roughnessFactor);
 
 			textureObject = Texture::GetWhiteTexture();
 			if (pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
@@ -861,13 +885,12 @@ namespace VGF
 			}
 			textureObject->Bind(textureType::metallicRoughness);
 
-			pbrBufferData.emissiveFactor =
-			{
-				(float)modelMaterial.emissiveFactor[0],
-				(float)modelMaterial.emissiveFactor[1],
-				(float)modelMaterial.emissiveFactor[2]
-			};
+			glm::vec4 emissiveFactor;
+			colorFactor.x = modelMaterial.emissiveFactor[0];
+			colorFactor.y = modelMaterial.emissiveFactor[1];
+			colorFactor.z = modelMaterial.emissiveFactor[2];
 
+			renderData.Set("PBRBuffer.emissiveFactor", emissiveFactor);
 
 			textureObject = Texture::GetBlackTexture();
 			if (modelMaterial.emissiveTexture.index >= 0)
@@ -880,9 +903,7 @@ namespace VGF
 			}
 			textureObject->Bind(textureType::emissive);
 
-
-			pbrBufferData.occlusionStrength = (float)modelMaterial.occlusionTexture.strength;
-
+			renderData.Set("PBRBuffer.occlusionStrength", (float)modelMaterial.occlusionTexture.strength);
 
 			textureObject = Texture::GetWhiteTexture();
 			if (modelMaterial.occlusionTexture.index >= 0)
@@ -917,9 +938,6 @@ namespace VGF
 			text[3]->Bind(textureType::occulsion);
 			text[4]->Bind(textureType::normal);
 		}
-
-		uniformBuffers[pbrBuffer]->SetData((void*)&pbrBufferData);
-		return uniformBuffers[pbrBuffer];
 	};
 }
 

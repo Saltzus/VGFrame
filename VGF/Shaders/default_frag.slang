@@ -1,5 +1,6 @@
+import common;
 
-layout(binding = 1) cbuffer PBRBuffer
+cbuffer PBRBuffer
 {
     float3 cameraPosition;
     float metallicFactor;
@@ -21,22 +22,22 @@ struct PointLight
     float3 color;
 };
 
-layout(binding = 2) cbuffer LightBuffer
+cbuffer LightBuffer
 {
     float3 ambientLightColor;
     float ambientLightIntensity;
 
     DirectionalLight directionalLights[30];
     PointLight pointLights[30];
-    float directionLightAmount;
-    float pointLightAmount;
+    int directionLightAmount;
+    int pointLightAmount;
 };
 
-layout(binding = 4) Sampler2D colorSampler;
-layout(binding = 5) Sampler2D metallicRoughnessSampler;
-layout(binding = 6) Sampler2D emissiveSampler;
-layout(binding = 7) Sampler2D occulsionSampler;
-layout(binding = 8) Sampler2D normalSampler;
+Sampler2D colorSampler;
+Sampler2D metallicRoughnessSampler;
+Sampler2D emissiveSampler;
+Sampler2D occulsionSampler;
+Sampler2D normalSampler;
 
 struct FragmentIn
 {

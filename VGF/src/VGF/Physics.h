@@ -7,7 +7,7 @@
 #include <thread>
 #include <unordered_set>
 
-#include "PipelineConfig.h"
+#include "Shader.h"
 #include "Log.h"
 #include "VertexBuffers/DefaultInstanceBuffer.h"
 #include "VertexBuffers/DebugVertexBuffer.h"
@@ -71,11 +71,11 @@ namespace VGF
 		static inline DebugVertexBuffer debugVertexBuffer;
 		static inline DefaultInstanceBuffer instanceBuffer;
 
-		static const VGF::PipelineConfig& GetDefaultConfig(bool wireframe)
+		static const VGF::Shader& GetDefaultShader(bool wireframe)
 		{
 			if (wireframe)
 			{
-				static const VGF::PipelineConfig config
+				static const VGF::Shader config
 				(
 					VGF::Resource::Get("Shaders/debug_vert.slang"),
 					VGF::Resource::Get("Shaders/debug_frag.slang"),
@@ -88,7 +88,7 @@ namespace VGF
 			}
 			else
 			{
-				static const VGF::PipelineConfig config
+				static const VGF::Shader config
 				(
 					VGF::Resource::Get("Shaders/debug_vert.slang"),
 					VGF::Resource::Get("Shaders/debug_frag.slang"),

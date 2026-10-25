@@ -1,11 +1,13 @@
-layout(binding = 0) cbuffer MatrixBuffer
+import common;
+
+cbuffer MatrixBuffer
 {
     float4x4 model;
     float4x4 view;
     float4x4 proj;
 };
 
-layout(binding = 3) cbuffer AnimationBuffer
+cbuffer AnimationBuffer
 {
     float4x4 jointMatrices[128];
 };
@@ -62,14 +64,14 @@ VertexOut main(VertexIn vertexIn)
     }
 
     float4 skinnedPosition = mul(skinMatrix, float4(vertexIn.position, 1.0));
-    float4 worldPosition = mul(vertexIn.model, skinnedPosition);
+    float4 worldPosition = mul(model, skinnedPosition);
 
     VertexOut outVertex;
     outVertex.sv_position = mul(proj, mul(view, worldPosition));
     outVertex.color = vertexIn.color;
     outVertex.texCoord = float2(vertexIn.texCoord.x, 1.0 - vertexIn.texCoord.y);
     outVertex.position = worldPosition.xyz / worldPosition.w;
-    outVertex.normal = normalize(mul(mul(vertexIn.model, skinMatrix), float4(vertexIn.normal, 0.0)).xyz);
+    outVertex.normal = normalize(mul(mul(model, skinMatrix), float4(vertexIn.normal, 0.0)).xyz);
     outVertex.textureId = vertexIn.textureId;
 
     return outVertex;

@@ -16,7 +16,7 @@ namespace VGF::Vulkan
     public:
         VulkanShader(std::string_view vertexFile, std::string_view fragmentFile);
 
-        void Activate() override;
+        void Bind() override;
         void Delete() override;
         unsigned int& Id() override { return ID; };
 

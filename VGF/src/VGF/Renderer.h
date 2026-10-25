@@ -9,10 +9,9 @@
 
 #include "Log.h"
 
-#include "PipelineConfig.h"
+#include "Shader.h"
 #include "RenderImpl.h"
 #include "Window.h"
-#include "Shader.h"
 #include "Camera.h"
 
 #include "UniformBuffers/LightBuffer.h"
@@ -40,7 +39,7 @@ namespace VGF
         const static GraphicsApis graphicApi;
         static inline std::unordered_set<Renderer*> renderers;
     public:
-        Renderer(std::vector<unsigned int>& indices, std::vector<float>& vertices, std::vector<UniformBufferObject*> uniformBuffers);
+        Renderer(const Shader& shader, std::vector<unsigned int>& indices, std::vector<float>& vertices);
        
         Renderer(const Renderer&) = delete;
         Renderer& operator=(const Renderer&) = delete;
@@ -48,14 +47,14 @@ namespace VGF
         ~Renderer();
         static void DestroyRenderers();
 
-        void Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers) const;
+        void Render(const RenderData& data, const Shader& shader) const;
         
-        void BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers) const;
+        void BatchRender(const RenderData& data, const Shader& shader) const;
         
         template<typename T>
-        void BatchRender(const PipelineConfig& config, const std::vector<T> instances, const std::vector<UniformBufferObject*> uniformBuffers) const
+        void BatchRender(const Shader& shader, const std::vector<T> instances, const std::vector<UniformBufferObject*> uniformBuffers) const
         {
-            BatchRender(config, instances.data(), instances.size(), sizeof(T), uniformBuffers);
+            BatchRender(shader, instances.data(), instances.size(), sizeof(T), uniformBuffers);
         }
 
         static GraphicsApis GetGraphicsApi() {return graphicApi;};

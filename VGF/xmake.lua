@@ -1,8 +1,6 @@
 target("VGF")
     set_kind("static")
     add_files("src/**/*.cpp")
-    add_files("Shaders/**.slang")
-    add_rules("slang")
     add_headerfiles("src/**/*.h")
     add_includedirs("src", {public = true})
     set_group("VGFrame")

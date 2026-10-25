@@ -9,7 +9,7 @@ namespace VGF
         model.Render(modelMatrix, camera, additionalUniformBuffers);
     }
 
-    void Object::Render(const Camera& camera, const PipelineConfig& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+    void Object::Render(const Camera& camera, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
     {
         model.config = config;
         Render(camera, additionalUniformBuffers);
@@ -20,7 +20,7 @@ namespace VGF
         glm::mat4 modelMatrix = CreateModelMatrix(camera.view);
         model.BatchRender(modelMatrix, camera, instanceData, instanceCount, instanceStride, additionalUniformBuffers);
     }
-    void Object::BatchRender(const Camera& camera, const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers) const
+    void Object::BatchRender(const Camera& camera, const Shader& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers) const
     {
         model.config = config;
         BatchRender(camera, instanceData, instanceCount, instanceStride, additionalUniformBuffers);

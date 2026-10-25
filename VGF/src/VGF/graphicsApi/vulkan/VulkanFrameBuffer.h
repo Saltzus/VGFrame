@@ -9,7 +9,7 @@ namespace VGF::Vulkan
 	class Vulkan;
 	class VulkanRenderer;
 
-	struct RenderData;
+	struct RenderingData;
 
 	class VulkanFrameBuffer : public FrameBufferImpl
 	{
@@ -25,8 +25,8 @@ namespace VGF::Vulkan
 		virtual void UnBind() override;
 		virtual void Delete() override;
 
-		std::vector<RenderData> opaqueObjects;
-		std::vector<RenderData> translucentObjects;
+		std::vector<RenderingData> opaqueObjects;
+		std::vector<RenderingData> translucentObjects;
 
 		VkFramebuffer framebuffer;
 

@@ -28,7 +28,7 @@ namespace VGF::Vulkan
 	}
 
 	// Activates the Shader Program
-	void VulkanShader::Activate()
+	void VulkanShader::Bind()
 	{
 
 	}

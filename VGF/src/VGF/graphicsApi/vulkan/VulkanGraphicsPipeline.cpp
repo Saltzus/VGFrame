@@ -25,12 +25,12 @@ namespace VGF::Vulkan
 
         return buffer;
     }
-    VkShaderModule createShaderModule(VkDevice device, const std::vector<char>& code) 
+    VkShaderModule createShaderModule(VkDevice device, const Slang::ComPtr<slang::IBlob>& code)
     {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = code.size();
-        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+        createInfo.codeSize = code->getBufferSize();
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(code->getBufferPointer());
 
         VkShaderModule shaderModule;
         if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
@@ -41,21 +41,10 @@ namespace VGF::Vulkan
     }
 
 	// Constructor that build the Shader Program from 2 different shaders
-	VulkanGraphicsPipeline::VulkanGraphicsPipeline(const PipelineConfig& config, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline)
+	VulkanGraphicsPipeline::VulkanGraphicsPipeline(const Shader& config, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline)
 	{
-        std::string vulkanVertexFile = config.vertShader.data();
-        vulkanVertexFile.erase(vulkanVertexFile.length() - 6);
-        vulkanVertexFile += ".spv";
-
-        std::string vulkanFragmentFile = config.fragShader.data();
-        vulkanFragmentFile.erase(vulkanFragmentFile.length() - 6);
-        vulkanFragmentFile += ".spv";
-
-        vertShaderCode = readFile(vulkanVertexFile);
-        fragShaderCode = readFile(vulkanFragmentFile);
-
-        VkShaderModule vertShaderModule = createShaderModule(device, vertShaderCode);
-        VkShaderModule fragShaderModule = createShaderModule(device, fragShaderCode);
+        VkShaderModule vertShaderModule = createShaderModule(device, config.spirvvert);
+        VkShaderModule fragShaderModule = createShaderModule(device, config.spirvfrag);
 
         VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

@@ -4,6 +4,7 @@
 #include "Camera.h"
 
 #include "DebugShapes.h"
+#include "RenderData.h"
 
 namespace VGF
 {
@@ -76,31 +77,33 @@ namespace VGF
 	VGF::Renderer* Triangles;
 	MatrixBufferObject matrixBuffer;
 
+	
+
 	void Physics::DebugRender(const Camera& camera)
 	{
+		RenderData renderData = RenderData(GetDefaultShader(true));
+
 		if (debugRenderOn)
 		{
 			if (wireframeTriangles) delete wireframeTriangles; wireframeTriangles = nullptr;
 			if (Triangles) delete Triangles; Triangles = nullptr;
 
-			MatrixData data;
-			data.model = glm::mat4(1.f);
-			data.proj = camera.projection;
-			data.view = camera.view;
-			matrixBuffer.SetData((void*)&data);
+			renderData.Set("MatrixBuffer.model", glm::mat4(1.f));
+			renderData.Set("MatrixBuffer.proj", camera.projection);
+			renderData.Set("MatrixBuffer.view", camera.view);
 
 			debugRenderer.Debug(worldId);
 
 			if (!debugRenderer.indices.empty() && !debugRenderer.vertices.empty())
 			{
-				Triangles = new VGF::Renderer(debugRenderer.indices, debugRenderer.vertices, { MatrixBufferObject::getDefault() });
-				Triangles->Render(GetDefaultConfig(false), { &matrixBuffer });
+				Triangles = new VGF::Renderer(GetDefaultShader(false), debugRenderer.indices, debugRenderer.vertices);
+				Triangles->Render(renderData, GetDefaultShader(false));
 			}
 			
 			if (!debugRenderer.wireframeIndices.empty() && !debugRenderer.wireframeVertices.empty())
 			{
-				wireframeTriangles = new VGF::Renderer(debugRenderer.wireframeIndices, debugRenderer.wireframeVertices, { MatrixBufferObject::getDefault() });
-				wireframeTriangles->Render(GetDefaultConfig(true), { &matrixBuffer });
+				wireframeTriangles = new VGF::Renderer(GetDefaultShader(true), debugRenderer.wireframeIndices, debugRenderer.wireframeVertices);
+				wireframeTriangles->Render(renderData, GetDefaultShader(true));
 			}
 		}
 

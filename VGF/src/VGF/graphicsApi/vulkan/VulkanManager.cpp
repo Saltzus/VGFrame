@@ -5,10 +5,12 @@
 #include "imgui_impl_vulkan.h"
 #include "../../Camera.h"
 
+#include "../../UniformBuffers/MatrixBuffer.h"
+
 namespace VGF::Vulkan
 {
-    std::vector<RenderData> opaqueSwapchainObjects;
-    std::vector<RenderData> translucentSwapchainObjects;
+    std::vector<RenderingData> opaqueSwapchainObjects;
+    std::vector<RenderingData> translucentSwapchainObjects;
     
     VulkanTexture::VulkanTexture(std::string filePath)
     {
@@ -71,8 +73,7 @@ namespace VGF::Vulkan
                 rgbaData[i * 4 + 3] = inData[i];
             }
         }
-        else
-            memcpy(rgbaData.data(), inData, imageSize);
+        else memcpy(rgbaData.data(), inData, imageSize);
 
         if (!inData) Log::Error("Failed to load texture image (data)!");
 
@@ -661,32 +662,73 @@ namespace VGF::Vulkan
         }
     }
 
-    void Vulkan::createDescriptorSetLayout(VkDescriptorSetLayout& descriptorsetLayout, std::vector<VulkanUniformBuffer>& uniformBuffers, std::vector<VulkanImageSampler>& imageSamplers)
+    static VkShaderStageFlags ToVkStage(std::vector<SlangStage> stages)
     {
-        size_t bufferSize = uniformBuffers.size();
-        size_t samplerSize = imageSamplers.size();
-        std::vector<VkDescriptorSetLayoutBinding> bindings{};
-        bindings.resize(bufferSize + samplerSize);
+        VkShaderStageFlags flags = 0;
 
-        for (size_t i = 0; i < bufferSize; i++)
+        for (SlangStage stage : stages)
         {
-            bindings[i].binding = i;
-            bindings[i].descriptorCount = 1;
-            bindings[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            bindings[i].pImmutableSamplers = nullptr;
-            bindings[i].stageFlags = uniformBuffers[i].uniformBufferObject->getShaderStage() == 
-                ShaderStage::VERTEX ?
-                VK_SHADER_STAGE_VERTEX_BIT :
-                VK_SHADER_STAGE_FRAGMENT_BIT;
+            switch (stage)
+            {
+            case SLANG_STAGE_VERTEX:        flags |= VK_SHADER_STAGE_VERTEX_BIT;  break;
+            case SLANG_STAGE_HULL:          flags |= VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT; break;
+            case SLANG_STAGE_DOMAIN:        flags |= VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT; break;
+            case SLANG_STAGE_GEOMETRY:      flags |= VK_SHADER_STAGE_GEOMETRY_BIT; break;
+            case SLANG_STAGE_FRAGMENT:      flags |= VK_SHADER_STAGE_FRAGMENT_BIT; break;
+            case SLANG_STAGE_COMPUTE:       flags |= VK_SHADER_STAGE_COMPUTE_BIT; break;
+            case SLANG_STAGE_RAY_GENERATION:flags |= VK_SHADER_STAGE_RAYGEN_BIT_KHR; break;
+            case SLANG_STAGE_INTERSECTION:  flags |= VK_SHADER_STAGE_INTERSECTION_BIT_KHR; break;
+            case SLANG_STAGE_ANY_HIT:       flags |= VK_SHADER_STAGE_ANY_HIT_BIT_KHR; break;
+            case SLANG_STAGE_CLOSEST_HIT:   flags |= VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR; break;
+            case SLANG_STAGE_MISS:          flags |= VK_SHADER_STAGE_MISS_BIT_KHR; break;
+            case SLANG_STAGE_CALLABLE:      flags |= VK_SHADER_STAGE_CALLABLE_BIT_KHR; break;
+            case SLANG_STAGE_MESH:          flags |= VK_SHADER_STAGE_MESH_BIT_EXT; break;
+            case SLANG_STAGE_AMPLIFICATION: flags |= VK_SHADER_STAGE_TASK_BIT_EXT; break;
+            }
         }
 
-        for (size_t i = 0; i < samplerSize; i++)
+        if (flags == 0) flags = VK_SHADER_STAGE_ALL;
+        return flags;
+    }
+
+    static bool ToVkType(slang::TypeReflection* t, VkDescriptorType& out)
+    {
+        switch (t->getKind())
         {
-            bindings[bufferSize + i].binding = bufferSize + i;
-            bindings[bufferSize + i].descriptorCount = 1;
-            bindings[bufferSize + i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            bindings[bufferSize + i].pImmutableSamplers = nullptr;
-            bindings[bufferSize + i].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        case slang::TypeReflection::Kind::ConstantBuffer:
+            out = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            return true;
+        case slang::TypeReflection::Kind::Resource:
+        {
+            SlangResourceShape shape = t->getResourceShape();
+            if (shape & SLANG_TEXTURE_COMBINED_FLAG) 
+            {      
+                out = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                return true;
+            }
+            return false; // extend: separate textures, SSBOs, storage images...
+        }
+        default:
+            return false;
+        }
+    }
+
+    void Vulkan::createDescriptorSetLayout(const std::unordered_map<std::string, BindingReflection>& reflect, VkDescriptorSetLayout& descriptorsetLayout)
+    {
+        std::vector<VkDescriptorSetLayoutBinding> bindings{};
+
+        for (const auto& [name,binding] : reflect)
+        {
+            VkDescriptorType type;
+            if (!ToVkType(binding.type, type))Log::Error("No binding type");
+
+            VkDescriptorSetLayoutBinding bind;
+            bind.binding = binding.binding;
+            bind.descriptorCount = 1;
+            bind.descriptorType = type;
+            bind.pImmutableSamplers = nullptr;
+            bind.stageFlags = ToVkStage(binding.stages);
+            bindings.push_back(bind);
         }
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
@@ -698,7 +740,15 @@ namespace VGF::Vulkan
             VGF::Log::Error("Failed to create descriptor set layout!");
         }
     }
-    void Vulkan::createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSets, VkDescriptorSetLayout layout, VkDescriptorPool descriptorPool, std::vector<VulkanUniformBuffer>& vulkanUniformBuffers, std::vector<VulkanImageSampler>& imageSamplers)
+    void Vulkan::createDescriptorSets
+    (
+        const std::unordered_map<std::string, BindingReflection>& reflect,
+        const std::unordered_map<std::string, VulkanUniformBuffer>& uniformBuffers,
+        const std::unordered_map<std::string, VulkanImageSampler>& imageSamplers,
+        std::vector<VkDescriptorSet>& descriptorSets,
+        VkDescriptorSetLayout layout,
+        VkDescriptorPool descriptorPool
+    )
     {
         std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, layout);
         VkDescriptorSetAllocateInfo allocInfo{};
@@ -714,62 +764,70 @@ namespace VGF::Vulkan
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
         {
-            std::vector<VkDescriptorBufferInfo> bufferInfoArray{};
-            for (auto buffer : vulkanUniformBuffers)
-            {
-                VkDescriptorBufferInfo bufferInfo{};
-                bufferInfo.buffer = buffer.uniformBuffers[i];
-                bufferInfo.offset = 0;
-                bufferInfo.range = buffer.uniformBufferObject->SizeOf();
+            std::vector<VkDescriptorBufferInfo> bufferInfos;
+            std::vector<VkDescriptorImageInfo>  imageInfos;
+            std::vector<VkWriteDescriptorSet>   descWrites;
+            bufferInfos.reserve(reflect.size());
+            imageInfos.reserve(reflect.size());
+            descWrites.reserve(reflect.size());
 
-                bufferInfoArray.push_back(bufferInfo);
+            for (const auto& [name,binding] : reflect)
+            {
+                VkDescriptorType type;
+                if (!ToVkType(binding.type, type))Log::Error("No binding type");
+
+                VkWriteDescriptorSet descWrite{};
+                descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descWrite.dstSet = descriptorSets[i];
+                descWrite.dstBinding = binding.binding;
+                descWrite.dstArrayElement = 0;
+                descWrite.descriptorType = type;
+                descWrite.descriptorCount = 1;
+
+                if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+                {
+                    auto it = uniformBuffers.find(name);
+                    if (it == uniformBuffers.end()) Log::Error("No uniform buffer for : " + name);
+
+                    const VulkanUniformBuffer& buffer = it->second;
+
+                    VkDescriptorBufferInfo bufferInfo{};
+                    bufferInfo.buffer = buffer.uniformBuffers[i];
+                    bufferInfo.offset = 0;
+                    bufferInfo.range = binding.size;
+                   
+                    bufferInfos.push_back(bufferInfo);
+                    descWrite.pBufferInfo = &bufferInfos.back();
+                }
+                else if (type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+                {
+                    auto it = imageSamplers.find(name);
+                    if (it == imageSamplers.end()) Log::Error("No image sampler for : " + name);
+
+                    const VulkanImageSampler& sampler = it->second;
+
+                    VkDescriptorImageInfo samplerInfo{};
+                    samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    samplerInfo.imageView = sampler.imageViews[i % sampler.imageViews.size()];
+                    samplerInfo.sampler = *sampler.textureSampler;
+
+                    imageInfos.push_back(samplerInfo);
+                    descWrite.pImageInfo = &imageInfos.back();
+                }
+                else
+                {
+                    VGF::Log::Error("Unsupported descriptor type for '" + name + "'");
+                    continue;
+                }
+
+                descWrites.push_back(descWrite);
             }
 
-            std::vector<VkDescriptorImageInfo> samplerInfoArray{};
-            for (auto sampler : imageSamplers)
-            {
-                VkDescriptorImageInfo samplerInfo{};
-                samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                samplerInfo.imageView = sampler.imageViews[i % sampler.imageViews.size()];
-                samplerInfo.sampler = sampler.textureSampler;
-
-                samplerInfoArray.push_back(samplerInfo);
-            }
-
-
-            size_t bufferSize = vulkanUniformBuffers.size();
-            size_t samplerSize = imageSamplers.size();
-
-            std::vector<VkWriteDescriptorSet> descriptorWrites{};
-            descriptorWrites.resize(bufferSize + samplerSize);
-
-            for (size_t b = 0; b < bufferSize; b++)
-            {
-                descriptorWrites[b].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                descriptorWrites[b].dstSet = descriptorSets[i];
-                descriptorWrites[b].dstBinding = b;
-                descriptorWrites[b].dstArrayElement = 0;
-                descriptorWrites[b].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                descriptorWrites[b].descriptorCount = 1;
-                descriptorWrites[b].pBufferInfo = &bufferInfoArray[b];
-            }
-
-            for (size_t s = 0; s < samplerSize; s++)
-            {
-                descriptorWrites[bufferSize + s].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                descriptorWrites[bufferSize + s].dstSet = descriptorSets[i];
-                descriptorWrites[bufferSize + s].dstBinding = bufferSize + s;
-                descriptorWrites[bufferSize + s].dstArrayElement = 0;
-                descriptorWrites[bufferSize + s].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                descriptorWrites[bufferSize + s].descriptorCount = 1;
-                descriptorWrites[bufferSize + s].pImageInfo = &samplerInfoArray[s];
-            }
-
-            vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+            vkUpdateDescriptorSets(device, static_cast<uint32_t>(descWrites.size()), descWrites.data(), 0, nullptr);
         }
     }
 
-    unsigned int Vulkan::getOrCreatePipeline(VulkanRenderer* object, const PipelineConfig& config, const bool offscreen)
+    unsigned int Vulkan::getOrCreatePipeline(VulkanRenderer* object, const Shader& config, const bool offscreen)
     {
         PipelineHashKey key{ config, offscreen };
         auto it = pipelineCache.find(key);
@@ -802,7 +860,7 @@ namespace VGF::Vulkan
         return pipelines.at(pipelineID).second;
     }
 
-    PipelineData Vulkan::createGraphicsPipeline(VulkanRenderer* object, const PipelineConfig& config, VkRenderPass& renderPass)
+    PipelineData Vulkan::createGraphicsPipeline(VulkanRenderer* object, const Shader& config, VkRenderPass& renderPass)
     {
         VkPipeline pipeline;
         VkPipelineLayout pipelineLayout;
@@ -869,10 +927,10 @@ namespace VGF::Vulkan
 
             vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            for (RenderData& data : framebuffers[i]->opaqueObjects)
+            for (RenderingData& data : framebuffers[i]->opaqueObjects)
                 data.renderer->Draw(commandBuffer, currentFrame, data);
 
-            for (RenderData& data : framebuffers[i]->translucentObjects)
+            for (RenderingData& data : framebuffers[i]->translucentObjects)
                 data.renderer->Draw(commandBuffer, currentFrame, data);
 
             framebuffers[i]->opaqueObjects.clear();
@@ -896,10 +954,10 @@ namespace VGF::Vulkan
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        for (RenderData& data : opaqueSwapchainObjects)
+        for (RenderingData& data : opaqueSwapchainObjects)
             data.renderer->Draw(commandBuffer, currentFrame, data);
 
-        for (RenderData& data : translucentSwapchainObjects)
+        for (RenderingData& data : translucentSwapchainObjects)
             data.renderer->Draw(commandBuffer, currentFrame, data);
 
         opaqueSwapchainObjects.clear();
@@ -980,28 +1038,21 @@ namespace VGF::Vulkan
         }
     }
 
-    VkDescriptorPool Vulkan::createDescriptorPool(VkDescriptorPool& descriptorPool, size_t uniformBufferCount, size_t imageSamplerCount, unsigned int maxSets)
+    VkDescriptorPool Vulkan::createDescriptorPool(const std::unordered_map<std::string, BindingReflection>& reflect, VkDescriptorPool& descriptorPool, unsigned int maxSets)
     {
         std::vector<VkDescriptorPoolSize> poolSizes{};
-        poolSizes.resize(uniformBufferCount + imageSamplerCount);
-
-        for (size_t i = 0; i < uniformBufferCount; i++)
+        for (const auto& [name,binding] : reflect)
         {
-            poolSizes[i].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            poolSizes[i].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-        }
-
-        for (size_t i = 0; i < imageSamplerCount; i++)
-        {
-            poolSizes[uniformBufferCount + i].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            poolSizes[uniformBufferCount + i].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+            VkDescriptorType type;
+            if (!ToVkType(binding.type, type))Log::Error("No binding type");
+            poolSizes.push_back({ type, binding.count * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)});
         }
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * maxSets);
+        poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * reflect.size());
 
         if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
             VGF::Log::Error("Failed to create descriptor pool!");
@@ -1786,33 +1837,45 @@ namespace VGF::Vulkan
         2, 3, 0
     };
 
-    VulkanRenderer::VulkanRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, std::vector<UniformBufferObject*> uniformBuffers)
+    VulkanRenderer::VulkanRenderer(std::vector<GLuint>& indices, std::vector<GLfloat>& vertices, const Shader& shader)
     {
         vulkan = Vulkan::vulkan;
 
         vulkan->createVertexBuffer(vertexBuffer, vertexBufferMemory, vertices);
         vulkan->createIndexBuffer(indexBuffer, indexBufferMemory, indices);
 
-        for (UniformBufferObject* buffer : uniformBuffers)
+        for (auto& [id, set] : shader.reflect.sets)
         {
-            VulkanUniformBuffer vulkanBuffer;
-            vulkanBuffer.uniformBufferObject = buffer;
-            vulkan->createUniformBuffers(vulkanBuffer, buffer->SizeOf());
-            vulkanUniformBuffers.emplace_back(vulkanBuffer);
+            for (const auto& [name,binding] : set)
+            {
+                VkDescriptorType type;
+                if (!ToVkType(binding.type, type))Log::Error("No binding type");
+
+                if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+                {
+                    VulkanUniformBuffer vulkanBuffer;
+                    vulkanBuffer.size = binding.size;
+                    vulkanBuffer.data.assign(binding.size, std::byte{ 0 });
+                    vulkan->createUniformBuffers(vulkanBuffer, binding.size);
+                    vulkanUniformBuffers[name] = std::move(vulkanBuffer);
+                }
+                else if (type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+                {
+
+                }
+            }
         }
 
-        std::vector<VulkanImageSampler> samplers =
-        {
-            {{vulkan->colorTextureImageView}, vulkan->textureSampler},
-            {{vulkan->metallicRoughnessTextureImageView}, vulkan->textureSampler},
-            {{vulkan->emissiveTextureImageView}, vulkan->textureSampler},
-            {{vulkan->occulsionTextureImageView}, vulkan->textureSampler},
-            {{vulkan->normalTextureImageView}, vulkan->textureSampler},
-        };
+        std::unordered_map<std::string, VulkanImageSampler> samplers;
+        samplers["colorSampler"]               = { {vulkan->colorTextureImageView}, &vulkan->textureSampler };
+        samplers["metallicRoughnessSampler"]   = { {vulkan->metallicRoughnessTextureImageView}, &vulkan->textureSampler };
+        samplers["emissiveSampler"]            = { {vulkan->emissiveTextureImageView}, &vulkan->textureSampler };
+        samplers["occulsionSampler"]           = { {vulkan->occulsionTextureImageView}, &vulkan->textureSampler };
+        samplers["normalSampler"]              = { {vulkan->normalTextureImageView}, &vulkan->textureSampler };
 
-        vulkan->createDescriptorSetLayout(descriptorSetLayout, vulkanUniformBuffers, samplers);
-        vulkan->createDescriptorPool(descriptorPool, vulkanUniformBuffers.size(), samplers.size(), 2); // delete x2 when removing offscreensampleras
-        vulkan->createDescriptorSets(descriptorSet, descriptorSetLayout, descriptorPool, vulkanUniformBuffers, samplers);
+        vulkan->createDescriptorSetLayout(shader.reflect.sets.at(0), descriptorSetLayout);
+        vulkan->createDescriptorPool(shader.reflect.sets.at(0), descriptorPool, 2); // delete x2 when removing offscreensampleras
+        vulkan->createDescriptorSets(shader.reflect.sets.at(0), vulkanUniformBuffers, samplers, descriptorSet, descriptorSetLayout, descriptorPool);
 
         indicesSize = indices.size();
     }
@@ -1834,7 +1897,7 @@ namespace VGF::Vulkan
         vkDestroyBuffer(vulkan->device, indexBuffer, nullptr);
         vkFreeMemory(vulkan->device, indexBufferMemory, nullptr);
 
-        for (auto buffer : vulkanUniformBuffers)
+        for (auto& [key,buffer] : vulkanUniformBuffers)
         {
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
             {
@@ -1844,73 +1907,69 @@ namespace VGF::Vulkan
         }
     }
 
-    void VulkanRenderer::Render(const PipelineConfig& config, std::vector<UniformBufferObject*> uniformBuffers)
+    void VulkanRenderer::Render(const RenderData& renderData, const Shader& shader)
     {
-        std::vector<DefaultInstance> instances;
-
-        for (UniformBufferObject* buffer : uniformBuffers)
-        {
-            if (buffer->getType() == "matrix")
-            {
-                MatrixBufferObject* mBuffer = (MatrixBufferObject*)buffer;
-                instances.emplace_back(DefaultInstance{ mBuffer->GetData().model, 0 });
-            }
-        }
-
-        if (instances.empty()) instances.push_back(DefaultInstance());
-
-        BatchRender(config, instances.data(), 1, sizeof(DefaultInstance), uniformBuffers);
+        BatchRender(renderData, shader);
     }
 
-    void VulkanRenderer::BatchRender(const PipelineConfig& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> uniformBuffers)
+    void VulkanRenderer::BatchRender(const RenderData& renderData, const Shader& shader)
     {
         _framebuffer = vulkan->currentFramebuffer;
-
-        for (size_t i = 0; i < uniformBuffers.size(); i++)
+        for (auto& [nam, pend] : renderData.pending)
         {
-            VulkanUniformBuffer& vulkanBuffer = vulkanUniformBuffers[i];
+            auto it = shader.reflect.memberLookup.find(nam);
+            if (it == shader.reflect.memberLookup.end()) { Log::Error("Shader has no value named : " + nam); continue; }
 
-            size_t size = uniformBuffers[i]->SizeOf();
-            vulkanBuffer.data.resize(size);
-            memcpy(vulkanBuffer.data.data(), uniformBuffers[i]->Data(), size);
+            const MemberReflection& member = it->second;
+
+            const uint32_t padded = (member.size + member.alignment - 1) / member.alignment * member.alignment;
+            const bool ok = member.count > 1 ? pend.bytes.size() <= member.size : (pend.bytes.size() == member.size || pend.bytes.size() == padded);
+            if (!ok) { Log::Error("Size mismatch for : " + nam); continue; }
+            VulkanUniformBuffer& vulkanBuffer = vulkanUniformBuffers[member.parent];
+            memcpy(vulkanBuffer.data.data() + member.offset, pend.bytes.data(), member.count > 1 ? pend.bytes.size() : member.size);
         }
 
-        unsigned int pipelineId = vulkan->getOrCreatePipeline(this, config, _framebuffer != nullptr);
+        unsigned int pipelineId = vulkan->getOrCreatePipeline(this, shader, _framebuffer != nullptr);
 
-        std::vector<RenderData>& objectVector = config.translucent ? translucentSwapchainObjects : opaqueSwapchainObjects;
-        std::vector<RenderData>& framebufferObjectVector = config.translucent ? _framebuffer->translucentObjects : _framebuffer->opaqueObjects;
+        std::vector<RenderingData>& objectVector = shader.translucent ? translucentSwapchainObjects : opaqueSwapchainObjects;
+        std::vector<RenderingData>& framebufferObjectVector = shader.translucent ? _framebuffer->translucentObjects : _framebuffer->opaqueObjects;
 
-        std::vector<RenderData>& vector = _framebuffer == nullptr ? objectVector : framebufferObjectVector;
+        std::vector<RenderingData>& vector = _framebuffer == nullptr ? objectVector : framebufferObjectVector;
 
-        std::array<VkImageView, 5> imageViews;
-        imageViews[0] = vulkan->colorTextureImageView;
-        imageViews[1] = vulkan->metallicRoughnessTextureImageView;
-        imageViews[2] = vulkan->emissiveTextureImageView;
-        imageViews[3] = vulkan->occulsionTextureImageView;
-        imageViews[4] = vulkan->normalTextureImageView;
+        std::array<std::pair<uint32_t, VkImageView>, 5> imageViews;
+        imageViews[0] = { shader.reflect.sets.at(0).at("colorSampler").binding, vulkan->colorTextureImageView };
+        imageViews[1] = { shader.reflect.sets.at(0).at("metallicRoughnessSampler").binding, vulkan->metallicRoughnessTextureImageView };
+        imageViews[2] = { shader.reflect.sets.at(0).at("emissiveSampler").binding, vulkan->emissiveTextureImageView };
+        imageViews[3] = { shader.reflect.sets.at(0).at("occulsionSampler").binding, vulkan->occulsionTextureImageView };
+        imageViews[4] = { shader.reflect.sets.at(0).at("normalSampler").binding, vulkan->normalTextureImageView };
 
-        bool found = false;
-        for (RenderData& data : vector)
+        const DefaultInstance& inst = renderData.instance;
+
+        RenderingData* existing = nullptr;
+        for (RenderingData& data : vector)
         {
-            if (data.renderer == this && data.pipelineId == pipelineId)
-            {
-                data.instanceData.Append(instanceData, instanceCount, instanceStride);
-                found = true;
-                break;
-            }
+            if (data.renderer == this && data.pipelineId == pipelineId) { existing = &data; break; }
         }
 
         CheckTextureChange(imageViews);
 
-        if (!found) vector.emplace_back(RenderData{ pipelineId, this, _framebuffer, imageViews, InstanceData{ instanceData, instanceCount, instanceStride } });
+        if (existing)
+        {
+            existing->data.instanceData.Append(&inst, 1, sizeof(DefaultInstance));
+        }
+        else
+        {
+            RenderingData& rd = vector.emplace_back(RenderingData{ pipelineId, this, _framebuffer, imageViews, renderData });
+            rd.data.instanceData = InstanceData(&inst, 1, sizeof(DefaultInstance));
+        }
     }
 
 
-    void VulkanRenderer::Draw(VkCommandBuffer& commandBuffer, uint32_t currentFrame, RenderData data)
+    void VulkanRenderer::Draw(VkCommandBuffer& commandBuffer, uint32_t currentFrame, RenderingData data)
     {
-        if (data.instanceData.count <= 0) return;
+        if (data.data.instanceData.count <= 0) return;
 
-        size_t requiredSize = data.instanceData.count * data.instanceData.stride;
+        size_t requiredSize = data.data.instanceData.count * data.data.instanceData.stride;
         if (requiredSize > _instanceBufferCapasity)
         {
             if (instanceBuffer != VK_NULL_HANDLE && instanceBufferMemory != VK_NULL_HANDLE)
@@ -1928,7 +1987,7 @@ namespace VGF::Vulkan
 
         if (result == VK_SUCCESS && memory != nullptr)
         {
-            memcpy(memory, data.instanceData.Data(), requiredSize);
+            memcpy(memory, data.data.instanceData.Data(), requiredSize);
             vkUnmapMemory(vulkan->device, instanceBufferMemory);
         }
         else
@@ -1947,32 +2006,22 @@ namespace VGF::Vulkan
         UpdateUniformBuffer(currentFrame, 0);
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan->GetPipelineLayout(data.pipelineId), 0, 1, &descriptorSet[currentFrame], 0, nullptr);
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indicesSize), data.instanceData.count, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indicesSize), data.data.instanceData.count, 0, 0, 0);
     }
 
-    void VulkanRenderer::CheckTextureChange(std::array<VkImageView, 5> imageViews)
+    void VulkanRenderer::CheckTextureChange(std::array<std::pair<uint32_t,VkImageView>, 5> imageViews)
     {
-        vulkan->UpdateTexture(descriptorSet, lastTextureColor, imageViews[0],
-        vulkanUniformBuffers.size());
-
-        vulkan->UpdateTexture(descriptorSet, lastTextureMetallicRoughness, imageViews[1],
-            vulkanUniformBuffers.size() + 1);
-        vulkan->UpdateTexture(descriptorSet, lastTextureEmission, imageViews[2],
-            vulkanUniformBuffers.size() + 2);
-        vulkan->UpdateTexture(descriptorSet, lastTextureOcculsion, imageViews[3],
-            vulkanUniformBuffers.size() + 3);
-        vulkan->UpdateTexture(descriptorSet, lastTextureNormal, imageViews[4],
-            vulkanUniformBuffers.size() + 4);
+        vulkan->UpdateTexture(descriptorSet, lastTextureColor,      imageViews[0].second, imageViews[0].first);
+        vulkan->UpdateTexture(descriptorSet, lastTextureMetallicRoughness, imageViews[1].second, imageViews[1].first);
+        vulkan->UpdateTexture(descriptorSet, lastTextureEmission,   imageViews[2].second, imageViews[2].first);
+        vulkan->UpdateTexture(descriptorSet, lastTextureOcculsion,  imageViews[3].second, imageViews[3].first);
+        vulkan->UpdateTexture(descriptorSet, lastTextureNormal,     imageViews[4].second, imageViews[4].first);
     }
 
     void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage, unsigned int usedIndex)
     {
-        for (auto& buffer : vulkanUniformBuffers)
+        for (auto& [key,buffer] : vulkanUniformBuffers)
         {
-            if (!buffer.uniformBufferObject) {
-                VGF::Log::Error("UniformBufferObject pointer not set!");
-            }
-
             memcpy(buffer.uniformBuffersMapped[currentImage], buffer.data.data(), buffer.data.size());
         }
     }
