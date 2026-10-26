@@ -26,6 +26,8 @@ namespace VGF
 	{
 		uint32_t set, binding, count = 1;
 		size_t size = 0;
+		uint32_t alignment = 0;
+		uint32_t elementStride = 0;
 		std::vector<SlangStage> stages;
 		slang::TypeReflection* type;
 		std::unordered_map<std::string, MemberReflection> members;
@@ -48,6 +50,7 @@ namespace VGF
 		std::map<uint32_t, std::unordered_map<std::string,BindingReflection>> sets;
 		std::vector<VertexReflection> vertex;
 		std::unordered_map<std::string, MemberReflection> memberLookup;
+		std::unordered_map<std::string, BindingReflection> bindingLookup;
 	};
 
 	class Shader;

@@ -176,9 +176,11 @@ namespace VGF
 			BindingReflection binding;
 			binding.binding = fieldVarLayout->getBindingIndex();
 			binding.set = fieldVarLayout->getBindingSpace();
-			binding.size = fieldTypeLayout->getElementTypeLayout()->getSize();
 			binding.type = fieldTypeLayout->getType();
+			binding.size = fieldTypeLayout->getElementTypeLayout()->getSize();
 			binding.count = count;
+			binding.alignment = fieldTypeLayout->getAlignment();
+			binding.elementStride = fieldTypeLayout->getElementTypeLayout()->getStride();
 
 			if (fieldTypeLayout->getKind() == slang::TypeReflection::Kind::ConstantBuffer)
 			{
@@ -188,6 +190,7 @@ namespace VGF
 			}
 
 			reflection.sets[binding.set][fieldVarLayout->getName()] = binding;
+			reflection.bindingLookup[fieldVarLayout->getName()] = binding;
 		}
 
 		for (uint32_t entryPointCount = 0; entryPointCount < layout->getEntryPointCount(); entryPointCount++)

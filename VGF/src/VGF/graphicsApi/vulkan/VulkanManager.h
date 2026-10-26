@@ -69,6 +69,10 @@ namespace VGF::Vulkan
     struct VulkanUniformBuffer
     {
         size_t size = 0;
+        bool isStorage = false;
+        uint32_t binding = 0;
+        std::vector<VkDeviceSize> capacity;
+
         std::vector<std::byte> data;
         std::vector<VkBuffer> uniformBuffers;
         std::vector<void*> uniformBuffersMapped;
@@ -191,8 +195,11 @@ namespace VGF::Vulkan
         void createUniformBuffers
         (
             VulkanUniformBuffer& buffer,
-            size_t typeSize
+            size_t typeSize,
+            VkDescriptorType type
         );
+
+        void GrowStorageBuffer(VulkanUniformBuffer& buffer, uint32_t frame, VkDeviceSize newSize, VkDescriptorSet set);
 
         void createDescriptorSetLayout(const std::unordered_map<std::string, BindingReflection>& reflect, VkDescriptorSetLayout& descriptorsetLayout);
         VkDescriptorPool createDescriptorPool(const std::unordered_map<std::string, BindingReflection>& reflect, VkDescriptorPool& descriptorPool, unsigned int maxSets);

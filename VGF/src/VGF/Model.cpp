@@ -206,7 +206,7 @@ namespace VGF
 
 				AnimationData data;
 				std::copy(skins[i].inverseBindMatrices.begin(), skins[i].inverseBindMatrices.end(), data.jointMatrices);
-				renderData.Set("AnimationBuffer.jointMatrices", data.jointMatrices);
+				renderData.Set("jointMatrices", data.jointMatrices);
 			}
 		}
 
@@ -349,7 +349,7 @@ namespace VGF
 			AnimationData data;
 			std::copy(jointMatrices.begin(), jointMatrices.end(), data.jointMatrices);
 
-			renderData.Set("AnimationBuffer.jointMatrices", data.jointMatrices);
+			renderData.Set("jointMatrices", data.jointMatrices);
 		}
 
 		for (auto &child : node->children)

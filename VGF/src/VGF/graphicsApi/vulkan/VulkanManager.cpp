@@ -706,6 +706,13 @@ namespace VGF::Vulkan
                 out = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 return true;
             }
+
+            if ((shape & SLANG_RESOURCE_BASE_SHAPE_MASK) == SLANG_STRUCTURED_BUFFER)
+            {
+                out = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                return true;
+            }
+
             return false; // extend: separate textures, SSBOs, storage images...
         }
         default:
@@ -784,7 +791,10 @@ namespace VGF::Vulkan
                 descWrite.descriptorType = type;
                 descWrite.descriptorCount = 1;
 
-                if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+                switch (type)
+                {
+                case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
                 {
                     auto it = uniformBuffers.find(name);
                     if (it == uniformBuffers.end()) Log::Error("No uniform buffer for : " + name);
@@ -794,12 +804,13 @@ namespace VGF::Vulkan
                     VkDescriptorBufferInfo bufferInfo{};
                     bufferInfo.buffer = buffer.uniformBuffers[i];
                     bufferInfo.offset = 0;
-                    bufferInfo.range = binding.size;
-                   
+                    bufferInfo.range = type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ? VK_WHOLE_SIZE : binding.size;
+
                     bufferInfos.push_back(bufferInfo);
                     descWrite.pBufferInfo = &bufferInfos.back();
+                    break;
                 }
-                else if (type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+                case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
                 {
                     auto it = imageSamplers.find(name);
                     if (it == imageSamplers.end()) Log::Error("No image sampler for : " + name);
@@ -813,9 +824,9 @@ namespace VGF::Vulkan
 
                     imageInfos.push_back(samplerInfo);
                     descWrite.pImageInfo = &imageInfos.back();
+                    break;
                 }
-                else
-                {
+                default:
                     VGF::Log::Error("Unsupported descriptor type for '" + name + "'");
                     continue;
                 }
@@ -1535,7 +1546,7 @@ namespace VGF::Vulkan
         vkFreeMemory(device, stagingBufferMemory, nullptr);
     }
 
-    void Vulkan::createUniformBuffers(VulkanUniformBuffer& buffer, size_t typeSize) 
+    void Vulkan::createUniformBuffers(VulkanUniformBuffer& buffer, size_t typeSize, VkDescriptorType type)
     {
         VkDeviceSize bufferSize = typeSize;
 
@@ -1543,9 +1554,19 @@ namespace VGF::Vulkan
         buffer.uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
         buffer.uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
+        buffer.capacity.assign(MAX_FRAMES_IN_FLIGHT, bufferSize);
+
+        VkBufferUsageFlags flags;
+
+        if (type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+        {
+            flags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        }
+        else flags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
         {
-            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            createBuffer(bufferSize, flags,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 buffer.uniformBuffers[i], buffer.uniformBuffersMemory[i]);
 
@@ -1849,19 +1870,29 @@ namespace VGF::Vulkan
             for (const auto& [name,binding] : set)
             {
                 VkDescriptorType type;
-                if (!ToVkType(binding.type, type))Log::Error("No binding type");
+                if (!ToVkType(binding.type, type))Log::Error("No supported binding type : " + name);
 
-                if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+                switch (type)
+                {
+                case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
                 {
                     VulkanUniformBuffer vulkanBuffer;
+                    vulkanBuffer.isStorage = type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                    vulkanBuffer.binding = binding.binding;
                     vulkanBuffer.size = binding.size;
                     vulkanBuffer.data.assign(binding.size, std::byte{ 0 });
-                    vulkan->createUniformBuffers(vulkanBuffer, binding.size);
+                    vulkan->createUniformBuffers(vulkanBuffer, binding.size, type);
                     vulkanUniformBuffers[name] = std::move(vulkanBuffer);
+                    break;
                 }
-                else if (type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+                case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
                 {
-
+                    break;
+                }
+                default:
+                    VGF::Log::Error("Unsupported descriptor type for '" + name + "'");
+                    continue;
                 }
             }
         }
@@ -1917,16 +1948,46 @@ namespace VGF::Vulkan
         _framebuffer = vulkan->currentFramebuffer;
         for (auto& [nam, pend] : renderData.pending)
         {
-            auto it = shader.reflect.memberLookup.find(nam);
-            if (it == shader.reflect.memberLookup.end()) { Log::Error("Shader has no value named : " + nam); continue; }
+            auto it = shader.reflect.bindingLookup.find(nam);
+            if (it != shader.reflect.bindingLookup.end())
+            {
+                const BindingReflection& binding = it->second;
+                VulkanUniformBuffer& vulkanBuffer = vulkanUniformBuffers[nam];
 
-            const MemberReflection& member = it->second;
+                VkDescriptorType type;
+                if (!ToVkType(binding.type, type))Log::Error("No binding type");
 
-            const uint32_t padded = (member.size + member.alignment - 1) / member.alignment * member.alignment;
-            const bool ok = member.count > 1 ? pend.bytes.size() <= member.size : (pend.bytes.size() == member.size || pend.bytes.size() == padded);
-            if (!ok) { Log::Error("Size mismatch for : " + nam); continue; }
-            VulkanUniformBuffer& vulkanBuffer = vulkanUniformBuffers[member.parent];
-            memcpy(vulkanBuffer.data.data() + member.offset, pend.bytes.data(), member.count > 1 ? pend.bytes.size() : member.size);
+                if (type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                {
+                    const size_t bytes = pend.bytes.size();
+                    if (binding.elementStride == 0 || bytes % binding.elementStride != 0)
+                    {
+                        Log::Error("Storage size is not a multiple of element stride for : " + nam);
+                    }
+
+                    vulkanBuffer.data.resize(bytes);
+                    memcpy(vulkanBuffer.data.data(), pend.bytes.data(), bytes);
+                    continue;
+                }
+
+                const uint32_t padded = (binding.size + binding.alignment - 1) / binding.alignment * binding.alignment;
+                const bool ok = binding.count > 1 ? pend.bytes.size() <= binding.size : (pend.bytes.size() == binding.size || pend.bytes.size() == padded);
+                if (!ok) { Log::Error("Size mismatch for : " + nam); continue; }
+                memcpy(vulkanBuffer.data.data(), pend.bytes.data(), binding.count > 1 ? pend.bytes.size() : binding.size);
+            }
+            else
+            {
+                auto memb = shader.reflect.memberLookup.find(nam);
+                if (memb == shader.reflect.memberLookup.end()) { Log::Error("Shader has no value named : " + nam); continue; }
+
+                const MemberReflection& member = memb->second;
+
+                const uint32_t padded = (member.size + member.alignment - 1) / member.alignment * member.alignment;
+                const bool ok = member.count > 1 ? pend.bytes.size() <= member.size : (pend.bytes.size() == member.size || pend.bytes.size() == padded);
+                if (!ok) { Log::Error("Size mismatch for : " + nam); continue; }
+                VulkanUniformBuffer& vulkanBuffer = vulkanUniformBuffers[member.parent];
+                memcpy(vulkanBuffer.data.data() + member.offset, pend.bytes.data(), member.count > 1 ? pend.bytes.size() : member.size);
+            }
         }
 
         unsigned int pipelineId = vulkan->getOrCreatePipeline(this, shader, _framebuffer != nullptr);
@@ -1953,15 +2014,8 @@ namespace VGF::Vulkan
 
         CheckTextureChange(imageViews);
 
-        if (existing)
-        {
-            existing->data.instanceData.Append(&inst, 1, sizeof(DefaultInstance));
-        }
-        else
-        {
-            RenderingData& rd = vector.emplace_back(RenderingData{ pipelineId, this, _framebuffer, imageViews, renderData });
-            rd.data.instanceData = InstanceData(&inst, 1, sizeof(DefaultInstance));
-        }
+        if (existing) existing->data.instanceData.Append(&inst, 1, sizeof(DefaultInstance));
+        else RenderingData& rendData = vector.emplace_back(RenderingData{ pipelineId, this, _framebuffer, imageViews, renderData });
     }
 
 
@@ -2022,7 +2076,40 @@ namespace VGF::Vulkan
     {
         for (auto& [key,buffer] : vulkanUniformBuffers)
         {
+            const size_t bytes = buffer.data.size();
+            if (bytes == 0) continue;
+
+            if (buffer.isStorage && bytes > buffer.capacity[currentImage])
+                vulkan->GrowStorageBuffer(buffer, currentImage, std::bit_ceil(bytes), descriptorSet[currentImage]);
+
+            if (bytes > buffer.capacity[currentImage]) { Log::Error("Buffer overflow for : " + key); }
             memcpy(buffer.uniformBuffersMapped[currentImage], buffer.data.data(), buffer.data.size());
         }
+    }
+
+    void Vulkan::GrowStorageBuffer(VulkanUniformBuffer& buffer, uint32_t frame, VkDeviceSize newCap, VkDescriptorSet set)
+    {
+        vkUnmapMemory(device, buffer.uniformBuffersMemory[frame]);
+        vkDestroyBuffer(device, buffer.uniformBuffers[frame], nullptr);
+        vkFreeMemory(device, buffer.uniformBuffersMemory[frame], nullptr);
+
+        createBuffer
+        (
+            newCap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            buffer.uniformBuffers[frame], 
+            buffer.uniformBuffersMemory[frame]
+        );
+
+        vkMapMemory(device, buffer.uniformBuffersMemory[frame], 0, newCap, 0, &buffer.uniformBuffersMapped[frame]);
+        buffer.capacity[frame] = newCap;
+
+        VkDescriptorBufferInfo info{ buffer.uniformBuffers[frame], 0, VK_WHOLE_SIZE };
+        VkWriteDescriptorSet wirteDesc{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+        wirteDesc.dstSet = set;
+        wirteDesc.dstBinding = buffer.binding;
+        wirteDesc.descriptorCount = 1;
+        wirteDesc.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        wirteDesc.pBufferInfo = &info;
+        vkUpdateDescriptorSets(device, 1, &wirteDesc, 0, nullptr);
     }
 }

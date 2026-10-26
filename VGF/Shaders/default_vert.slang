@@ -7,10 +7,7 @@ cbuffer MatrixBuffer
     float4x4 proj;
 };
 
-cbuffer AnimationBuffer
-{
-    float4x4 jointMatrices[128];
-};
+StructuredBuffer<float4x4> jointMatrices;
 
 struct VertexIn
 {
