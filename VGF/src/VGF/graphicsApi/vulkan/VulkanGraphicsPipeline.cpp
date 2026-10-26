@@ -40,11 +40,56 @@ namespace VGF::Vulkan
         return shaderModule;
     }
 
+    static VkFormat ToVkFormat(slang::TypeReflection::ScalarType scalar, uint32_t components)
+    {
+        switch (scalar)
+        {
+        case slang::TypeReflection::ScalarType::Float32:
+            switch (components)
+            {
+            case 1: return VK_FORMAT_R32_SFLOAT;
+            case 2: return VK_FORMAT_R32G32_SFLOAT;
+            case 3: return VK_FORMAT_R32G32B32_SFLOAT;
+            case 4: return VK_FORMAT_R32G32B32A32_SFLOAT;
+            }
+            break;
+        case slang::TypeReflection::ScalarType::Int32:
+            switch (components)
+            {
+            case 1: return VK_FORMAT_R32_SINT;
+            case 2: return VK_FORMAT_R32G32_SINT;
+            case 3: return VK_FORMAT_R32G32B32_SINT;
+            case 4: return VK_FORMAT_R32G32B32A32_SINT;
+            }
+            break;
+        case slang::TypeReflection::ScalarType::UInt32:
+            switch (components)
+            {
+            case 1: return VK_FORMAT_R32_UINT;
+            case 2: return VK_FORMAT_R32G32_UINT;
+            case 3: return VK_FORMAT_R32G32B32_UINT;
+            case 4: return VK_FORMAT_R32G32B32A32_UINT;
+            }
+            break;
+        case slang::TypeReflection::ScalarType::Float16:
+            switch (components)
+            {
+            case 1: return VK_FORMAT_R16_SFLOAT;
+            case 2: return VK_FORMAT_R16G16_SFLOAT;
+            case 3: return VK_FORMAT_R16G16B16_SFLOAT;
+            case 4: return VK_FORMAT_R16G16B16A16_SFLOAT;
+            }
+            break;
+        default: break;
+        }
+        return VK_FORMAT_UNDEFINED;
+    }
+
 	// Constructor that build the Shader Program from 2 different shaders
-	VulkanGraphicsPipeline::VulkanGraphicsPipeline(const Shader& config, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline)
+	VulkanGraphicsPipeline::VulkanGraphicsPipeline(const Shader& shader, VkDevice& device, VkDescriptorSetLayout& descriptorSetLayout, VkRenderPass& renderPass, VkPipelineLayout& pipelineLayout, VkPipeline& graphicsPipeline)
 	{
-        VkShaderModule vertShaderModule = createShaderModule(device, config.spirvvert);
-        VkShaderModule fragShaderModule = createShaderModule(device, config.spirvfrag);
+        VkShaderModule vertShaderModule = createShaderModule(device, shader.spirvvert);
+        VkShaderModule fragShaderModule = createShaderModule(device, shader.spirvfrag);
 
         VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -65,27 +110,33 @@ namespace VGF::Vulkan
 
         VkVertexInputBindingDescription vertexBindingDescription{};
         vertexBindingDescription.binding = 0;
-        vertexBindingDescription.stride = config.GetVertexBuffer()->GetSize();
+        vertexBindingDescription.stride = shader.GetVertexBuffer()->GetSize();
         vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-        std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions = config.GetVertexBuffer()->GetVulkanAttributeDescriptions(0);
+        std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions;
 
-        VkVertexInputBindingDescription instanceBindingDescription{};
-        instanceBindingDescription.binding = 1;
-        instanceBindingDescription.stride = config.GetInstanceBuffer()->GetSize();
-        instanceBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
-
-        std::vector<VkVertexInputAttributeDescription> instanceAttributeDescriptions = config.GetInstanceBuffer()->GetVulkanAttributeDescriptions(vertexAttributeDescriptions.size());
-
-        std::array<VkVertexInputBindingDescription, 2> bindingDescriptions = 
+        for (auto& [name, vertex] : shader.reflect.vertex)
         {
-            vertexBindingDescription,
-            instanceBindingDescription
+            for (auto& [nam, param] : vertex.attributes)
+            {
+                VkVertexInputAttributeDescription attributeDescription;
+
+                attributeDescription.binding = 0;
+                attributeDescription.location = param.location;
+                attributeDescription.format = ToVkFormat(param.scalar, param.components);
+                attributeDescription.offset = param.offset;
+
+                vertexAttributeDescriptions.push_back(std::move(attributeDescription));
+            }
+        }
+
+        std::array<VkVertexInputBindingDescription, 1> bindingDescriptions = 
+        {
+            vertexBindingDescription
         };
 
         std::vector<VkVertexInputAttributeDescription> allAttributeDescriptions;
         allAttributeDescriptions.insert(allAttributeDescriptions.end(),vertexAttributeDescriptions.begin(), vertexAttributeDescriptions.end());
-        allAttributeDescriptions.insert(allAttributeDescriptions.end(),instanceAttributeDescriptions.begin(), instanceAttributeDescriptions.end());
 
         vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(allAttributeDescriptions.size());
@@ -94,7 +145,7 @@ namespace VGF::Vulkan
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssembly.topology = config.GetVulkanTopology();
+        inputAssembly.topology = shader.GetVulkanTopology();
         inputAssembly.primitiveRestartEnable = VK_FALSE;
 
         VkPipelineViewportStateCreateInfo viewportState{};
@@ -120,14 +171,14 @@ namespace VGF::Vulkan
         VkPipelineDepthStencilStateCreateInfo depthStencil{};
         depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
         depthStencil.depthTestEnable = VK_TRUE;
-        depthStencil.depthWriteEnable = config.translucent ? VK_FALSE : VK_TRUE;
+        depthStencil.depthWriteEnable = shader.translucent ? VK_FALSE : VK_TRUE;
         depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = VK_FALSE;
 
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        colorBlendAttachment.blendEnable = config.translucent ? VK_TRUE : VK_FALSE;
+        colorBlendAttachment.blendEnable = shader.translucent ? VK_TRUE : VK_FALSE;
         colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;

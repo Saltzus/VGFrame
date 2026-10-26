@@ -131,11 +131,7 @@ namespace VGF
 			if (!linkedProgram) SlangError("Error getting linked program");
 		}
 
-		ShaderReflection reflection;
-
 		slang::ProgramLayout* layout = linkedProgram->getLayout();
-		slang::VariableLayoutReflection* globalVarLayout = layout->getGlobalParamsVarLayout();
-		slang::TypeLayoutReflection* globalTypeLayout = globalVarLayout->getTypeLayout();
 
 		for (size_t i = 0; i < layout->getEntryPointCount(); i++)
 		{
@@ -160,6 +156,26 @@ namespace VGF
 			}
 		}
 
+		return CreateReflection(linkedProgram);
+	}
+
+	ShaderReflection ShaderCompiler::CreateReflection(Slang::ComPtr<slang::IComponentType>& linkedProgram)
+	{
+		ShaderReflection reflection;
+
+		slang::VariableLayoutReflection* globalVarLayout = linkedProgram->getLayout()->getGlobalParamsVarLayout();
+		slang::TypeLayoutReflection* globalTypeLayout = globalVarLayout->getTypeLayout();
+
+
+		CreateBindingReflections(linkedProgram, globalTypeLayout, reflection);
+		CreateVertexReflections (linkedProgram, globalTypeLayout, reflection);
+
+
+		return reflection;
+	}
+
+	void ShaderCompiler::CreateBindingReflections(Slang::ComPtr<slang::IComponentType>& linkedProgram, slang::TypeLayoutReflection* globalTypeLayout, ShaderReflection& reflection)
+	{
 		uint32_t fieldCount = globalTypeLayout->getFieldCount();
 		for (uint32_t i = 0; i < fieldCount; i++)
 		{
@@ -193,14 +209,14 @@ namespace VGF
 			reflection.bindingLookup[fieldVarLayout->getName()] = binding;
 		}
 
-		for (uint32_t entryPointCount = 0; entryPointCount < layout->getEntryPointCount(); entryPointCount++)
+		for (uint32_t entryPointCount = 0; entryPointCount < linkedProgram->getLayout()->getEntryPointCount(); entryPointCount++)
 		{
 			Slang::ComPtr<slang::IMetadata> metadata;
 			Slang::ComPtr<slang::IBlob> diagnostics;
 			linkedProgram->getEntryPointMetadata(entryPointCount, 0, metadata.writeRef(), diagnostics.writeRef());
 			if (!metadata) continue;
 
-			SlangStage stage = layout->getEntryPointByIndex(entryPointCount)->getStage();
+			SlangStage stage = linkedProgram->getLayout()->getEntryPointByIndex(entryPointCount)->getStage();
 
 			for (auto& [set, bindings] : reflection.sets)
 			{
@@ -211,8 +227,80 @@ namespace VGF
 				}
 			}
 		}
+	}
 
-		return reflection;
+	void ShaderCompiler::CreateVertexReflections(Slang::ComPtr<slang::IComponentType>& linkedProgram, slang::TypeLayoutReflection* globalTypeLayout, ShaderReflection& reflection)
+	{
+		slang::ProgramLayout* layout = linkedProgram->getLayout();
+
+		for (uint32_t i = 0; i < layout->getEntryPointCount(); i++)
+		{
+			slang::EntryPointReflection* entryPoint = layout->getEntryPointByIndex(i);
+			if (entryPoint->getStage() != SlangStage::SLANG_STAGE_VERTEX) continue;
+
+			for (uint32_t p = 0; p < entryPoint->getParameterCount(); p++)
+			{
+				slang::VariableLayoutReflection* param = entryPoint->getParameterByIndex(p);
+				slang::TypeLayoutReflection* paramLayout = param->getTypeLayout();
+
+				const uint32_t baseLocation = static_cast<uint32_t>(param->getOffset(SLANG_PARAMETER_CATEGORY_VARYING_INPUT));
+				uint32_t offset = 0;
+
+				VertexReflection reflect;
+
+				for (uint32_t f = 0; f < paramLayout->getFieldCount(); f++)
+				{
+					slang::VariableLayoutReflection* fieldVarLayout = paramLayout->getFieldByIndex(f);
+					slang::TypeLayoutReflection* fieldTypeLayout = fieldVarLayout->getTypeLayout();
+					slang::TypeReflection* type = fieldVarLayout->getType();
+
+					auto name = fieldVarLayout->getName();
+
+					const char* semantic = fieldVarLayout->getSemanticName();
+					if (semantic && strncmp(semantic, "SV_", 3) == 0) continue;
+
+					uint32_t components = 1;
+					switch (type->getKind())
+					{
+					case slang::TypeReflection::Kind::Scalar:
+						components = 1;
+						break;
+					case slang::TypeReflection::Kind::Vector:
+						components = static_cast<uint32_t>(type->getElementCount());
+						break;
+					case slang::TypeReflection::Kind::Matrix:
+						components = type->getRowCount();
+						break;
+					default:
+						Log::Error("Unsupported vertex attribute type : " + std::string(name));
+						continue;
+					}
+
+					const uint32_t slots = std::max<uint32_t>(1, static_cast<uint32_t>(fieldTypeLayout->getSize(SLANG_PARAMETER_CATEGORY_VARYING_INPUT)));
+					const uint32_t location = baseLocation + static_cast<uint32_t>(fieldVarLayout->getOffset(SLANG_PARAMETER_CATEGORY_VARYING_INPUT));
+					const auto scalar = type->getScalarType();
+
+					for (uint32_t s = 0; s < slots; s++)
+					{
+						VertexMemberReflection attr;
+						attr.location = fieldVarLayout->getBindingIndex();
+						attr.components = components;
+						attr.scalar = scalar;
+						attr.offset = offset;
+
+						std::string finalName = name;
+						if (slots > 1)
+						{
+							finalName += "[" + std::to_string(s) + "]";
+						}
+
+						offset += (components * sizeof(float));
+						reflect.attributes[finalName] = std::move(attr);
+					}
+				}
+				reflection.vertex[paramLayout->getName()] = reflect;
+			}
+		}
 	}
 
 	void ShaderCompiler::SlangError(std::string text)

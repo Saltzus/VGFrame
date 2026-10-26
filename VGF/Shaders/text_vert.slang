@@ -1,4 +1,4 @@
-layout(binding = 0) cbuffer TextBuffer
+cbuffer TextBuffer
 {
     float4x4 model;
     float4x4 proj;
@@ -12,9 +12,6 @@ struct VertexIn
     float3 normal;
     float3 color;
     float2 texCoord;
-
-    float4x4 model;
-    uint textureId;
 };
 
 struct VertexOut

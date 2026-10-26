@@ -1,5 +1,3 @@
-import common;
-
 cbuffer MatrixBuffer
 {
     float4x4 model;
@@ -17,9 +15,6 @@ struct VertexIn
     float2 texCoord;
     float4 jointIndices;
     float4 jointWeights;
-
-    float4x4 model;
-    uint textureId;
 };
 
 struct VertexOut
@@ -69,7 +64,6 @@ VertexOut main(VertexIn vertexIn)
     outVertex.texCoord = float2(vertexIn.texCoord.x, 1.0 - vertexIn.texCoord.y);
     outVertex.position = worldPosition.xyz / worldPosition.w;
     outVertex.normal = normalize(mul(mul(model, skinMatrix), float4(vertexIn.normal, 0.0)).xyz);
-    outVertex.textureId = vertexIn.textureId;
 
     return outVertex;
 }

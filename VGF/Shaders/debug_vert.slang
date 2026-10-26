@@ -1,4 +1,4 @@
-layout(binding = 0) cbuffer MatrixBuffer
+cbuffer MatrixBuffer
 {
     float4x4 model;
     float4x4 view;
@@ -9,9 +9,6 @@ struct VertexIn
 {
     float3 position;
     float3 color;
-
-    float4x4 model;
-    uint textureId;
 };
 
 struct VertexOut

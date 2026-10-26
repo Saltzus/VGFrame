@@ -38,17 +38,27 @@ namespace VGF
 		std::string entry;
 	};
 
+	struct VertexMemberReflection
+	{
+		uint32_t location = 0;
+		uint32_t offset = 0;
+		uint32_t components = 1;
+		slang::TypeReflection::ScalarType scalar = slang::TypeReflection::None;
+	};
+
 	struct VertexReflection
 	{
-		std::string name;
-		uint32_t location;
+		uint32_t size = 0;
+		uint32_t alignment = 0;
+		uint32_t count = 1;
+		std::unordered_map<std::string, VertexMemberReflection> attributes;
 	};
 
 	struct ShaderReflection
 	{
 		std::vector<StageReflection> stages;
 		std::map<uint32_t, std::unordered_map<std::string,BindingReflection>> sets;
-		std::vector<VertexReflection> vertex;
+		std::unordered_map<std::string, VertexReflection> vertex;
 		std::unordered_map<std::string, MemberReflection> memberLookup;
 		std::unordered_map<std::string, BindingReflection> bindingLookup;
 	};
@@ -62,6 +72,11 @@ namespace VGF
 
 	private:
 		static Slang::ComPtr<slang::IModule> LoadModule(std::string path);
+
+		static ShaderReflection CreateReflection(Slang::ComPtr<slang::IComponentType>& linkedProgram);
+		static void CreateBindingReflections(Slang::ComPtr<slang::IComponentType>& linkedProgram, slang::TypeLayoutReflection* globalLayout, ShaderReflection& reflection);
+		static void CreateVertexReflections(Slang::ComPtr<slang::IComponentType>& linkedProgram, slang::TypeLayoutReflection* globalTypeLayout, ShaderReflection& reflection);
+
 		static void SlangError(std::string);
 		static void DiagnoseIfNeeded(slang::IBlob* diagnosticsBlob);
 

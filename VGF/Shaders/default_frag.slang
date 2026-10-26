@@ -1,5 +1,3 @@
-import common;
-
 cbuffer PBRBuffer
 {
     float3 cameraPosition;
