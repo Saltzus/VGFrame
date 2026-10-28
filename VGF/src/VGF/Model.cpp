@@ -710,15 +710,8 @@ namespace VGF
 		return glm::mat4(1.f);
 	};
 
-	void Model::AddRenderData(const glm::mat4& parentMatrix, const int bindId, const Camera& camera, std::vector<UniformBufferObject*> additionalUniformBuffers)
+	void Model::AddModelRenderData()
 	{
-		renderData.Set("MatrixBuffer.model", parentMatrix);
-		renderData.Set("MatrixBuffer.proj", camera.projection);
-		renderData.Set("MatrixBuffer.view", camera.view);
-
-		renderData.Set("LightBuffer.ambientLightColor", glm::vec3(1.f, 1.f, 1.f));
-		renderData.Set("LightBuffer.ambientLightIntensity", 0.5f);
-
 		struct DirectionalLight
 		{
 			alignas(16)glm::vec3 direction;
@@ -731,8 +724,7 @@ namespace VGF
 			alignas(16)glm::vec3 color;
 		};
 
-		std::vector<DirectionalLight> directionalLights;
-		directionalLights.resize(30);
+		std::array<DirectionalLight,30> directionalLights;
 		
 		directionalLights[0].direction = glm::vec3(0, 0.5f, 0.5f);
 		directionalLights[0].color = glm::vec3(5, 0, 0);
@@ -742,33 +734,36 @@ namespace VGF
 		renderData.Set("LightBuffer.directionalLights", directionalLights);
 		renderData.Set("LightBuffer.directionLightAmount", 2);
 
-		std::vector<PointLight> pointLights;
-		pointLights.resize(30);
+		renderData.Set("LightBuffer.ambientLightColor", glm::vec3(1.f, 1.f, 1.f));
+		renderData.Set("LightBuffer.ambientLightIntensity", 0.5f);
+
+		std::array<PointLight, 30> pointLights;
 
 		pointLights[0].position = glm::vec3(0, 10, 0);
 		pointLights[0].color = glm::vec3(0.9, 0.9, 1);
 
 		renderData.Set("LightBuffer.pointLights", pointLights);
 		renderData.Set("LightBuffer.pointLightAmount", 1);
+	}
+
+	void Model::AddNodeRenderData(const glm::mat4& parentMatrix, const int bindId, const Camera& camera)
+	{
+		renderData.Set("MatrixBuffer.model", parentMatrix);
+		renderData.Set("MatrixBuffer.proj", camera.projection);
+		renderData.Set("MatrixBuffer.view", camera.view);
 
 		bindMaterial(camera, bindId);
-		
-		DefaultInstance instance;
-		instance.model = parentMatrix;
-		instance.textureID = 1;
-
-		renderData.instanceData.Append(&instance, 1, sizeof(DefaultInstance));
 	}
 
 	void Model::Draw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindId, const Shader& shader, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers)
 	{
-		AddRenderData(parentMatrix, bindId, camera, additionalUniformBuffers);
+		AddNodeRenderData(parentMatrix, bindId, camera);
 		renderer->Render(renderData, shader);
 	}
 
 	void Model::BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindId, const Shader& shader, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers)
 	{
-		AddRenderData(parentMatrix, bindId, camera, additionalUniformBuffers);
+		AddNodeRenderData(parentMatrix, bindId, camera);
 		renderer->BatchRender(renderData, shader);
 	}
 
@@ -777,13 +772,7 @@ namespace VGF
 		const auto& node = nodes[nodeIdx];
 		const glm::mat4 modelMatrix = parentMatrix * node->GetLocalMatrix();
 		const auto& mesh = node->mesh;
-
-		if (node->skin != -1)
-		{
-			if (uniformBuffers[animationBuffer]) delete uniformBuffers[animationBuffer];
-			uniformBuffers[animationBuffer] = new AnimationBufferObject(skins[node->skin].buffers[0]);
-		}
-			
+		
 		if (node->mesh.rendererIndex != -1)
 		{
 			Renderer* renderer = modelRenderers[node->mesh.rendererIndex];
@@ -794,13 +783,14 @@ namespace VGF
 		{
 			drawNodes(childNode->index, modelMatrix, config, camera, *LightBufferObject::getDefault());
 		}
-
 	};
 
 
 
 	void Model::Render(const glm::mat4& parentMatrix, const Camera& camera, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
 	{
+		AddModelRenderData();
+
 		if (customModel)
 		{
 			for (size_t i = 0; i < nodes.size(); i++)

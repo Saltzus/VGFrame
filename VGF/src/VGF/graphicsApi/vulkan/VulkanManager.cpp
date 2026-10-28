@@ -405,10 +405,6 @@ namespace VGF::Vulkan
         }
     }
 
-    void Vulkan::renderEnd()
-    {
-        vkDeviceWaitIdle(device);
-    }
     void Vulkan::render()
     {
         drawFrame();
@@ -1797,34 +1793,23 @@ namespace VGF::Vulkan
         return converted;
     }
 
-    void Vulkan::UpdateTexture(std::vector<VkDescriptorSet> descriptorSets, VkImageView& lastTexture, VkImageView imageView, uint32_t binding)
+    void Vulkan::UpdateTexture(const std::vector<VkDescriptorSet>& descriptorSets, VkImageView imageView, uint32_t frame, uint32_t binding)
     {
-        if (lastTexture != imageView)
-        {
-            vkDeviceWaitIdle(device);
-
-            for (size_t i = 0; i < descriptorSets.size(); i++)
-            {
-                //vkDeviceWaitIdle(device); // TODO : not checked if better way to do this.
-                VkDescriptorImageInfo imageInfo{};
-                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                imageInfo.imageView = imageView;
-                imageInfo.sampler = textureSampler;
-
-                VkWriteDescriptorSet descriptorWrite{};
-                descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                descriptorWrite.dstSet = descriptorSets[i];
-                descriptorWrite.dstBinding = binding; // Ensure it matches shader binding
-                descriptorWrite.dstArrayElement = 0;
-                descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                descriptorWrite.descriptorCount = 1;
-                descriptorWrite.pImageInfo = &imageInfo;
-
-                vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
-            }
-
-            lastTexture = imageView;
-        }
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = imageView;
+        imageInfo.sampler = textureSampler;
+        
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = descriptorSets[frame];
+        descriptorWrite.dstBinding = binding;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pImageInfo = &imageInfo;
+        
+        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
     }
 
     std::vector<GLfloat> defaultVertices =
@@ -1991,8 +1976,6 @@ namespace VGF::Vulkan
             }
         }
 
-        CheckTextureChange();
-
         if (existing) existing->data.instanceData.Append(&inst, 1, sizeof(DefaultInstance));
         else RenderingData& rendData = vector.emplace_back(RenderingData{ pipelineId, this, _framebuffer, renderData });
     }
@@ -2000,6 +1983,8 @@ namespace VGF::Vulkan
 
     void VulkanRenderer::Draw(VkCommandBuffer& commandBuffer, uint32_t currentFrame, RenderingData data)
     {
+        CheckTextureChange(currentFrame);
+
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan->GetPipeline(data.pipelineId));
 
         const VkBuffer buffers[1] = { vertexBuffer};
@@ -2013,11 +1998,13 @@ namespace VGF::Vulkan
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indicesSize), data.data.instanceData.count, 0, 0, 0);
     }
 
-    void VulkanRenderer::CheckTextureChange()
+    void VulkanRenderer::CheckTextureChange(uint32_t frame)
     {
         for (auto& [name,sampler] : imageSamplers)
         {
-            vulkan->UpdateTexture(descriptorSet, sampler.lastImage, sampler.imageView, sampler.binding);
+            if (sampler.lastImages[frame] == sampler.imageView) continue;
+            vulkan->UpdateTexture(descriptorSet, sampler.imageView, frame, sampler.binding);
+            sampler.lastImages[frame] = sampler.imageView;
         }
     }
 

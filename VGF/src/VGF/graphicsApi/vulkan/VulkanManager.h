@@ -81,7 +81,7 @@ namespace VGF::Vulkan
     {
         uint32_t binding;
         VkImageView imageView;
-        VkImageView lastImage;
+        VkImageView lastImages[MAX_FRAMES_IN_FLIGHT] = {};
         VkSampler* textureSampler;
     };
 
@@ -112,7 +112,6 @@ namespace VGF::Vulkan
         Vulkan(GLFWwindow* GLFW_Window);
         ~Vulkan();
 
-        void renderEnd();
         void render() override;
 
         static Vulkan* vulkan;
@@ -173,7 +172,7 @@ namespace VGF::Vulkan
 
         VulkanFrameBuffer* currentFramebuffer = VK_NULL_HANDLE;
 
-        void UpdateTexture(const std::vector<VkDescriptorSet> descriptorSets, VkImageView& lastTexture, const VkImageView imageView, const uint32_t binding);
+        void UpdateTexture(const std::vector<VkDescriptorSet>&, VkImageView imageView, uint32_t frame, uint32_t binding);
 
         void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
         void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
@@ -320,7 +319,7 @@ namespace VGF::Vulkan
 
         void Draw(VkCommandBuffer& commandBuffer, uint32_t currentFrame, RenderingData data);
     private:
-        void CheckTextureChange();
+        void CheckTextureChange(uint32_t frame);
         void UpdateUniformBuffer(uint32_t currentImage, unsigned int usedIndex);
 
         size_t _instanceBufferCapasity = 0;

@@ -251,7 +251,8 @@ namespace VGF
 		void BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const Shader& config, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 		void drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const Shader& config, const Camera& camera, LightBufferObject lightBuffer);
 
-		void AddRenderData(const glm::mat4& parentMatrix, const int bindId, const Camera& camera, std::vector<UniformBufferObject*> additionalUniformBuffers);
+		void AddModelRenderData();
+		void AddNodeRenderData(const glm::mat4& parentMatrix, const int bindId, const Camera& camera);
 
 		static void LoadMeshData
 		(
