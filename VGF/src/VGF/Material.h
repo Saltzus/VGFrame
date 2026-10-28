@@ -10,7 +10,6 @@ namespace VGF
 		Material();
 		~Material();
 
-		void Bind();
 		std::vector<const Texture*> getVector();
 
 		static Material* getDefaultMaterial();
@@ -21,8 +20,6 @@ namespace VGF
 		const Texture* emissive;
 		const Texture* occulsion;
 		const Texture* normal;
-
-
 
 	private:
 	};

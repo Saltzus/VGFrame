@@ -2,6 +2,9 @@
 #include "Shapes.h"
 #include "Log.h"
 
+#include "RenderData.h"
+#include "Renderer.h"
+
 namespace VGF
 {
     Text::Text()
@@ -60,7 +63,8 @@ namespace VGF
 
                 _textBuffer.SetData((void*)&data);
 
-                font->GetCharacter(text[ch])->texture->Bind();
+                remderData.Set("colorSampler", font->GetCharacter(text[ch])->texture);
+
                 _renderer->Render(remderData, shader);
             }
 

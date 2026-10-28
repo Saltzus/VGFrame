@@ -2,12 +2,13 @@
 
 #include "imgui.h"
 #include "RenderImpl.h"
-#include "Renderer.h"
+
 
 #include <unordered_set>
 
 namespace VGF
 {
+    class Renderer;
     class Texture
     {
     private:
@@ -23,22 +24,12 @@ namespace VGF
 
         ~Texture();
 
-        static ImVec2 GetImGuiUV0()
-        {
-            if (Renderer::GetGraphicsApi() == GraphicsApis::OpenGL) return ImVec2(0.0f, 1.0f);
-            return ImVec2(0.0f, 0.0f);
-        }
-
-        static ImVec2 GetImGuiUV1()
-        {
-            if (Renderer::GetGraphicsApi() == GraphicsApis::OpenGL) return ImVec2(1.0f, 0.0f);
-            return ImVec2(1.0f, 1.0f);
-        }
+        static ImVec2 GetImGuiUV0();
+        static ImVec2 GetImGuiUV1();
 
         static void DestroyTextures();
 
-        virtual void Bind(textureType type = textureType::color) const;
-        virtual void* GetNativeImage() { return _impl->GetNativeImage(); }
+        virtual void* GetNativeImage() const { return _impl->GetNativeImage(); }
         virtual ImTextureID GetImguiImage() const { return _impl->GetImGuiTexture(); }
 
         const unsigned int GetWidth() const { return _width; }

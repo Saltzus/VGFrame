@@ -65,11 +65,9 @@ namespace VGF
 
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			//glClipControl(GL_UPPER_LEFT, GL_NEGATIVE_ONE_TO_ONE);
 		}
 
 		Renderer::InitGraphics(GLFW_Window);
-		Material::getDefaultMaterial()->Bind();
 	}
 
 	void Window::framebuffer_size_callback(GLFWwindow* window, int width, int height)

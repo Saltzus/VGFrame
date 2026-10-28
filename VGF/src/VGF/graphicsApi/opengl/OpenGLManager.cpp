@@ -267,7 +267,7 @@ namespace VGF::Opengl
         ////    glBufferSubData(GL_UNIFORM_BUFFER, 0, uniformBuffers[i]->SizeOf(), uniformBuffers[i]->Data());
         ////}
         //
-        //std::array<const char*, 5> samplers =
+        //std::array<const char*, 5> imageSamplers =
         //{
         //    "colorSampler",
         //    "metallicRoughnessSampler",
@@ -276,9 +276,9 @@ namespace VGF::Opengl
         //    "normalSampler"
         //};
         //
-        //for (size_t binding = 0; binding < samplers.size(); binding++)
+        //for (size_t binding = 0; binding < imageSamplers.size(); binding++)
         //{
-        //    GLint location = glGetUniformLocation(config.ID(), samplers[binding]);
+        //    GLint location = glGetUniformLocation(config.ID(), imageSamplers[binding]);
         //    glUniform1i(location, binding + 2);
         //}
         //glDrawElementsInstanced(topology, indicesSize, GL_UNSIGNED_INT, 0, instanceCount);

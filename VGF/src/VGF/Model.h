@@ -6,8 +6,10 @@
 
 #include "Material.h"
 #include "Renderer.h"
-#include "glm/gtx/matrix_decompose.hpp"
 #include "UniformBuffers/AnimationBuffer.h"
+#include "RenderData.h"
+
+#include <glm/gtx/matrix_decompose.hpp>
 
 #include "UniformBuffers/MatrixBuffer.h"
 #include "UniformBuffers/LightBuffer.h"
@@ -136,14 +138,16 @@ namespace VGF
 		void PlayAnimation(size_t index, float speed = 1);
 		void PlayAnimation(std::string name, float speed = 1)
 		{
-			size_t index = 0;
-			for (index < animations.size(); index++;)
-				if (animations[index].name == name) break;
+			for (size_t index = 0; index < animations.size(); index++)
+			{
+				if (animations[index].name == name)
+				{
+					PlayAnimation(index, speed);
+					break;
+				}
+			}
 
-			if (index == animations.size()) 
-				Log::Error("Could not find animation = " + name);
-
-			PlayAnimation(index, speed);
+			Log::Error("Could not find animation = " + name);
 		};
 
 		void BlendAnimations(Animation& fromAnimation, Animation& toAnimation, float blendFactor);

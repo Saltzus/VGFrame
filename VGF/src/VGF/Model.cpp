@@ -845,7 +845,16 @@ namespace VGF
 		renderData.Set("PBRBuffer.emissiveFactor", glm::vec3(0.f));
 		renderData.Set("PBRBuffer.occlusionStrength", 1.f);
 
-		if (_material != nullptr) _material->Bind();
+		if (_material != nullptr)
+		{
+			std::vector<const Texture*> text = _material->getVector();
+			renderData.Set("colorSampler", text[0]);
+			renderData.Set("metallicRoughnessSampler", text[1]);
+			renderData.Set("emissiveSampler", text[2]);
+			renderData.Set("occulsionSampler", text[3]);
+			renderData.Set("normalSampler", text[4]);
+		}
+			
 		else if (materialIndex >= 0)
 		{
 			const auto& modelMaterial = materials[materialIndex];
@@ -869,8 +878,8 @@ namespace VGF
 					textureObject = _textures[texture.source];
 				}
 			}
-			textureObject->Bind(textureType::color);
 
+			renderData.Set("colorSampler", textureObject);
 			renderData.Set("PBRBuffer.metallicFactor", (float)pbrMetallicRoughness.metallicFactor);
 			renderData.Set("PBRBuffer.roughnessFactor", (float)pbrMetallicRoughness.roughnessFactor);
 
@@ -883,7 +892,8 @@ namespace VGF
 					textureObject = _textures[texture.source];
 				}
 			}
-			textureObject->Bind(textureType::metallicRoughness);
+
+			renderData.Set("metallicRoughnessSampler", textureObject);
 
 			glm::vec4 emissiveFactor;
 			colorFactor.x = modelMaterial.emissiveFactor[0];
@@ -901,8 +911,8 @@ namespace VGF
 					textureObject = _textures[texture.source];
 				}
 			}
-			textureObject->Bind(textureType::emissive);
 
+			renderData.Set("emissiveSampler", textureObject);
 			renderData.Set("PBRBuffer.occlusionStrength", (float)modelMaterial.occlusionTexture.strength);
 
 			textureObject = Texture::GetWhiteTexture();
@@ -915,7 +925,6 @@ namespace VGF
 					textureObject = _textures[texture.source];
 				}
 			}
-			textureObject->Bind(textureType::occulsion);
 
 			textureObject = Texture::GetBlueTexture();
 			if (modelMaterial.normalTexture.index >= 0)
@@ -927,16 +936,17 @@ namespace VGF
 					textureObject = _textures[texture.source];
 				}
 			}
-			textureObject->Bind(textureType::normal);
+
+			renderData.Set("normalSampler", textureObject);
 		}
 		else
 		{
 			std::vector<const Texture*> text = Material::getDefaultMaterial()->getVector();
-			text[0]->Bind(textureType::color);
-			text[1]->Bind(textureType::metallicRoughness);
-			text[2]->Bind(textureType::emissive);
-			text[3]->Bind(textureType::occulsion);
-			text[4]->Bind(textureType::normal);
+			renderData.Set("colorSampler", text[0]);
+			renderData.Set("metallicRoughnessSampler", text[1]);
+			renderData.Set("emissiveSampler", text[2]);
+			renderData.Set("occulsionSampler", text[3]);
+			renderData.Set("normalSampler", text[4]);
 		}
 	};
 }

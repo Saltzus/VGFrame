@@ -4,6 +4,8 @@
 #include "graphicsApi/opengl/OpenGlManager.h"
 #include "graphicsApi/vulkan/VulkanManager.h"
 
+#include "Renderer.h"
+
 namespace VGF
 {
     Texture::Texture(const std::string &filePath)
@@ -61,11 +63,6 @@ namespace VGF
         textures.clear();
     }
 
-    void Texture::Bind(const textureType type) const
-    {
-        _impl->Bind(type);
-    }
-
     const Texture* Texture::GetDefaultTexture()
     {
         const static Texture* DEFAULT_TEXTURE = new Texture(Resource::Get("Textures/default.png"));
@@ -89,5 +86,17 @@ namespace VGF
         const unsigned char bluePixel[4] = { 128, 128, 255, 255 };
         const static Texture* BLUE_TEXTURE = new Texture(bluePixel, 4, 1, 1);
         return BLUE_TEXTURE;
+    }
+
+    ImVec2 Texture::GetImGuiUV0()
+    {
+        if (Renderer::GetGraphicsApi() == GraphicsApis::OpenGL) return ImVec2(0.0f, 1.0f);
+        return ImVec2(0.0f, 0.0f);
+    }
+
+    ImVec2 Texture::GetImGuiUV1()
+    {
+        if (Renderer::GetGraphicsApi() == GraphicsApis::OpenGL) return ImVec2(1.0f, 0.0f);
+        return ImVec2(1.0f, 1.0f);
     }
 }

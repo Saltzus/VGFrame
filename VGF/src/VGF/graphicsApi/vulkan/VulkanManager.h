@@ -52,8 +52,6 @@ namespace VGF::Vulkan
         VulkanRenderer* renderer;
         VulkanFrameBuffer* framebuffer;
 
-        std::array<std::pair<uint32_t, VkImageView>, 5> imageViews;
-
         RenderData data;
     };
 
@@ -81,7 +79,9 @@ namespace VGF::Vulkan
 
     struct VulkanImageSampler
     {
-        std::vector<VkImageView> imageViews;
+        uint32_t binding;
+        VkImageView imageView;
+        VkImageView lastImage;
         VkSampler* textureSampler;
     };
 
@@ -129,12 +129,6 @@ namespace VGF::Vulkan
 
         std::vector<VulkanFrameBuffer*> framebuffers;
         std::vector<VulkanFrameBuffer*> allFramebuffers;
-
-        VkImageView colorTextureImageView = VK_NULL_HANDLE;
-        VkImageView metallicRoughnessTextureImageView = VK_NULL_HANDLE;
-        VkImageView emissiveTextureImageView = VK_NULL_HANDLE;
-        VkImageView occulsionTextureImageView = VK_NULL_HANDLE;
-        VkImageView normalTextureImageView = VK_NULL_HANDLE;
 
         std::vector<VkCommandBuffer> commandBuffers;
 
@@ -314,10 +308,8 @@ namespace VGF::Vulkan
         VkBuffer vertexBuffer = VK_NULL_HANDLE;
         VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
 
-        VkBuffer instanceBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory instanceBufferMemory = VK_NULL_HANDLE;
-
         std::unordered_map<std::string,VulkanUniformBuffer> vulkanUniformBuffers;
+        std::unordered_map<std::string, VulkanImageSampler> imageSamplers;
 
         VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
         VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
@@ -328,19 +320,12 @@ namespace VGF::Vulkan
 
         void Draw(VkCommandBuffer& commandBuffer, uint32_t currentFrame, RenderingData data);
     private:
-        void CheckTextureChange(std::array<std::pair<uint32_t, VkImageView>, 5> imageViews);
+        void CheckTextureChange();
         void UpdateUniformBuffer(uint32_t currentImage, unsigned int usedIndex);
 
         size_t _instanceBufferCapasity = 0;
 
         VulkanFrameBuffer* _framebuffer = VK_NULL_HANDLE;
-
-        VkImageView lastTextureColor = VK_NULL_HANDLE;
-        VkImageView lastTextureMetallicRoughness = VK_NULL_HANDLE;
-        VkImageView lastTextureEmission = VK_NULL_HANDLE;
-        VkImageView lastTextureOcculsion = VK_NULL_HANDLE;
-        VkImageView lastTextureNormal = VK_NULL_HANDLE;
-
         Vulkan* vulkan = nullptr;
     };
 }

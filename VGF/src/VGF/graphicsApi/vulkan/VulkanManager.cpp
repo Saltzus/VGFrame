@@ -4,6 +4,7 @@
 
 #include "imgui_impl_vulkan.h"
 #include "../../Camera.h"
+#include "../../Texture.h"
 
 #include "../../UniformBuffers/MatrixBuffer.h"
 
@@ -153,32 +154,12 @@ namespace VGF::Vulkan
 
     void VulkanTexture::Bind(textureType type)
     {
-        switch (type)
-        {
-        case textureType::color:
-            Vulkan::vulkan->colorTextureImageView = textureImageViewTex;
-            break;
-        case textureType::metallicRoughness:
-            Vulkan::vulkan->metallicRoughnessTextureImageView = textureImageViewTex;
-            break;
-        case textureType::emissive:
-            Vulkan::vulkan->emissiveTextureImageView = textureImageViewTex;
-            break;
-        case textureType::occulsion:
-            Vulkan::vulkan->occulsionTextureImageView = textureImageViewTex;
-            break;
-        case textureType::normal:
-            Vulkan::vulkan->normalTextureImageView = textureImageViewTex;
-            break;
-        default:
-            Vulkan::vulkan->colorTextureImageView = textureImageViewTex;
-            break;
-        }
+
     }
 
     void* VulkanTexture::GetNativeImage()
     {
-        return (void*)textureImageViewTex;
+        return static_cast<void*>(textureImageViewTex);
     }
 
 #if defined(_DEBUG) || defined(DEBUGRELEASE)
@@ -819,7 +800,7 @@ namespace VGF::Vulkan
 
                     VkDescriptorImageInfo samplerInfo{};
                     samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                    samplerInfo.imageView = sampler.imageViews[i % sampler.imageViews.size()];
+                    samplerInfo.imageView = sampler.imageView;
                     samplerInfo.sampler = *sampler.textureSampler;
 
                     imageInfos.push_back(samplerInfo);
@@ -1820,6 +1801,8 @@ namespace VGF::Vulkan
     {
         if (lastTexture != imageView)
         {
+            vkDeviceWaitIdle(device);
+
             for (size_t i = 0; i < descriptorSets.size(); i++)
             {
                 //vkDeviceWaitIdle(device); // TODO : not checked if better way to do this.
@@ -1888,6 +1871,10 @@ namespace VGF::Vulkan
                 }
                 case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
                 {
+                    imageSamplers[name].binding = binding.binding;
+                    imageSamplers[name].imageView = static_cast<VkImageView>(Texture::GetDefaultTexture()->GetNativeImage());
+                    imageSamplers[name].textureSampler = &vulkan->textureSampler;
+
                     break;
                 }
                 default:
@@ -1897,16 +1884,9 @@ namespace VGF::Vulkan
             }
         }
 
-        std::unordered_map<std::string, VulkanImageSampler> samplers;
-        samplers["colorSampler"]               = { {vulkan->colorTextureImageView}, &vulkan->textureSampler };
-        samplers["metallicRoughnessSampler"]   = { {vulkan->metallicRoughnessTextureImageView}, &vulkan->textureSampler };
-        samplers["emissiveSampler"]            = { {vulkan->emissiveTextureImageView}, &vulkan->textureSampler };
-        samplers["occulsionSampler"]           = { {vulkan->occulsionTextureImageView}, &vulkan->textureSampler };
-        samplers["normalSampler"]              = { {vulkan->normalTextureImageView}, &vulkan->textureSampler };
-
         vulkan->createDescriptorSetLayout(shader.reflect.sets.at(0), descriptorSetLayout);
         vulkan->createDescriptorPool(shader.reflect.sets.at(0), descriptorPool, 2); // delete x2 when removing offscreensampleras
-        vulkan->createDescriptorSets(shader.reflect.sets.at(0), vulkanUniformBuffers, samplers, descriptorSet, descriptorSetLayout, descriptorPool);
+        vulkan->createDescriptorSets(shader.reflect.sets.at(0), vulkanUniformBuffers, imageSamplers, descriptorSet, descriptorSetLayout, descriptorPool);
 
         indicesSize = indices.size();
     }
@@ -1921,9 +1901,6 @@ namespace VGF::Vulkan
 
         vkDestroyBuffer(vulkan->device, vertexBuffer, nullptr);
         vkFreeMemory(vulkan->device, vertexBufferMemory, nullptr);
-
-        vkDestroyBuffer(vulkan->device, instanceBuffer, nullptr);
-        vkFreeMemory(vulkan->device, instanceBufferMemory, nullptr);
 
         vkDestroyBuffer(vulkan->device, indexBuffer, nullptr);
         vkFreeMemory(vulkan->device, indexBufferMemory, nullptr);
@@ -1997,13 +1974,6 @@ namespace VGF::Vulkan
 
         std::vector<RenderingData>& vector = _framebuffer == nullptr ? objectVector : framebufferObjectVector;
 
-        std::array<std::pair<uint32_t, VkImageView>, 5> imageViews;
-        imageViews[0] = { shader.reflect.sets.at(0).at("colorSampler").binding, vulkan->colorTextureImageView };
-        imageViews[1] = { shader.reflect.sets.at(0).at("metallicRoughnessSampler").binding, vulkan->metallicRoughnessTextureImageView };
-        imageViews[2] = { shader.reflect.sets.at(0).at("emissiveSampler").binding, vulkan->emissiveTextureImageView };
-        imageViews[3] = { shader.reflect.sets.at(0).at("occulsionSampler").binding, vulkan->occulsionTextureImageView };
-        imageViews[4] = { shader.reflect.sets.at(0).at("normalSampler").binding, vulkan->normalTextureImageView };
-
         const DefaultInstance& inst = renderData.instance;
 
         RenderingData* existing = nullptr;
@@ -2012,49 +1982,29 @@ namespace VGF::Vulkan
             if (data.renderer == this && data.pipelineId == pipelineId) { existing = &data; break; }
         }
 
-        CheckTextureChange(imageViews);
+        for (auto& [name, texture] : renderData.textures)
+        {
+            auto it = imageSamplers.find(name);
+            if (it != imageSamplers.end())
+            {
+                it->second.imageView = static_cast<VkImageView>(texture->GetNativeImage());
+            }
+        }
+
+        CheckTextureChange();
 
         if (existing) existing->data.instanceData.Append(&inst, 1, sizeof(DefaultInstance));
-        else RenderingData& rendData = vector.emplace_back(RenderingData{ pipelineId, this, _framebuffer, imageViews, renderData });
+        else RenderingData& rendData = vector.emplace_back(RenderingData{ pipelineId, this, _framebuffer, renderData });
     }
 
 
     void VulkanRenderer::Draw(VkCommandBuffer& commandBuffer, uint32_t currentFrame, RenderingData data)
     {
-        if (data.data.instanceData.count <= 0) return;
-
-        size_t requiredSize = data.data.instanceData.count * data.data.instanceData.stride;
-        if (requiredSize > _instanceBufferCapasity)
-        {
-            if (instanceBuffer != VK_NULL_HANDLE && instanceBufferMemory != VK_NULL_HANDLE)
-            {
-                vkDestroyBuffer(vulkan->device, instanceBuffer, nullptr);
-                vkFreeMemory(vulkan->device, instanceBufferMemory, nullptr);
-            }
-
-            _instanceBufferCapasity = requiredSize * 2;
-            vulkan->createInstanceBuffer(instanceBuffer, instanceBufferMemory, _instanceBufferCapasity);
-        }
-
-        void* memory = nullptr;
-        VkResult result = vkMapMemory(vulkan->device, instanceBufferMemory, 0, requiredSize, 0, &memory);
-
-        if (result == VK_SUCCESS && memory != nullptr)
-        {
-            memcpy(memory, data.data.instanceData.Data(), requiredSize);
-            vkUnmapMemory(vulkan->device, instanceBufferMemory);
-        }
-        else
-        {
-            Log::Error("Failed to map instance buffer memory!");
-            return;
-        }
-
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan->GetPipeline(data.pipelineId));
 
-        const VkBuffer buffers[2] = { vertexBuffer, instanceBuffer };
-        constexpr VkDeviceSize offs[2] = { 0, 0 };
-        vkCmdBindVertexBuffers(commandBuffer, 0, 2, buffers, offs);
+        const VkBuffer buffers[1] = { vertexBuffer};
+        constexpr VkDeviceSize offs[2] = {0};
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers, offs);
         vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
         UpdateUniformBuffer(currentFrame, 0);
@@ -2063,13 +2013,12 @@ namespace VGF::Vulkan
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indicesSize), data.data.instanceData.count, 0, 0, 0);
     }
 
-    void VulkanRenderer::CheckTextureChange(std::array<std::pair<uint32_t,VkImageView>, 5> imageViews)
+    void VulkanRenderer::CheckTextureChange()
     {
-        vulkan->UpdateTexture(descriptorSet, lastTextureColor,      imageViews[0].second, imageViews[0].first);
-        vulkan->UpdateTexture(descriptorSet, lastTextureMetallicRoughness, imageViews[1].second, imageViews[1].first);
-        vulkan->UpdateTexture(descriptorSet, lastTextureEmission,   imageViews[2].second, imageViews[2].first);
-        vulkan->UpdateTexture(descriptorSet, lastTextureOcculsion,  imageViews[3].second, imageViews[3].first);
-        vulkan->UpdateTexture(descriptorSet, lastTextureNormal,     imageViews[4].second, imageViews[4].first);
+        for (auto& [name,sampler] : imageSamplers)
+        {
+            vulkan->UpdateTexture(descriptorSet, sampler.lastImage, sampler.imageView, sampler.binding);
+        }
     }
 
     void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage, unsigned int usedIndex)

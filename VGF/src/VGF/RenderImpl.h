@@ -7,7 +7,7 @@
 
 #include "imgui.h"
 #include "UniformBuffers/UniformBuffer.h"
-#include "RenderData.h"
+
 
 namespace VGF
 {
@@ -24,6 +24,7 @@ namespace VGF
     class Shader;
     class Camera;
     class Window;
+    class RenderData;
 
     struct RendererImpl
     {

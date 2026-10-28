@@ -1,6 +1,7 @@
 #pragma once
 
 #include "VertexBuffers/DefaultInstanceBuffer.h"
+#include "Texture.h"
 
 namespace VGF
 {
@@ -48,7 +49,7 @@ namespace VGF
 			}
 			else return SetBytes(name, &v, sizeof(T));
 		}
-		
+	
 		template<typename T> RenderData& Set(std::string name, const std::vector<T>& v)
 		{
 			return SetBytes(name, v.data(), v.size() * sizeof(T));
@@ -59,12 +60,25 @@ namespace VGF
 			return SetBytes(name, p, count * sizeof(T));
 		}
 
+		RenderData& Set(std::string name, const Texture& texture)
+		{
+			textures.insert(std::make_pair(name, &texture));
+			return *this;
+		}
+
+		RenderData& Set(std::string name, const Texture* texture)
+		{
+			textures.insert(std::make_pair(name, texture));
+			return *this;
+		}
+
 		struct Pending { std::string name; std::vector<std::byte> bytes; };
 
 		DefaultInstance instance;
 		InstanceData instanceData = InstanceData(&instance, 1, sizeof(DefaultInstance));
 
-		std::unordered_map<std::string,Pending> pending;
+		std::unordered_map<std::string, Pending> pending;
+		std::unordered_map<std::string, const Texture*> textures;
 
 	private:
 		const Shader* shader;

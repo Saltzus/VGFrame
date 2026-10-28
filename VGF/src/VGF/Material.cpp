@@ -10,15 +10,6 @@ namespace VGF
 	{
 	}
 
-	void Material::Bind()
-	{
-		color->Bind(textureType::color);
-		metallicRoughness->Bind(textureType::metallicRoughness);
-		emissive->Bind(textureType::emissive);
-		occulsion->Bind(textureType::occulsion);
-		normal->Bind(textureType::normal);
-	}
-
 	std::vector<const Texture*> Material::getVector()
 	{
 		std::vector<const Texture*> textures;
@@ -50,7 +41,6 @@ namespace VGF
 	void Material::setDefaultMaterial(Material material)
 	{
 		*getDefaultMaterial() = material;
-		material.Bind();
 	}
 
 }
