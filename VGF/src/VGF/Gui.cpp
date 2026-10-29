@@ -8,6 +8,23 @@
 
 namespace VGF
 {
+	static float SrgbToLinear(float c)
+	{
+		return c <= 0.04045f ? c / 12.92f : powf((c + 0.055f) / 1.055f, 2.4f);
+	}
+
+	static void LinearizeStyleColors()
+	{
+		ImGuiStyle& style = ImGui::GetStyle();
+		for (int i = 0; i < ImGuiCol_COUNT; ++i)
+		{
+			ImVec4& c = style.Colors[i];
+			c.x = SrgbToLinear(c.x);
+			c.y = SrgbToLinear(c.y);
+			c.z = SrgbToLinear(c.z);
+		}
+	}
+
 	void SetupImGuiStyle()
 	{
 		// Fork of Comfortable Dark Cyan style from ImThemes
@@ -25,7 +42,7 @@ namespace VGF
 		style.ChildBorderSize = 1.0f;
 		style.PopupRounding = 2.5f;
 		style.PopupBorderSize = 1.0f;
-		style.FramePadding = ImVec2(20.0f, 3.4f);
+
 		style.FrameRounding = 2.5f;
 		style.FrameBorderSize = 0.0f;
 		style.ItemSpacing = ImVec2(8.9f, 13.4f);
@@ -96,6 +113,8 @@ namespace VGF
 		style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(0.49803922f, 0.5137255f, 1.0f, 1.0f);
 		style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.19607843f, 0.1764706f, 0.54509807f, 0.5019608f);
 		style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.19607843f, 0.1764706f, 0.54509807f, 0.5019608f);
+
+		LinearizeStyleColors();
 	}
 
 	Gui::Gui(const Window& window)
