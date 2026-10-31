@@ -7,7 +7,7 @@
 
 namespace VGF
 {
-	Model::Model(const std::string& modelPath, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+	Model::Model(const std::string& modelPath, const Shader& config)
 		: config(config)
 	{
 		tinygltf::Model gltfModel;
@@ -213,10 +213,6 @@ namespace VGF
 		textures = gltfModel.textures;
 		materials = gltfModel.materials;
 
-		std::vector<UniformBufferObject*> renderUniformBuffers;
-		renderUniformBuffers.insert(renderUniformBuffers.end(), uniformBuffers.begin(), uniformBuffers.end());
-		renderUniformBuffers.insert(renderUniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
-
 		for (auto& node : nodes)
 		{
 			if (node->mesh.indices.empty()) continue;
@@ -225,7 +221,7 @@ namespace VGF
 		}
 	}
 
-	Model::Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers) 
+	Model::Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, const Shader& config) 
 		: config(config)
 	{
 		_material = material;
@@ -240,12 +236,6 @@ namespace VGF
 		nodes[0]->name = "unnamed";
 		nodes[0]->mesh = mesh;
 
-
-		std::vector<UniformBufferObject*> renderUniformBuffers;
-		renderUniformBuffers.insert(renderUniformBuffers.end(), uniformBuffers.begin(), uniformBuffers.end());
-		renderUniformBuffers.insert(renderUniformBuffers.end(), additionalUniformBuffers.begin(), additionalUniformBuffers.end());
-
-
 		for (auto& node : nodes)
 		{
 			for (auto node : nodes) continue;
@@ -256,7 +246,6 @@ namespace VGF
 
 	Model::~Model()
 	{
-		for (auto& uniform : uniformBuffers)	delete uniform;
 		for (auto& renderer : modelRenderers)	delete renderer;
 		for (auto& node : nodes)			delete node;
 	}
@@ -291,8 +280,11 @@ namespace VGF
 	{
         animation.currentTime += deltaTime * animation.speed;
 
-        if (animation.currentTime > animation.end)
+		if (animation.currentTime > animation.end)
+		{
 			if (animation.looping) animation.currentTime = animation.start;
+			else animation.currentTime = animation.end;
+		}
 
         for (auto& channel : animation.channels)
         {
@@ -358,11 +350,11 @@ namespace VGF
 		}
 	}
 
-	void Model::PlayAnimation(size_t index, float speed)
+	void Model::PlayAnimation(size_t index, bool clearTime, float speed)
 	{
 		selectedAnimation = &animations[index];
 		selectedAnimation->speed = speed;
-		selectedAnimation->currentTime = 0.f;
+		if (clearTime) selectedAnimation->currentTime = 0.f;
 	}
 
 	void Model::BlendAnimations(Animation& fromAnimation, Animation& toAnimation, float blendFactor) {
@@ -787,7 +779,7 @@ namespace VGF
 
 
 
-	void Model::Render(const glm::mat4& parentMatrix, const Camera& camera, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+	void Model::Render(const glm::mat4& parentMatrix, const Camera& camera, const Shader& config)
 	{
 		AddModelRenderData();
 
@@ -795,7 +787,7 @@ namespace VGF
 		{
 			for (size_t i = 0; i < nodes.size(); i++)
 			{
-				Draw(parentMatrix, modelRenderers[i], -1, config, camera, additionalUniformBuffers);
+				Draw(parentMatrix, modelRenderers[i], -1, config, camera);
 			}
 		}
 		else
@@ -815,16 +807,6 @@ namespace VGF
 			}
 		}
 	}
-
-	void Model::BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const Shader& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers)
-	{
-		if (!customModel) return;
-		for (size_t i = 0; i < nodes.size(); i++)
-		{
-			BatchDraw(parentMatrix, modelRenderers[i], -1, config, camera, instanceData, instanceCount, instanceStride, additionalUniformBuffers);
-		}
-	}
-
 
 	void Model::bindMaterial(const Camera& camera, const int materialIndex)
 	{

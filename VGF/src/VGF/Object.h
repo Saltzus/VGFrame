@@ -14,25 +14,10 @@ namespace VGF
         Object(std::string modelPath) : _ownedModel(std::make_unique<Model>(modelPath)), model(*_ownedModel) {}
         ~Object() = default;
 
-        std::vector<UniformBufferObject*> additionalUniformBuffers;
         bool relativeToCamera = false;
 
-        virtual void Render(const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
-        void Render(const Camera& camera, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
-
-        virtual void BatchRender(const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers) const;
-        void BatchRender(const Camera& camera, const Shader& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers) const;
-
-        template<typename T>
-        void BatchRender(const Camera& camera, const std::vector<T> instances, const std::vector<UniformBufferObject*> additionalUniformBuffers = {}) const
-        {
-            BatchRender(camera, instances.data(), instances.size(), sizeof(T), additionalUniformBuffers);
-        }
-        template<typename T>
-        void BatchRender(const Camera& camera, const Shader& config, const std::vector<T> instances, const std::vector<UniformBufferObject*> additionalUniformBuffers = {}) const
-        {
-            BatchRender(camera, config, instances.data(), instances.size(), sizeof(T), additionalUniformBuffers);
-        }
+        virtual void Render(const Camera& camera);
+        void Render(const Camera& camera, const Shader& config);
 
         //void SetModel(Model& model) { model = model; }
         //void SetConfig(const Shader& config) { _model->config = config; }

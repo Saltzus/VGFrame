@@ -99,28 +99,26 @@ namespace VGF
 	class Model
 	{
 	public:
-		Model(const std::string& modelPath, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
-		Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
+		Model(const std::string& modelPath, const Shader& config);
+		Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, const Shader& config);
 
-		Model(const std::string modelPath, const std::vector<UniformBufferObject*> additionalUniformBuffers = {})
-			: Model(modelPath, VGF::Shader::GetDefault(), additionalUniformBuffers) {}
+		Model(const std::string modelPath)
+			: Model(modelPath, VGF::Shader::GetDefault()) {}
 
-		Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material, const std::vector<UniformBufferObject*> additionalUniformBuffers = {})
-			: Model(vertices, indices, material, VGF::Shader::GetDefault(), additionalUniformBuffers) {
+		Model(std::vector <float> vertices, std::vector <unsigned int> indices, Material* material)
+			: Model(vertices, indices, material, VGF::Shader::GetDefault()) {
 		}
-		Model(std::vector <float> vertices, std::vector <unsigned int> indices, const std::vector<UniformBufferObject*> additionalUniformBuffers = {})
-			: Model(vertices, indices, VGF::Material::getDefaultMaterial(), additionalUniformBuffers) {}
+		Model(std::vector <float> vertices, std::vector <unsigned int> indices)
+			: Model(vertices, indices, VGF::Material::getDefaultMaterial()) {}
 
 		~Model();
 
 		Shader config;
-		//tinygltf::Model model;
+		RenderData renderData = RenderData(config);
 
 		static inline std::unordered_map<std::string, tinygltf::Model> gltfModels;
 
 		std::vector<Node*> nodes;
-		RenderData renderData = RenderData(config);
-
 		std::vector<tinygltf::Material> materials;
 		std::vector<tinygltf::Texture> textures;
 
@@ -135,20 +133,29 @@ namespace VGF
 			return (nodeIt != nodes.end()) ? *nodeIt : nullptr;
 		}
 
-		void PlayAnimation(size_t index, float speed = 1);
-		void PlayAnimation(std::string name, float speed = 1)
+		void PlayAnimation(size_t index, bool clearTime = true, float speed = 1);
+		void PlayAnimation(std::string name, bool clearTime = true, float speed = 1)
 		{
 			for (size_t index = 0; index < animations.size(); index++)
 			{
 				if (animations[index].name == name)
 				{
-					PlayAnimation(index, speed);
-					break;
+					PlayAnimation(index, clearTime, speed);
+					return;
 				}
 			}
 
 			Log::Error("Could not find animation = " + name);
 		};
+
+		void StopAnimation() 
+		{ 
+			if (selectedAnimation)
+			{
+				selectedAnimation->looping = false;
+				selectedAnimation->currentTime = 1.f;
+			}
+		}
 
 		void BlendAnimations(Animation& fromAnimation, Animation& toAnimation, float blendFactor);
 
@@ -165,48 +172,11 @@ namespace VGF
 		static void ApplyJointConstraints(Node* node, const glm::vec3& minAngles, const glm::vec3& maxAngles);
 		void ApplyIKToAnimation(Animation& animation, float deltaTime, Node* endEffector, const glm::vec3& targetPosition, float ikWeight = 1.0f);
 
-		void Render(const glm::mat4& parentMatrix, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {}) { Render(parentMatrix, camera, config, additionalUniformBuffers); }
-		void Render(const glm::mat4& parentMatrix, const Camera& camera, const Shader& config, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
-		
-		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const Shader& config, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers);
-
-		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers)
-		{
-			BatchRender(parentMatrix, camera, config, instanceData, instanceCount, instanceStride, additionalUniformBuffers);
-		}
-
-		template<typename T>
-		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const Shader& config, const std::vector<T> instances, const std::vector<UniformBufferObject*> additionalUniformBuffers)
-		{
-			BatchRender(parentMatrix, camera, config, instances.data(), instances.size(), sizeof(T), additionalUniformBuffers);
-		}
-
-		template<typename T>
-		void BatchRender(const glm::mat4& parentMatrix, const Camera& camera, const std::vector<T> instances, const std::vector<UniformBufferObject*> additionalUniformBuffers)
-		{
-			BatchRender(parentMatrix, camera, instances.data(), instances.size(), sizeof(T), additionalUniformBuffers);
-		}
+		void Render(const glm::mat4& parentMatrix, const Camera& camera, const Shader& config);
 
 		bool isCustomModel() { return customModel; }
 
 	private:
-		std::vector<UniformBufferObject*> _additionalUniformBuffers;
-		std::vector<UniformBufferObject*> uniformBuffers =
-		{
-			new MatrixBufferObject,
-			new PBRbufferObject,
-			new LightBufferObject,
-			new AnimationBufferObject
-		};
-
-		enum uniformBufferEnum
-		{
-			matrixBuffer,
-			pbrBuffer,
-			lightBuffer,
-			animationBuffer
-		};
-
 		std::vector<Renderer*> modelRenderers;
 		Material* _material = nullptr;
 
