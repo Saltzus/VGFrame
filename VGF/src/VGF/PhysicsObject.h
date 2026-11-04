@@ -34,7 +34,7 @@ namespace VGF
 
     private:
         Physics* _physics;
-        glm::mat4 CreateModelMatrix(glm::mat4 cameraViewMatrix) const override;
+        glm::mat4 CreateModelMatrix(glm::mat4 cameraViewMatrix) override;
         void InitObject(Physics* physics, b3Vec3 origin, b3Vec3 size, b3BodyType type, float density);
     };
 

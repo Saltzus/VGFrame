@@ -95,6 +95,14 @@ namespace VGF
 		float speed = 1.f;
 	};
 
+	struct IKData
+	{
+		Node* endEffector;
+		glm::vec3 targetPosition;
+		glm::vec3 poleVector;
+
+		float ikWeight = 1.0f;
+	};
 
 	class Model
 	{
@@ -148,6 +156,8 @@ namespace VGF
 			Log::Error("Could not find animation = " + name);
 		};
 
+		void SetIk(IKData data) { ikData.push_back(data); }
+
 		void StopAnimation() 
 		{ 
 			if (selectedAnimation)
@@ -170,50 +180,21 @@ namespace VGF
 		);
 
 		static void ApplyJointConstraints(Node* node, const glm::vec3& minAngles, const glm::vec3& maxAngles);
-		void ApplyIKToAnimation(Animation& animation, float deltaTime, Node* endEffector, const glm::vec3& targetPosition, float ikWeight = 1.0f);
+		void ApplyIK(IKData data);
 
 		void Render(const glm::mat4& parentMatrix, const Camera& camera, const Shader& config);
 
 		bool isCustomModel() { return customModel; }
 
 	private:
-		std::vector<Renderer*> modelRenderers;
 		Material* _material = nullptr;
+		std::vector <Texture*> _textures;
+		std::vector<Renderer*> modelRenderers;
 
 		bool customModel = false;
 
-		struct VaoRange
-		{
-			int begin;
-			int count;
-		};
-
-		std::vector <Texture*> _textures;
 		Animation* selectedAnimation = nullptr;
-
-		unsigned int uLightDirectionLocation;
-		unsigned int uLightIntensity;
-
-		unsigned int uBaseColorTexture = 1;
-		unsigned int uBaseColorFactor;
-
-		unsigned int uMetallicRoughnessTexture;
-		unsigned int uMetallicFactor;
-
-		unsigned int uRoughnessFactor;
-
-		unsigned int uEmissiveTexture;
-		unsigned int uEmissiveFactor;
-
-		unsigned int uOcclusionTexture;
-		unsigned int uOcclusionStrength;
-
-		unsigned int uApplyOcclusion;
-
-		unsigned int overrideTexture = 0;
-
-		std::vector<unsigned int> vertexArrayObjects;
-		std::vector<VaoRange> meshToVertexArrays;
+		std::vector<IKData> ikData;
 
 		void UpdateJoints(Node* node);
 		void UpdateAnimation(Animation& animation, float deltaTime);

@@ -29,13 +29,16 @@ namespace VGF
         void SetRotation(const float x, const float y, const float z) { SetRotation(glm::quat(glm::radians(glm::vec3(x, y, z))));}
         void SetRotation(const glm::vec3 rotation) { SetRotation(rotation.x, rotation.y, rotation.z); }
 
-        glm::quat GetRotation() const {  return _rotation; }
+        glm::quat GetRotation() const { return _rotation; }
+        glm::vec3 GetPosition() const {  return _position; }
 
         virtual void SetScale(const float x, const float y, const float z) { _scale = glm::vec3(x, y, z); }
         void SetScale(const glm::vec3 scale) { SetScale(scale.x, scale.y, scale.z); }
 
         void LookAt(const glm::vec3 lookingPosition, const float xOffset = 0.f, const float yOffset = 0.f);
-        virtual glm::mat4 CreateModelMatrix(glm::mat4 matrix) const;
+        virtual glm::mat4 CreateModelMatrix(glm::mat4 matrix);
+
+        glm::mat4 parentMatrix = glm::mat4(1.f);
 
     protected:
         std::unique_ptr<Model> _ownedModel;

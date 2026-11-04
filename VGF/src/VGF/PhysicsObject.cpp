@@ -35,7 +35,7 @@ namespace VGF
         if (b3Body_IsValid(body)) b3DestroyBody(body);
     }
 
-    glm::mat4 PhysicsObject::CreateModelMatrix(glm::mat4 cameraViewMatrix) const
+    glm::mat4 PhysicsObject::CreateModelMatrix(glm::mat4 cameraViewMatrix)
     {
         const b3Vec3& b3Position = b3Body_GetPosition(body);
         const b3Quat& b3Rotation = b3Body_GetRotation(body);

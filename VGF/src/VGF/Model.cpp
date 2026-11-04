@@ -196,7 +196,7 @@ namespace VGF
 				}
 			}
 
-			// Get the inverse bind matrices from the buffer associated to this skin
+			// GetBody the inverse bind matrices from the buffer associated to this skin
 			if (glTFSkin.inverseBindMatrices > -1)
 			{
 				const tinygltf::Accessor &  accessor   = gltfModel.accessors[glTFSkin.inverseBindMatrices];
@@ -511,42 +511,38 @@ namespace VGF
 	}
 
 	// Apply IK on top of an animation
-	void Model::ApplyIKToAnimation(Animation& animation, float deltaTime, Node* endEffector, const glm::vec3& targetPosition, float ikWeight) {
-		// First, update the animation normally
-		UpdateAnimation(animation, deltaTime);
+	void Model::ApplyIK(IKData data) {
+		if (data.ikWeight <= 0.0f) return;
 
-		// If IK weight is zero, we're done
-		if (ikWeight <= 0.0f) return;
-
-		// Build the joint chain from end effector to root
 		std::vector<Node*> chain;
-		Node* current = endEffector;
+		Node* current = data.endEffector;
 
-		// Add up to 3 joints to the chain (e.g., hand, elbow, shoulder)
 		while (current && chain.size() < 3)
 		{
 			chain.push_back(current);
 			current = current->parent;
 		}
 
-		// Reverse the chain to go from root to end effector
 		std::ranges::reverse(chain);
 
-		// Store original rotations
 		std::vector<glm::quat> originalRotations;
 		for (const Node* node : chain)
 			originalRotations.push_back(node->rotation);
 
-		// Apply IK
-		//SolveTwoBoneIK(chain[0], chain[1], chain[2], targetPosition,
-		//			  glm::vec3(0.0f, 0.0f, 1.0f));
+		SolveTwoBoneIK
+		(
+			chain[0], 
+			chain[1], 
+			chain[2], 
+			data.targetPosition,
+			data.poleVector
+		);
 
-		// Blend between original and IK rotations based on weight
-		if (ikWeight < 1.0f)
+		if (data.ikWeight < 1.0f)
 		{
 			for (size_t i = 0; i < chain.size(); i++)
 			{
-				chain[i]->rotation = glm::slerp(originalRotations[i],chain[i]->rotation,ikWeight);
+				chain[i]->rotation = glm::slerp(originalRotations[i],chain[i]->rotation, data.ikWeight);
 			}
 		}
 	}
@@ -574,7 +570,7 @@ namespace VGF
 			const float* jointWeightsBuffer = nullptr;
 			size_t vertexCount = 0;
 
-			// Get buffer data for vertex normals
+			// GetBody buffer data for vertex normals
 			if (prim.attributes.contains("POSITION"))
 			{
 				const tinygltf::Accessor& accessor = model.accessors[prim.attributes.find("POSITION")->second];
@@ -582,14 +578,14 @@ namespace VGF
 				positionBuffer = reinterpret_cast<const float*>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
 				vertexCount = accessor.count;
 			}
-			// Get buffer data for vertex normals
+			// GetBody buffer data for vertex normals
 			if (prim.attributes.contains("NORMAL"))
 			{
 				const tinygltf::Accessor& accessor = model.accessors[prim.attributes.find("NORMAL")->second];
 				const tinygltf::BufferView& view = model.bufferViews[accessor.bufferView];
 				normalsBuffer = reinterpret_cast<const float*>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
 			}
-			// Get buffer data for vertex texture coordinates
+			// GetBody buffer data for vertex texture coordinates
 			if (prim.attributes.contains("TEXCOORD_0"))
 			{
 				const tinygltf::Accessor& accessor = model.accessors[prim.attributes.find("TEXCOORD_0")->second];
@@ -597,14 +593,14 @@ namespace VGF
 				texCoordsBuffer = reinterpret_cast<const float*>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
 			}
 
-			// Get vertex joint indices
+			// GetBody vertex joint indices
 			if (prim.attributes.contains("JOINTS_0"))
 			{
 				const tinygltf::Accessor& accessor = model.accessors[prim.attributes.find("JOINTS_0")->second];
 				const tinygltf::BufferView& view = model.bufferViews[accessor.bufferView];
 				jointIndicesBuffer = &(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]);
 			}
-			// Get vertex joint weights
+			// GetBody vertex joint weights
 			if (prim.attributes.contains("WEIGHTS_0"))
 			{
 				const tinygltf::Accessor& accessor = model.accessors[prim.attributes.find("WEIGHTS_0")->second];
@@ -793,7 +789,9 @@ namespace VGF
 		else
 		{
 			if (selectedAnimation) UpdateAnimation(*selectedAnimation, VGF::Time::GetDeltaTime());
-	
+			for (size_t i = 0; i < ikData.size(); i++) ApplyIK(ikData[i]);
+			ikData.clear();
+
 			for (auto &node : nodes)
 			{
 				if (node->parent == nullptr)

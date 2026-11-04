@@ -32,9 +32,9 @@ namespace VGF
         SetRotation(offset * base);
     }
 
-    glm::mat4 Object::CreateModelMatrix(glm::mat4 cameraViewMatrix) const
+    glm::mat4 Object::CreateModelMatrix(glm::mat4 cameraViewMatrix)
     {
-        glm::mat4 model = glm::mat4(1.f);
+        glm::mat4 model = parentMatrix;
         if (relativeToCamera) model = glm::inverse(cameraViewMatrix);
        
         model = glm::translate(model, _position);
