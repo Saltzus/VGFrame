@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "imgui.h"
-#include "UniformBuffers/UniformBuffer.h"
 
 
 namespace VGF

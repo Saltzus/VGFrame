@@ -323,7 +323,7 @@ namespace VGF::Opengl
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, _indices.size() * sizeof(GLuint), _indices.data(), GL_STATIC_DRAW);
 
-        config.GetVertexBuffer()->GetOpenGLAttributeDescriptions(lastLocation);
+        //config.GetVertexBuffer()->GetOpenGLAttributeDescriptions(lastLocation);
 
         _createdVao = true;
     }

@@ -1,35 +1,9 @@
 #pragma once
 
-#include "VertexBuffers/DefaultInstanceBuffer.h"
 #include "Texture.h"
 
 namespace VGF
 {
-	struct InstanceData
-	{
-		std::vector<std::byte> data = {};
-		size_t count = 1;
-		size_t stride = sizeof(DefaultInstance);
-
-		InstanceData(const void* data, size_t count, size_t stride)
-			: data(static_cast<const std::byte*>(data), static_cast<const std::byte*>(data) + count * stride)
-			, count(count)
-			, stride(stride)
-		{
-		}
-
-		void Append(const void* data, size_t count, size_t stride)
-		{
-			this->stride = stride;
-
-			const std::byte* src = static_cast<const std::byte*>(data);
-			this->data.insert(this->data.end(), src, src + count * stride);
-			count += count;
-		}
-
-		const void* Data() { return data.data(); }
-	};
-
 	class Shader;
 	class RenderData
 	{
@@ -73,9 +47,6 @@ namespace VGF
 		}
 
 		struct Pending { std::string name; std::vector<std::byte> bytes; };
-
-		DefaultInstance instance;
-		InstanceData instanceData = InstanceData(&instance, 1, sizeof(DefaultInstance));
 
 		std::unordered_map<std::string, Pending> pending;
 		std::unordered_map<std::string, const Texture*> textures;

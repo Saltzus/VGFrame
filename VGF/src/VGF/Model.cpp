@@ -203,10 +203,7 @@ namespace VGF
 				const tinygltf::BufferView &bufferView = gltfModel.bufferViews[accessor.bufferView];
 				const tinygltf::Buffer &    buffer     = gltfModel.buffers[bufferView.buffer];
 				memcpy(skins[i].inverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(glm::mat4));
-
-				AnimationData data;
-				std::copy(skins[i].inverseBindMatrices.begin(), skins[i].inverseBindMatrices.end(), data.jointMatrices);
-				renderData.Set("jointMatrices", data.jointMatrices);
+				renderData.Set("jointMatrices", skins[i].inverseBindMatrices.data(), skins[i].inverseBindMatrices.size());
 			}
 		}
 
@@ -340,10 +337,7 @@ namespace VGF
 				jointMatrices[i] = inverseTransform * jointMatrices[i];
 			}
 
-			AnimationData data;
-			std::copy(jointMatrices.begin(), jointMatrices.end(), data.jointMatrices);
-
-			renderData.Set("jointMatrices", data.jointMatrices);
+			renderData.Set("jointMatrices", jointMatrices.data(), jointMatrices.size());
 		}
 
 		for (auto &child : node->children)
@@ -745,19 +739,19 @@ namespace VGF
 		bindMaterial(camera, bindId);
 	}
 
-	void Model::Draw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindId, const Shader& shader, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers)
+	void Model::Draw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindId, const Shader& shader, const Camera& camera)
 	{
 		AddNodeRenderData(parentMatrix, bindId, camera);
 		renderer->Render(renderData, shader);
 	}
 
-	void Model::BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindId, const Shader& shader, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers)
+	void Model::BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindId, const Shader& shader, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride)
 	{
 		AddNodeRenderData(parentMatrix, bindId, camera);
 		renderer->BatchRender(renderData, shader);
 	}
 
-	void Model::drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const Shader& shader, const Camera& camera, LightBufferObject lightBufffer)
+	void Model::drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const Shader& shader, const Camera& camera)
 	{
 		const auto& node = nodes[nodeIdx];
 		const glm::mat4 modelMatrix = parentMatrix * node->GetLocalMatrix();
@@ -771,7 +765,7 @@ namespace VGF
 		
 		for (const auto childNode : node->children)
 		{
-			drawNodes(childNode->index, modelMatrix, config, camera, *LightBufferObject::getDefault());
+			drawNodes(childNode->index, modelMatrix, config, camera);
 		}
 	};
 
@@ -803,7 +797,7 @@ namespace VGF
 			for (const auto node : nodes)
 			{
 				if (node->parent != nullptr) continue;
-				drawNodes(node->index, parentMatrix, config, camera, *LightBufferObject::getDefault());
+				drawNodes(node->index, parentMatrix, config, camera);
 			}
 		}
 	}

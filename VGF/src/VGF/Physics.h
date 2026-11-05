@@ -9,8 +9,6 @@
 
 #include "Shader.h"
 #include "Log.h"
-#include "VertexBuffers/DefaultInstanceBuffer.h"
-#include "VertexBuffers/DebugVertexBuffer.h"
 
 #include "PhysicsDebugRenderer.h"
 
@@ -67,10 +65,6 @@ namespace VGF
 
 	private:
 		static inline Physics* physics = nullptr;
-
-		static inline DebugVertexBuffer debugVertexBuffer;
-		static inline DefaultInstanceBuffer instanceBuffer;
-
 		static const VGF::Shader& GetDefaultShader(bool wireframe)
 		{
 			if (wireframe)
@@ -79,10 +73,7 @@ namespace VGF
 				(
 					VGF::Resource::Get("Shaders/debug_vert.slang"),
 					VGF::Resource::Get("Shaders/debug_frag.slang"),
-					VGF::Topology::LINE_LIST,
-					false,
-					debugVertexBuffer,
-					instanceBuffer
+					VGF::Topology::LINE_LIST
 				);
 				return config;
 			}
@@ -92,10 +83,7 @@ namespace VGF
 				(
 					VGF::Resource::Get("Shaders/debug_vert.slang"),
 					VGF::Resource::Get("Shaders/debug_frag.slang"),
-					VGF::Topology::TRIANGLE_LIST,
-					false,
-					debugVertexBuffer,
-					instanceBuffer
+					VGF::Topology::TRIANGLE_LIST
 				);
 				return config;
 			}
