@@ -276,25 +276,27 @@ namespace VGF
 		);
 	}
 
-	void Model::UpdateAnimation(Animation& animation, float deltaTime)
+	void Model::UpdateAnimation(Animation* animation)
 	{
-        animation.currentTime += deltaTime * animation.speed;
+		if (!animation) return;
 
-		if (animation.currentTime > animation.end)
+		animation->currentTime += VGF::Time::GetDeltaTime() * animation->speed;
+
+		if (animation->currentTime > animation->end)
 		{
-			if (animation.looping) animation.currentTime = animation.start;
-			else animation.currentTime = animation.end;
+			if (animation->looping) animation->currentTime = animation->start;
+			else animation->currentTime = animation->end;
 		}
 
-        for (auto& channel : animation.channels)
+        for (auto& channel : animation->channels)
         {
-	        AnimationSampler& sampler = animation.samplers[channel.samplerIndex];
+	        AnimationSampler& sampler = animation->samplers[channel.samplerIndex];
 
-        	auto keyFrameIt = std::ranges::lower_bound(sampler.inputs, animation.currentTime);
+        	auto keyFrameIt = std::ranges::lower_bound(sampler.inputs, animation->currentTime);
         	if (keyFrameIt != sampler.inputs.end() && keyFrameIt != sampler.inputs.begin())
         	{
         		size_t indx = std::distance(sampler.inputs.begin(), keyFrameIt) - 1;
-        		float factor = (animation.currentTime - sampler.inputs[indx]) / (sampler.inputs[indx + 1] - sampler.inputs[indx]);
+        		float factor = (animation->currentTime - sampler.inputs[indx]) / (sampler.inputs[indx + 1] - sampler.inputs[indx]);
 
         		switch (channel.path)
         		{
@@ -357,7 +359,7 @@ namespace VGF
 		if (clearTime) selectedAnimation->currentTime = 0.f;
 	}
 
-	void Model::BlendAnimations(Animation& fromAnimation, Animation& toAnimation, float blendFactor) {
+	void Model::BlendAnimations(Animation* fromAnimation, Animation* toAnimation, float blendFactor) {
 		// Store original node transformations
 		std::vector<glm::vec3> originalTranslations;
 		std::vector<glm::quat> originalRotations;
@@ -371,7 +373,7 @@ namespace VGF
 		}
 
 		// Apply first animation fully
-		UpdateAnimation(fromAnimation, 0.0f);
+		UpdateAnimation(fromAnimation);
 
 		// Store intermediate transformations
 		std::vector<glm::vec3> fromTranslations;
@@ -394,7 +396,7 @@ namespace VGF
 		}
 
 		// Apply second animation fully
-		UpdateAnimation(toAnimation, 0.0f);
+		UpdateAnimation(toAnimation);
 
 		// Blend between the two animations
 		for (size_t i = 0; i < nodes.size(); i++)
@@ -788,7 +790,7 @@ namespace VGF
 		}
 		else
 		{
-			if (selectedAnimation) UpdateAnimation(*selectedAnimation, VGF::Time::GetDeltaTime());
+			if (selectedAnimation && handleAnimation) UpdateAnimation();
 			for (size_t i = 0; i < ikData.size(); i++) ApplyIK(ikData[i]);
 			ikData.clear();
 

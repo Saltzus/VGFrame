@@ -130,6 +130,8 @@ namespace VGF
 		std::vector<tinygltf::Material> materials;
 		std::vector<tinygltf::Texture> textures;
 
+		Animation* selectedAnimation = nullptr;
+		bool handleAnimation = true;
 		std::vector<Animation> animations;
 		std::vector<Skin> skins;
 
@@ -167,7 +169,8 @@ namespace VGF
 			}
 		}
 
-		void BlendAnimations(Animation& fromAnimation, Animation& toAnimation, float blendFactor);
+		void UpdateAnimation() { UpdateAnimation(selectedAnimation); }
+		void UpdateAnimation(Animation* animation);
 
 		static bool SolveTwoBoneIK
 		(
@@ -192,15 +195,14 @@ namespace VGF
 		std::vector<Renderer*> modelRenderers;
 
 		bool customModel = false;
-
-		Animation* selectedAnimation = nullptr;
 		std::vector<IKData> ikData;
 
 		void UpdateJoints(Node* node);
-		void UpdateAnimation(Animation& animation, float deltaTime);
 		void Draw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const Shader& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 		void BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const Shader& config, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers = {});
 		void drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const Shader& config, const Camera& camera, LightBufferObject lightBuffer);
+
+		void BlendAnimations(Animation* fromAnimation, Animation* toAnimation, float blendFactor);
 
 		void AddModelRenderData();
 		void AddNodeRenderData(const glm::mat4& parentMatrix, const int bindId, const Camera& camera);
