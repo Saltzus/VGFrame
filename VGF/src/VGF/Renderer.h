@@ -14,10 +14,6 @@
 #include "Window.h"
 #include "Camera.h"
 
-#include "UniformBuffers/LightBuffer.h"
-#include "UniformBuffers/MatrixBuffer.h"
-#include "UniformBuffers/PBRBuffer.h"
-
 namespace VGF::Vulkan {
     class Vulkan;
 }
@@ -52,9 +48,9 @@ namespace VGF
         void BatchRender(const RenderData& data, const Shader& shader) const;
         
         template<typename T>
-        void BatchRender(const Shader& shader, const std::vector<T> instances, const std::vector<UniformBufferObject*> uniformBuffers) const
+        void BatchRender(const Shader& shader, const std::vector<T> instances) const
         {
-            BatchRender(shader, instances.data(), instances.size(), sizeof(T), uniformBuffers);
+            BatchRender(shader, instances.data(), instances.size(), sizeof(T));
         }
 
         static GraphicsApis GetGraphicsApi() {return graphicApi;};

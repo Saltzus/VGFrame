@@ -28,7 +28,6 @@
 
 
 #include "../../Shader.h"
-#include "../../UniformBuffers/UniformBuffer.h"
 
 #include "../../RenderImpl.h"
 #include "../../Window.h"

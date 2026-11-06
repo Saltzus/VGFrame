@@ -298,6 +298,8 @@ namespace VGF
 						reflect.attributes[finalName] = std::move(attr);
 					}
 				}
+
+				reflect.stride = offset;
 				reflection.vertex[paramLayout->getName()] = reflect;
 			}
 		}

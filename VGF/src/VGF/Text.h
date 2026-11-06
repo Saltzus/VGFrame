@@ -6,8 +6,6 @@
 #include "Texture.h"
 #include "TextEffect.h"
 
-#include "UniformBuffers/TextBuffer.h"
-
 namespace VGF
 {
     class Text
@@ -35,8 +33,6 @@ namespace VGF
 
         TextEffect _effect;
         bool _ownEffect = true;
-
-        TextBufferObject _textBuffer;
 
         FT_Library ft;
     };

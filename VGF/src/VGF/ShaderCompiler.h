@@ -51,6 +51,7 @@ namespace VGF
 		uint32_t size = 0;
 		uint32_t alignment = 0;
 		uint32_t count = 1;
+		uint32_t stride = 0;
 		std::unordered_map<std::string, VertexMemberReflection> attributes;
 	};
 

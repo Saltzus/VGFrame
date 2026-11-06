@@ -13,8 +13,6 @@
 #include <glm/gtx/rotate_vector.hpp>
 
 #include "../../RenderImpl.h"
-#include "../../VertexBuffers/DefaultInstanceBuffer.h"
-
 
 namespace VGF::Opengl
 {

@@ -110,7 +110,7 @@ namespace VGF::Vulkan
 
         VkVertexInputBindingDescription vertexBindingDescription{};
         vertexBindingDescription.binding = 0;
-        vertexBindingDescription.stride = shader.GetVertexBuffer()->GetSize();
+        vertexBindingDescription.stride = shader.reflect.vertex.begin()->second.stride;
         vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
         std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions;

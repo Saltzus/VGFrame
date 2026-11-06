@@ -6,8 +6,6 @@
 #include "../../Camera.h"
 #include "../../Texture.h"
 
-#include "../../UniformBuffers/MatrixBuffer.h"
-
 namespace VGF::Vulkan
 {
     std::vector<RenderingData> opaqueSwapchainObjects;
@@ -1959,8 +1957,6 @@ namespace VGF::Vulkan
 
         std::vector<RenderingData>& vector = _framebuffer == nullptr ? objectVector : framebufferObjectVector;
 
-        const DefaultInstance& inst = renderData.instance;
-
         RenderingData* existing = nullptr;
         for (RenderingData& data : vector)
         {
@@ -1976,8 +1972,7 @@ namespace VGF::Vulkan
             }
         }
 
-        if (existing) existing->data.instanceData.Append(&inst, 1, sizeof(DefaultInstance));
-        else RenderingData& rendData = vector.emplace_back(RenderingData{ pipelineId, this, _framebuffer, renderData });
+        if (!existing) RenderingData& rendData = vector.emplace_back(RenderingData{ pipelineId, this, _framebuffer, renderData });
     }
 
 
@@ -1995,7 +1990,7 @@ namespace VGF::Vulkan
         UpdateUniformBuffer(currentFrame, 0);
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan->GetPipelineLayout(data.pipelineId), 0, 1, &descriptorSet[currentFrame], 0, nullptr);
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indicesSize), data.data.instanceData.count, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indicesSize), 1, 0, 0, 0);
     }
 
     void VulkanRenderer::CheckTextureChange(uint32_t frame)

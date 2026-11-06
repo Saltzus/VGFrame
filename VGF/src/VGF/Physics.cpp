@@ -75,9 +75,6 @@ namespace VGF
 
 	VGF::Renderer* wireframeTriangles;
 	VGF::Renderer* Triangles;
-	MatrixBufferObject matrixBuffer;
-
-	
 
 	void Physics::DebugRender(const Camera& camera)
 	{

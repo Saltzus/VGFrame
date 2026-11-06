@@ -6,17 +6,22 @@
 
 #include "Material.h"
 #include "Renderer.h"
-#include "UniformBuffers/AnimationBuffer.h"
 #include "RenderData.h"
-
 #include <glm/gtx/matrix_decompose.hpp>
-
-#include "UniformBuffers/MatrixBuffer.h"
-#include "UniformBuffers/LightBuffer.h"
-#include "UniformBuffers/PBRBuffer.h"
 
 namespace VGF
 {
+	struct DefaultVertex
+	{
+		glm::vec3 position;
+		glm::vec3 normal;
+		glm::vec3 color;
+		glm::vec2 texCoord;
+
+		glm::vec4 jointIndices;
+		glm::vec4 jointWeights;
+	};
+
 	struct Mesh
 	{
 		int rendererIndex = -1;
@@ -62,8 +67,6 @@ namespace VGF
 		Node *skeletonRoot = nullptr;
 		std::array<glm::mat4,128> inverseBindMatrices;
 		std::vector<Node *> joints;
-
-		std::array<AnimationBufferObject, 2> buffers;
 	};
 
 	struct AnimationChannel
@@ -198,9 +201,9 @@ namespace VGF
 		std::vector<IKData> ikData;
 
 		void UpdateJoints(Node* node);
-		void Draw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const Shader& config, const Camera& camera, const std::vector<UniformBufferObject*> additionalUniformBuffers = {});
-		void BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const Shader& config, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride, std::vector<UniformBufferObject*> additionalUniformBuffers = {});
-		void drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const Shader& config, const Camera& camera, LightBufferObject lightBuffer);
+		void Draw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const Shader& config, const Camera& camera);
+		void BatchDraw(const glm::mat4& parentMatrix, const Renderer* renderer, const int bindMaterial, const Shader& config, const Camera& camera, const void* instanceData, size_t instanceCount, size_t instanceStride);
+		void drawNodes(int nodeIdx, const glm::mat4& parentMatrix, const Shader& config, const Camera& camera);
 
 		void BlendAnimations(Animation* fromAnimation, Animation* toAnimation, float blendFactor);
 

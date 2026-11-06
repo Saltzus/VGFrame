@@ -13,9 +13,6 @@ namespace VGF
 	Shader::Shader(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent)
 	{
 		reflect = ShaderCompiler::LoadShader(*this,std::string(vertShader), std::string(fragShader));
-		 
-		if (!_vertexBuffer) _vertexBuffer = std::make_shared<DefaultVertexBuffer>();
-		if (!_instanceBuffer) _instanceBuffer = std::make_shared<DefaultInstanceBuffer>();
 
 		this->translucent = translucent;
 		this->topology = topology;
@@ -38,18 +35,6 @@ namespace VGF
 
 	Shader::~Shader()
 	= default;
-
-	void Shader::SetVertexBuffer(VertexBuffer* vertexBuffer)
-	{
-		_vertexBuffer = std::shared_ptr<VertexBuffer>(vertexBuffer);
-	}
-
-	void Shader::SetInstanceBuffer(VertexBuffer* instanceBuffer)
-	{
-		_instanceBuffer = std::shared_ptr<VertexBuffer>(instanceBuffer);
-	}
-
-
 
 	const VkPrimitiveTopology Shader::GetVulkanTopology() const
 	{

@@ -2,15 +2,10 @@
 
 #include "RenderImpl.h"
 #include "Resource.h"
-#include "VertexBuffers/VertexBuffer.h"
 #include "ShaderCompiler.h"
 
 #include <vulkan/vulkan.hpp>
 #include <typeindex>
-
-#include "VertexBuffers/DefaultInstanceBuffer.h"
-#include "VertexBuffers/DefaultVertexBuffer.h"
-
 
 namespace VGF
 {
@@ -29,8 +24,6 @@ namespace VGF
         Shader(std::string_view vertShader, std::string_view fragShader, Topology topology, bool translucent, const VertBuffr1& vertexBuffer, const VertBuffr2& instanceBuffer)
             : Shader(vertShader, fragShader, topology, translucent)
         {
-            _vertexBuffer = std::make_shared<VertBuffr1>(vertexBuffer);
-            _instanceBuffer = std::make_shared<VertBuffr2>(instanceBuffer);
         }
 
         Shader(std::string_view vertShader, std::string_view fragShader, bool translucent = false, Topology topology = Topology::TRIANGLE_LIST)
@@ -50,24 +43,6 @@ namespace VGF
         Slang::ComPtr<slang::IBlob> spirvfrag;
         Slang::ComPtr<slang::IBlob> spirvvert;
 
-        const std::type_index GetVertexBufferTypeId() const { return typeid(*_vertexBuffer); }
-        const std::type_index GetInstanceBufferTypeId() const { return typeid(*_instanceBuffer); }
-
-        const VertexBuffer* GetVertexBuffer() const { return _vertexBuffer.get(); }
-        const VertexBuffer* GetInstanceBuffer() const { return _instanceBuffer.get(); }
-
-        void SetVertexBuffer(VertexBuffer* vertexBuffer);
-        template<typename T> void SetVertexBuffer()
-        {
-            _vertexBuffer = std::make_shared<T>();
-        }
-
-        void SetInstanceBuffer(VertexBuffer* vertexBuffer);
-        template<typename T> void SetInstanceBuffer()
-        {
-            _instanceBuffer = std::make_shared<T>();
-        }
-
         static const VGF::Shader& GetDefault()
         {
             static const VGF::Shader shader
@@ -85,8 +60,6 @@ namespace VGF
 
     private:
         std::shared_ptr<ShaderImpl> _impl;
-        std::shared_ptr<VertexBuffer> _vertexBuffer;
-        std::shared_ptr<VertexBuffer> _instanceBuffer;
     };
 
     struct PipelineHashKey
@@ -96,8 +69,6 @@ namespace VGF
         std::string vertShader;
         std::string fragShader;
         bool offscreen;
-        std::type_index vertexBufferType;
-        std::type_index instanceBufferType;
 
         PipelineHashKey(const Shader& config, bool offscreen)
             : translucent(config.translucent)
@@ -105,19 +76,15 @@ namespace VGF
             , vertShader(config.vertShader)
             , fragShader(config.fragShader)
             , offscreen(offscreen)
-            , vertexBufferType(config.GetVertexBufferTypeId())
-            , instanceBufferType(config.GetInstanceBufferTypeId())
         {}
 
         bool operator==(const PipelineHashKey& other) const noexcept
         {
             return translucent == other.translucent &&
-                   vertShader == other.vertShader &&
-                   fragShader == other.fragShader &&
-                   topology == other.topology &&
-                   offscreen == other.offscreen &&
-                   vertexBufferType == other.vertexBufferType &&
-                   instanceBufferType == other.instanceBufferType;
+                vertShader == other.vertShader &&
+                fragShader == other.fragShader &&
+                topology == other.topology &&
+                offscreen == other.offscreen;
         }
     };
 
@@ -131,9 +98,7 @@ namespace VGF
             size_t h3 = std::hash<std::string>()(key.vertShader);
             size_t h4 = std::hash<std::string>()(key.fragShader);
             size_t h5 = std::hash<bool>()(key.offscreen);
-            size_t h6 = std::hash<std::type_index>()(key.vertexBufferType);
-            size_t h7 = std::hash<std::type_index>()(key.instanceBufferType);
-            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3) ^ (h5 << 4) ^ (h6 << 5) ^ (h7 << 6);
+            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3) ^ (h5 << 4);
         }
     };
 }
