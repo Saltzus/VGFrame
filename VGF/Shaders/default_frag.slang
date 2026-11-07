@@ -20,13 +20,13 @@ struct PointLight
     float3 color;
 };
 
-cbuffer LightBuffer
+StructuredBuffer<DirectionalLight> directionalLights;
+StructuredBuffer<PointLight> pointLights;
+
+cbuffer LightParams
 {
     float3 ambientLightColor;
     float ambientLightIntensity;
-
-    DirectionalLight directionalLights[30];
-    PointLight pointLights[30];
     int directionLightAmount;
     int pointLightAmount;
 };

@@ -7,7 +7,6 @@
 #include "Material.h"
 #include "Renderer.h"
 #include "RenderData.h"
-
 #include <glm/gtx/matrix_decompose.hpp>
 
 namespace VGF

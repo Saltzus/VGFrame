@@ -3,6 +3,9 @@
 #include "graphicsApi/opengl/OpenGlManager.h"
 #include "graphicsApi/vulkan/VulkanManager.h"
 
+#include "DirectionalLight.h"
+#include "PointLight.h"
+
 #include "Physics.h"
 #include "Texture.h"
 

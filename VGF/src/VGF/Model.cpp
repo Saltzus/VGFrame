@@ -5,6 +5,9 @@
 #include "Physics.h"
 #include "VGFTime.h"
 
+#include "DirectionalLight.h"
+#include "PointLight.h"
+
 namespace VGF
 {
 	Model::Model(const std::string& modelPath, const Shader& config)
@@ -606,7 +609,6 @@ namespace VGF
 
 			hasSkin = (jointIndicesBuffer && jointWeightsBuffer);
 
-
 			// Append data to model's vertex buffer
 			std::vector<DefaultVertex> vertices;
 			vertices.reserve(vertexCount);
@@ -696,38 +698,17 @@ namespace VGF
 
 	void Model::AddModelRenderData()
 	{
-		struct DirectionalLight
-		{
-			alignas(16)glm::vec3 direction;
-			alignas(16)glm::vec3 color;
-		};
+		renderData = RenderData(config);
+		renderData.Set("LightParams.ambientLightColor", glm::vec3(1.f, 1.f, 1.f));
+		renderData.Set("LightParams.ambientLightIntensity", 0.5f);
 
-		struct PointLight
-		{
-			alignas(16)glm::vec3 position;
-			alignas(16)glm::vec3 color;
-		};
+		std::vector<DirectionalLight> dirLights = VGF::DirectionalLight::GetLights();
+		renderData.Set("directionalLights", dirLights);
+		renderData.Set("LightParams.directionLightAmount", static_cast<int>(dirLights.size()));
 
-		std::array<DirectionalLight,30> directionalLights;
-		
-		directionalLights[0].direction = glm::vec3(0, 0.5f, 0.5f);
-		directionalLights[0].color = glm::vec3(5, 0, 0);
-		directionalLights[1].direction = glm::vec3(0, -0.5f, -0.5f);
-		directionalLights[1].color = glm::vec3(0, 0, 5);
-
-		renderData.Set("LightBuffer.directionalLights", directionalLights);
-		renderData.Set("LightBuffer.directionLightAmount", 2);
-
-		renderData.Set("LightBuffer.ambientLightColor", glm::vec3(1.f, 1.f, 1.f));
-		renderData.Set("LightBuffer.ambientLightIntensity", 0.5f);
-
-		std::array<PointLight, 30> pointLights;
-
-		pointLights[0].position = glm::vec3(0, 10, 0);
-		pointLights[0].color = glm::vec3(0.9, 0.9, 1);
-
-		renderData.Set("LightBuffer.pointLights", pointLights);
-		renderData.Set("LightBuffer.pointLightAmount", 1);
+		std::vector<PointLightData> pointLights = VGF::PointLight::GetLights();
+		renderData.Set("pointLights", pointLights);
+		renderData.Set("LightParams.pointLightAmount", static_cast<int>(pointLights.size()));
 	}
 
 	void Model::AddNodeRenderData(const glm::mat4& parentMatrix, const int bindId, const Camera& camera)
