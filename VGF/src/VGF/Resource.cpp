@@ -9,6 +9,7 @@ namespace VGF
 		{ 
 			"VGF/",
 			"VGFrame/VGF/",
+			"./"
 		};
 		return paths;
 	}
