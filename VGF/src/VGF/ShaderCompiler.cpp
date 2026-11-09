@@ -16,6 +16,11 @@ namespace VGF
 	{
 		slang::createGlobalSession(globalSession.writeRef());
 
+		slang::CompilerOptionEntry options = {
+		    slang::CompilerOptionName::Optimization,
+		    {slang::CompilerOptionValueKind::Int, SLANG_OPTIMIZATION_LEVEL_NONE, 0, nullptr, nullptr},
+		};
+
 		slang::SessionDesc sessionDesc = {};
 
 		slang::TargetDesc targetDesc = {};
@@ -25,6 +30,9 @@ namespace VGF
 		sessionDesc.targets = &targetDesc;
 		sessionDesc.targetCount = 1;
 		sessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
+
+		sessionDesc.compilerOptionEntries = &options;
+		sessionDesc.compilerOptionEntryCount = 1;
 
 		globalSession->createSession(sessionDesc, session.writeRef());
 

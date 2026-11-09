@@ -4,7 +4,7 @@ target("VGF")
     add_headerfiles("src/**/*.h")
     add_includedirs("src", {public = true})
     set_group("VGFrame")
-    add_defines("VK_NO_PROTOTYPES", "IMGUI_IMPL_VULKAN_USE_VOLK")
+    add_defines("VK_NO_PROTOTYPES", "IMGUI_IMPL_VULKAN_USE_VOLK", "GLFW_INCLUDE_NONE", {public = true})
     add_packages
     (
         "miniaudio",

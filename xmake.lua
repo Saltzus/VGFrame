@@ -11,8 +11,7 @@ add_requires("nlohmann_json")
 add_requires("tracy")
 add_requires("box3d")
 
-add_requires("slang")
-
+add_requires("slang v2026.16", {system = false})   
 add_requires("imgui 1.92.9", {configs = {glfw = true, opengl3 = true, vulkan = true, volk = true}})
 
 -- ----------------
@@ -27,42 +26,6 @@ add_cxxflags("-frtti", {tools = {"gcc", "clang"}})
 option("examples")
     set_default(false)
     set_description("Build examples")
-
--- Rules ----------
-
-rule("slang")
-    set_extensions(".slang")
-    on_build_file(function (target, sourcefile, opt)
-        import("core.project.depend")
-        local absSourceFile = path.absolute(sourcefile)
-        local outputfile = absSourceFile:gsub("%.slang$", ".spv")
-
-        local function compile()
-            cprint("${dim}compiling${clear} ${bright}%s${clear}", sourcefile)
-            local envs = target:pkgenvs()
-            os.execv("slangc", {absSourceFile, "-target", "spirv", "-o", outputfile}, {envs = target:pkgenvs()})
-        end
-
-        if not os.isfile(outputfile) then
-            os.rm(target:dependfile(outputfile))
-            compile()
-            depend.on_changed(function() end, 
-            {
-                dependfile = target:dependfile(outputfile),
-                files = absSourceFile,
-            })
-        else
-            depend.on_changed(compile, 
-            {
-                dependfile = target:dependfile(outputfile),
-                files = absSourceFile,
-            })
-        end
-    end)
-    on_clean(function (target, sourcefile)
-        local absSourceFile = path.absolute(sourcefile)
-        os.rm(absSourceFile:gsub("%.slang$", ".spv"))
-    end)
 
 -- Includes -------
 
