@@ -24,10 +24,9 @@ namespace VGF
 
 	std::string Resource::Get(const std::string path)
 	{
-		GetExePath();
 		for (auto location : GetResourcePaths())
 		{
-			std::filesystem::path filePath((exePath + std::string("/") + location + path));
+			std::filesystem::path filePath((GetExePath() + std::string("/") + location + path));
 
 			if (std::filesystem::is_regular_file(filePath)){
 				return filePath.string();
@@ -38,9 +37,12 @@ namespace VGF
 		return "";
 	}
 
-	void Resource::GetExePath()
+	char* Resource::GetExePath()
 	{
-		if (gotExePath) return;
+		static bool gotExePath = false;
+		static char* exePath = NULL;
+
+		if (gotExePath) return exePath;
 
 		int length, dirname_length;
 		length = wai_getExecutablePath(NULL, 0, &dirname_length);
@@ -53,5 +55,7 @@ namespace VGF
 			//exePath[length] = '\0';
 			exePath[dirname_length] = '\0';
 		}
+
+		return exePath;
 	}
 }
