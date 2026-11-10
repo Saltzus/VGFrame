@@ -10,6 +10,7 @@ add_requires("freetype")
 add_requires("nlohmann_json")
 add_requires("tracy")
 add_requires("box3d")
+add_requires("whereami 2024.08.26")
 
 add_requires("slang v2026.16", {system = false})   
 add_requires("imgui 1.92.9", {configs = {glfw = true, opengl3 = true, vulkan = true, volk = true}})

@@ -21,5 +21,6 @@ target("VGF")
         "tracy",
         "slang",
         "box3d",
+        "whereami",
         {public = true}
     )

@@ -13,5 +13,9 @@ namespace VGF
 		static void AddResourcePath(const std::string path) { GetResourcePaths().push_back(path); }
 	private:
 		static std::vector<std::string>& GetResourcePaths();
+		static void GetExePath();
+
+		static inline bool gotExePath = false;
+		static inline char* exePath = NULL;
 	};
 }
