@@ -29,7 +29,6 @@ namespace VGF::Opengl
         OpenglTexture(std::string filePath);
         OpenglTexture(const unsigned char* data, int format, int width, int height);
         ~OpenglTexture();  
-        virtual void Bind(textureType type) override;
         virtual void* GetNativeImage() override;
         ImTextureID GetImGuiTexture() override;
     private:

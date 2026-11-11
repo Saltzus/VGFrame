@@ -116,34 +116,6 @@ namespace VGF::Opengl
     OpenglTexture::~OpenglTexture()
     {
     }
-    void OpenglTexture::Bind(textureType type)
-    {
-        int sus1 = glGetError();
-
-        switch (type)
-        {
-        case VGF::color:
-            glActiveTexture(GL_TEXTURE2);
-            break;
-        case VGF::metallicRoughness:
-            glActiveTexture(GL_TEXTURE3);
-            break;
-        case VGF::emissive:
-            glActiveTexture(GL_TEXTURE4);
-            break;
-        case VGF::occulsion:
-            glActiveTexture(GL_TEXTURE5);
-            break;
-        case VGF::normal:
-            glActiveTexture(GL_TEXTURE6);
-            break;
-        default:
-            glActiveTexture(GL_TEXTURE2);
-            break;
-        }
-
-        glBindTexture(GL_TEXTURE_2D, texture);
-    }
 
     void* OpenglTexture::GetNativeImage() { return reinterpret_cast<void*>(static_cast<uintptr_t>(texture)); }
 

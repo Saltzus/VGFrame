@@ -9,16 +9,13 @@
 
 namespace VGF
 {
-    enum textureType
+    enum class TextureType
     {
-        color,
-        normal,
-        metallicRoughness,
-        emissive,
-        occulsion
+        TYPE_2D,
+        TYPE_CUBE
     };
 
-    class Shader;
+
     class Shader;
     class Camera;
     class Window;
@@ -40,7 +37,6 @@ namespace VGF
     struct TextureImpl
     {
         virtual ~TextureImpl() {}
-        virtual void Bind(textureType type) = 0;
         virtual void* GetNativeImage() = 0;
         virtual ImTextureID GetImGuiTexture() = 0;
     };

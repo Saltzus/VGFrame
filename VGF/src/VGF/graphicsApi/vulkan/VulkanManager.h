@@ -62,7 +62,6 @@ namespace VGF::Vulkan
         bool offscreen = false;
     };
 
-
     struct VulkanUniformBuffer
     {
         size_t size = 0;
@@ -85,25 +84,6 @@ namespace VGF::Vulkan
     };
 
     class VulkanRenderer;
-
-    class VulkanTexture : public TextureImpl
-    {
-    public:
-        VulkanTexture(std::string filePath);
-        VulkanTexture(const unsigned char* data, int format, unsigned int width, unsigned int height);
-
-        ImTextureID GetImGuiTexture() override;
-
-        ~VulkanTexture();
-        void Bind(textureType type) override;
-        void* GetNativeImage() override;
-    private:
-        ImTextureID textureId = NULL;
-
-        VkImage textureImage = VK_NULL_HANDLE;
-        VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
-        VkImageView textureImageViewTex = VK_NULL_HANDLE;
-    };
 
     class Vulkan : public ApiImpl
     {
@@ -162,19 +142,19 @@ namespace VGF::Vulkan
         VkFormat findDepthFormat() const;
 
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-        void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-        VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+        void createImage(TextureType type, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+        VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, TextureType type = TextureType::TYPE_2D);
         
         void createImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemory);
-        void createImageViews(std::vector<VkImageView>& imageViews, const std::vector<VkImage> images);
+        void createImageViews(std::vector<VkImageView>& imageViews, const std::vector<VkImage> images, TextureType type = TextureType::TYPE_2D);
         void createFramebuffers(std::vector<VkFramebuffer>& framebuffers, const std::vector<VkImageView> imageViews, bool offscreen);
 
         VulkanFrameBuffer* currentFramebuffer = VK_NULL_HANDLE;
 
         void UpdateTexture(const std::vector<VkDescriptorSet>&, VkImageView imageView, uint32_t frame, uint32_t binding);
 
-        void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-        void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+        void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, TextureType type = TextureType::TYPE_2D);
+        void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint8_t channels, uint8_t faces = 1, TextureType type = TextureType::TYPE_2D);
 
         VkCommandBuffer beginSingleTimeCommands() const;
         void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;

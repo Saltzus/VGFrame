@@ -15,7 +15,8 @@ namespace VGF
         unsigned int _width{}, _height{};
         static inline std::unordered_set<Texture*> textures;
     public:
-        Texture(const std::string &filePath);
+        Texture(const std::string& filePath);
+        Texture(const std::vector<std::string> filePaths);
         Texture(const unsigned char* data, int format, unsigned int width, unsigned int height);
 
         Texture(const Texture&) = delete;

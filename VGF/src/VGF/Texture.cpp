@@ -2,7 +2,7 @@
 #include "Resource.h"
 
 #include "graphicsApi/opengl/OpenGlManager.h"
-#include "graphicsApi/vulkan/VulkanManager.h"
+#include "graphicsApi/vulkan/VulkanTexture.h"
 
 #include "Renderer.h"
 
@@ -25,6 +25,25 @@ namespace VGF
 
         textures.insert(this);
     }
+
+    Texture::Texture(const std::vector<std::string> filePaths)
+    {
+        switch (Renderer::GetGraphicsApi())
+        {
+        case GraphicsApis::OpenGL:
+            //_impl = new VGF::Opengl::OpenglTexture(filePaths);
+            break;
+        case GraphicsApis::Vulkan:
+            _impl = new VGF::Vulkan::VulkanTexture(filePaths);
+            break;
+        default:
+            //_impl = new VGF::Opengl::OpenglTexture(filePaths);
+            break;
+        }
+
+        textures.insert(this);
+    }
+
     Texture::Texture(const unsigned char* data, int format, unsigned int width, unsigned int height) : _width(width), _height(height)
     {
         switch (Renderer::GetGraphicsApi())
