@@ -44,7 +44,7 @@ namespace VGF
         std::unique_ptr<Model> _ownedModel;
         glm::vec3 _position = glm::vec3(0.f, 0.f, 0.f);
         glm::quat _rotation = glm::quat(0.f, 0.f, 1.f, 0.f);
-        glm::vec3 _scale = glm::vec3(0.7f, 0.7f, 0.7f);
+        glm::vec3 _scale = glm::vec3(1.f, 1.f, 1.f);
     private:
 
     public:
